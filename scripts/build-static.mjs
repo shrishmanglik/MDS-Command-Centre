@@ -1,0 +1,27 @@
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+const appRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const dist = path.join(appRoot, "dist");
+
+function copy(relativePath) {
+  const source = path.join(appRoot, relativePath);
+  const target = path.join(dist, relativePath);
+  fs.mkdirSync(path.dirname(target), { recursive: true });
+  fs.copyFileSync(source, target);
+}
+
+fs.rmSync(dist, { recursive: true, force: true });
+copy("index.html");
+copy("src/styles.css");
+copy("src/static-app.js");
+copy("src/data/warRoomSnapshot.json");
+copy("src/data/localTickets.json");
+copy("src/data/localActivityLog.json");
+copy("src/data/localDecisionExports.json");
+copy("src/data/localResearchSources.json");
+copy("src/data/localResearchBriefs.json");
+copy("src/data/localDeltaReviews.json");
+copy("src/data/localAgentRuns.json");
+console.log(`Built static Command Centre to ${path.relative(appRoot, dist)}`);

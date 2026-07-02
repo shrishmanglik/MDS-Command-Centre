@@ -1,0 +1,553 @@
+import http from "node:http";
+import fs from "node:fs";
+import path from "node:path";
+import { execFile } from "node:child_process";
+import { fileURLToPath } from "node:url";
+
+const appRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const args = process.argv.slice(2);
+const rootArg = args[args.indexOf("--root") + 1] || ".";
+const portArg = Number(args[args.indexOf("--port") + 1] || 5178);
+const root = path.resolve(appRoot, rootArg);
+const ticketStore = path.join(appRoot, "src", "data", "localTickets.json");
+const activityStore = path.join(appRoot, "src", "data", "localActivityLog.json");
+const decisionStore = path.join(appRoot, "src", "data", "localDecisionExports.json");
+const runStore = path.join(appRoot, "src", "data", "localAgentRuns.json");
+const researchStore = path.join(appRoot, "src", "data", "localResearchBriefs.json");
+const researchSourceStore = path.join(appRoot, "src", "data", "localResearchSources.json");
+const deltaReviewStore = path.join(appRoot, "src", "data", "localDeltaReviews.json");
+const snapshotFile = path.join(appRoot, "src", "data", "warRoomSnapshot.json");
+const refreshScript = path.join(appRoot, "scripts", "refresh-war-room-data.mjs");
+
+const contentTypes = new Map([
+  [".html", "text/html; charset=utf-8"],
+  [".js", "text/javascript; charset=utf-8"],
+  [".css", "text/css; charset=utf-8"],
+  [".json", "application/json; charset=utf-8"],
+  [".png", "image/png"],
+  [".svg", "image/svg+xml"],
+]);
+
+function safePath(urlPath) {
+  const decoded = decodeURIComponent(urlPath.split("?")[0]);
+  const clean = decoded === "/" ? "/index.html" : decoded;
+  const target = path.resolve(root, `.${clean}`);
+  const relative = path.relative(root, target);
+  if (relative.startsWith("..") || path.isAbsolute(relative)) return null;
+  return target;
+}
+
+function sendJson(response, status, payload) {
+  response.writeHead(status, {
+    "Content-Type": "application/json; charset=utf-8",
+    "Cache-Control": "no-store",
+  });
+  response.end(JSON.stringify(payload, null, 2));
+}
+
+function readBody(request, limit = 256 * 1024) {
+  return new Promise((resolve, reject) => {
+    let body = "";
+    request.on("data", (chunk) => {
+      body += chunk;
+      if (body.length > limit) {
+        reject(new Error("Request body too large."));
+        request.destroy();
+      }
+    });
+    request.on("end", () => resolve(body));
+    request.on("error", reject);
+  });
+}
+
+function sanitizeTicket(ticket) {
+  const now = new Date().toISOString();
+  return {
+    id: String(ticket.id || `MCC-${Date.now().toString(36).toUpperCase()}`).slice(0, 80),
+    title: String(ticket.title || "").slice(0, 240),
+    lane: String(ticket.lane || "Command Centre").slice(0, 120),
+    owner: String(ticket.owner || "Codex Board").slice(0, 120),
+    status: String(ticket.status || "ACTIVE").slice(0, 40),
+    priority: String(ticket.priority || "P1").slice(0, 12),
+    sourceEvidence: String(ticket.sourceEvidence || "").slice(0, 2000),
+    proofCondition: String(ticket.proofCondition || "").slice(0, 2000),
+    stopCondition: String(ticket.stopCondition || "").slice(0, 2000),
+    nextAction: String(ticket.nextAction || "").slice(0, 2000),
+    closeoutRaw: String(ticket.closeoutRaw || "").slice(0, 12000),
+    closeoutSummary: String(ticket.closeoutSummary || "").slice(0, 2000),
+    evidencePaths: String(ticket.evidencePaths || "").slice(0, 3000),
+    validationRun: String(ticket.validationRun || "").slice(0, 3000),
+    unknownsPreserved: String(ticket.unknownsPreserved || "").slice(0, 2000),
+    authorityConflicts: String(ticket.authorityConflicts || "").slice(0, 2000),
+    memoryRecommendation: String(ticket.memoryRecommendation || "ledger_only").slice(0, 1000),
+    reviewerStatus: String(ticket.reviewerStatus || "NOT REVIEWED").slice(0, 80),
+    reviewNotes: String(ticket.reviewNotes || "").slice(0, 2000),
+    reviewedBy: String(ticket.reviewedBy || "").slice(0, 120),
+    reviewedAt: String(ticket.reviewedAt || "").slice(0, 80),
+    promotionStatus: String(ticket.promotionStatus || "NOT STAGED").slice(0, 80),
+    promotionNotes: String(ticket.promotionNotes || "").slice(0, 2000),
+    stagedBy: String(ticket.stagedBy || "").slice(0, 120),
+    stagedAt: String(ticket.stagedAt || "").slice(0, 80),
+    closedBy: String(ticket.closedBy || "").slice(0, 120),
+    closeoutAt: String(ticket.closeoutAt || "").slice(0, 80),
+    createdAt: String(ticket.createdAt || now).slice(0, 80),
+    updatedAt: String(ticket.updatedAt || now).slice(0, 80),
+  };
+}
+
+function sanitizeActivityEvent(event) {
+  const now = new Date().toISOString();
+  return {
+    id: String(event.id || `ACT-${Date.now().toString(36).toUpperCase()}`).slice(0, 90),
+    timestamp: String(event.timestamp || now).slice(0, 80),
+    action: String(event.action || "activity_recorded").slice(0, 120),
+    ticketId: String(event.ticketId || "UNKNOWN").slice(0, 80),
+    title: String(event.title || "").slice(0, 240),
+    lane: String(event.lane || "Command Centre").slice(0, 120),
+    owner: String(event.owner || "Codex Board").slice(0, 120),
+    status: String(event.status || "UNKNOWN").slice(0, 80),
+    reviewStatus: String(event.reviewStatus || "UNKNOWN").slice(0, 80),
+    promotionStatus: String(event.promotionStatus || "UNKNOWN").slice(0, 80),
+    memoryRecommendation: String(event.memoryRecommendation || "ledger_only").slice(0, 1000),
+    evidencePaths: String(event.evidencePaths || "").slice(0, 3000),
+    validationRun: String(event.validationRun || "").slice(0, 3000),
+    unknownsPreserved: String(event.unknownsPreserved || "").slice(0, 2000),
+    authorityConflicts: String(event.authorityConflicts || "").slice(0, 2000),
+    details: String(event.details || "").slice(0, 3000),
+    packet: String(event.packet || "").slice(0, 12000),
+  };
+}
+
+function sanitizeDecisionExport(decision) {
+  const now = new Date().toISOString();
+  return {
+    id: String(decision.id || `DEC-${Date.now().toString(36).toUpperCase()}`).slice(0, 90),
+    createdAt: String(decision.createdAt || now).slice(0, 80),
+    updatedAt: String(decision.updatedAt || now).slice(0, 80),
+    sourceEventId: String(decision.sourceEventId || "").slice(0, 90),
+    sourceEventIds: Array.isArray(decision.sourceEventIds)
+      ? decision.sourceEventIds.map((id) => String(id || "").slice(0, 90)).filter(Boolean).slice(0, 25)
+      : String(decision.sourceEventIds || "")
+          .split(/[,\s]+/)
+          .map((id) => String(id || "").slice(0, 90))
+          .filter(Boolean)
+          .slice(0, 25),
+    sourceAction: String(decision.sourceAction || "UNKNOWN").slice(0, 120),
+    ticketId: String(decision.ticketId || "UNKNOWN").slice(0, 80),
+    title: String(decision.title || "").slice(0, 240),
+    decisionType: String(decision.decisionType || "ledger_append_candidate").slice(0, 120),
+    disposition: String(decision.disposition || "DRAFT").slice(0, 80),
+    director: String(decision.director || "Codex Strategic Board").slice(0, 120),
+    authorityBasis: String(decision.authorityBasis || "").slice(0, 3000),
+    evidencePaths: String(decision.evidencePaths || "").slice(0, 3000),
+    validationRun: String(decision.validationRun || "").slice(0, 3000),
+    unknownsPreserved: String(decision.unknownsPreserved || "").slice(0, 2000),
+    authorityConflicts: String(decision.authorityConflicts || "").slice(0, 2000),
+    memoryAction: String(decision.memoryAction || "ledger_only").slice(0, 1000),
+    officialLedgerCandidate: String(decision.officialLedgerCandidate || "").slice(0, 12000),
+    bundleSummary: String(decision.bundleSummary || "").slice(0, 3000),
+    ledgerBundleCandidate: String(decision.ledgerBundleCandidate || "").slice(0, 16000),
+    notes: String(decision.notes || "").slice(0, 3000),
+    packet: String(decision.packet || "").slice(0, 24000),
+  };
+}
+
+function sanitizeAgentRun(run) {
+  const now = new Date().toISOString();
+  return {
+    id: String(run.id || `RUN-${Date.now().toString(36).toUpperCase()}`).slice(0, 90),
+    ticketId: String(run.ticketId || "UNKNOWN").slice(0, 80),
+    title: String(run.title || "").slice(0, 240),
+    targetAgent: String(run.targetAgent || "Codex").slice(0, 80),
+    owner: String(run.owner || "Codex Strategic Board").slice(0, 120),
+    lane: String(run.lane || "Command Centre").slice(0, 120),
+    status: String(run.status || "DRAFT").slice(0, 80),
+    priority: String(run.priority || "P1").slice(0, 12),
+    approvalClass: String(run.approvalClass || "LOCAL_ONLY").slice(0, 80),
+    objective: String(run.objective || "").slice(0, 3000),
+    sourceEvidence: String(run.sourceEvidence || "").slice(0, 3000),
+    allowedActions: String(run.allowedActions || "").slice(0, 3000),
+    forbiddenActions: String(run.forbiddenActions || "").slice(0, 3000),
+    evidenceRequirement: String(run.evidenceRequirement || "").slice(0, 3000),
+    proofCondition: String(run.proofCondition || "").slice(0, 3000),
+    stopCondition: String(run.stopCondition || "").slice(0, 3000),
+    closeoutFormat: String(run.closeoutFormat || "").slice(0, 3000),
+    validationPlan: String(run.validationPlan || "").slice(0, 3000),
+    unknownsPreserved: String(run.unknownsPreserved || "").slice(0, 2000),
+    authorityBasis: String(run.authorityBasis || "").slice(0, 3000),
+    packet: String(run.packet || "").slice(0, 24000),
+    createdAt: String(run.createdAt || now).slice(0, 80),
+    updatedAt: String(run.updatedAt || now).slice(0, 80),
+  };
+}
+
+function sanitizeResearchBrief(brief) {
+  const now = new Date().toISOString();
+  return {
+    id: String(brief.id || `RES-${Date.now().toString(36).toUpperCase()}`).slice(0, 90),
+    createdAt: String(brief.createdAt || now).slice(0, 80),
+    updatedAt: String(brief.updatedAt || now).slice(0, 80),
+    sourceType: String(brief.sourceType || "NotebookLM").slice(0, 80),
+    sourceTitle: String(brief.sourceTitle || "").slice(0, 240),
+    sourceEvidence: String(brief.sourceEvidence || "").slice(0, 4000),
+    sourceUrl: String(brief.sourceUrl || "").slice(0, 1000),
+    repoOrNotebook: String(brief.repoOrNotebook || "").slice(0, 1000),
+    researchSummary: String(brief.researchSummary || "").slice(0, 5000),
+    proposedSlice: String(brief.proposedSlice || "").slice(0, 3000),
+    leverageClaim: String(brief.leverageClaim || "").slice(0, 2000),
+    timeboxMinutes: String(brief.timeboxMinutes || "30").slice(0, 20),
+    targetAgent: String(brief.targetAgent || "Codex").slice(0, 80),
+    owner: String(brief.owner || "Codex Strategic Board").slice(0, 120),
+    lane: String(brief.lane || "Research Studio").slice(0, 120),
+    status: String(brief.status || "DRAFT").slice(0, 80),
+    expectedArtifact: String(brief.expectedArtifact || "").slice(0, 3000),
+    evidenceRequirement: String(brief.evidenceRequirement || "").slice(0, 3000),
+    proofCondition: String(brief.proofCondition || "").slice(0, 3000),
+    stopCondition: String(brief.stopCondition || "").slice(0, 3000),
+    validationPlan: String(brief.validationPlan || "").slice(0, 3000),
+    ipClassification: String(brief.ipClassification || "private_ip").slice(0, 80),
+    unknownsPreserved: String(brief.unknownsPreserved || "").slice(0, 2000),
+    packet: String(brief.packet || "").slice(0, 24000),
+  };
+}
+
+function sanitizeResearchSource(source) {
+  return {
+    id: String(source.id || `SRC-${Date.now().toString(36).toUpperCase()}`).slice(0, 90),
+    sourceType: String(source.sourceType || "D-local docs").slice(0, 80),
+    title: String(source.title || "").slice(0, 240),
+    sourcePath: String(source.sourcePath || "").slice(0, 1000),
+    sourceEvidence: String(source.sourceEvidence || "").slice(0, 4000),
+    authorityStatus: String(source.authorityStatus || "EVIDENCE_ONLY").slice(0, 120),
+    freshness: String(source.freshness || "UNKNOWN until verified.").slice(0, 1000),
+    researchSummary: String(source.researchSummary || "").slice(0, 5000),
+    proposedSlice: String(source.proposedSlice || "").slice(0, 3000),
+    leverageClaim: String(source.leverageClaim || "").slice(0, 2000),
+    expectedArtifact: String(source.expectedArtifact || "").slice(0, 3000),
+    evidenceRequirement: String(source.evidenceRequirement || "").slice(0, 3000),
+    proofCondition: String(source.proofCondition || "").slice(0, 3000),
+    validationPlan: String(source.validationPlan || "").slice(0, 3000),
+    stopCondition: String(source.stopCondition || "").slice(0, 3000),
+    timeboxMinutes: String(source.timeboxMinutes || "30").slice(0, 20),
+    targetAgent: String(source.targetAgent || "Codex").slice(0, 80),
+    owner: String(source.owner || "Atlas / Research Studio").slice(0, 120),
+    lane: String(source.lane || "Research Studio").slice(0, 120),
+    ipClassification: String(source.ipClassification || "private_ip").slice(0, 80),
+    unknownsPreserved: String(source.unknownsPreserved || "Research source is evidence input only; live state remains UNKNOWN.").slice(0, 2000),
+  };
+}
+
+function sanitizeDeltaReview(review) {
+  const now = new Date().toISOString();
+  return {
+    id: String(review.id || `DELTA-${Date.now().toString(36).toUpperCase()}`).slice(0, 90),
+    createdAt: String(review.createdAt || now).slice(0, 80),
+    updatedAt: String(review.updatedAt || now).slice(0, 80),
+    sourceId: String(review.sourceId || "UNKNOWN").slice(0, 120),
+    title: String(review.title || "").slice(0, 240),
+    archivedEvidence: String(review.archivedEvidence || "").slice(0, 5000),
+    currentAuthority: String(review.currentAuthority || "").slice(0, 3000),
+    archivedClaim: String(review.archivedClaim || "").slice(0, 4000),
+    currentConstraint: String(review.currentConstraint || "").slice(0, 3000),
+    decision: String(review.decision || "REVISE").slice(0, 40),
+    rationale: String(review.rationale || "").slice(0, 4000),
+    owner: String(review.owner || "Codex Strategic Board").slice(0, 120),
+    lane: String(review.lane || "VCOS Builder Studio").slice(0, 120),
+    proofCondition: String(review.proofCondition || "").slice(0, 3000),
+    nextAction: String(review.nextAction || "").slice(0, 3000),
+    stopCondition: String(review.stopCondition || "").slice(0, 3000),
+    unknownsPreserved: String(review.unknownsPreserved || "").slice(0, 3000),
+    packet: String(review.packet || "").slice(0, 26000),
+  };
+}
+
+function readTickets() {
+  if (!fs.existsSync(ticketStore)) return [];
+  const parsed = JSON.parse(fs.readFileSync(ticketStore, "utf8"));
+  const tickets = Array.isArray(parsed) ? parsed : parsed.tickets;
+  return Array.isArray(tickets) ? tickets.map(sanitizeTicket) : [];
+}
+
+function writeTickets(tickets) {
+  if (!Array.isArray(tickets)) throw new Error("tickets must be an array.");
+  if (tickets.length > 100) throw new Error("Refusing to store more than 100 local tickets.");
+  fs.mkdirSync(path.dirname(ticketStore), { recursive: true });
+  const payload = {
+    schemaVersion: "mds.command-centre.local-tickets.v1",
+    updatedAt: new Date().toISOString(),
+    authority: "D-local file-backed ticket store; not provider or GitHub truth until reviewed.",
+    tickets: tickets.map(sanitizeTicket),
+  };
+  const temp = `${ticketStore}.${process.pid}.tmp`;
+  fs.writeFileSync(temp, `${JSON.stringify(payload, null, 2)}\n`);
+  fs.renameSync(temp, ticketStore);
+  return payload;
+}
+
+function readActivityLog() {
+  if (!fs.existsSync(activityStore)) return [];
+  const parsed = JSON.parse(fs.readFileSync(activityStore, "utf8"));
+  const events = Array.isArray(parsed) ? parsed : parsed.events;
+  return Array.isArray(events) ? events.map(sanitizeActivityEvent) : [];
+}
+
+function writeActivityLog(events) {
+  if (!Array.isArray(events)) throw new Error("events must be an array.");
+  if (events.length > 250) throw new Error("Refusing to store more than 250 local activity events.");
+  fs.mkdirSync(path.dirname(activityStore), { recursive: true });
+  const payload = {
+    schemaVersion: "mds.command-centre.local-activity.v1",
+    updatedAt: new Date().toISOString(),
+    authority: "D-local activity evidence only; not official ledger, company memory, GitHub truth, or provider live-state proof.",
+    events: events.map(sanitizeActivityEvent).slice(0, 250),
+  };
+  const temp = `${activityStore}.${process.pid}.tmp`;
+  fs.writeFileSync(temp, `${JSON.stringify(payload, null, 2)}\n`);
+  fs.renameSync(temp, activityStore);
+  return payload;
+}
+
+function readDecisionExports() {
+  if (!fs.existsSync(decisionStore)) return [];
+  const parsed = JSON.parse(fs.readFileSync(decisionStore, "utf8"));
+  const decisions = Array.isArray(parsed) ? parsed : parsed.decisions;
+  return Array.isArray(decisions) ? decisions.map(sanitizeDecisionExport) : [];
+}
+
+function writeDecisionExports(decisions) {
+  if (!Array.isArray(decisions)) throw new Error("decisions must be an array.");
+  if (decisions.length > 200) throw new Error("Refusing to store more than 200 local decision exports.");
+  fs.mkdirSync(path.dirname(decisionStore), { recursive: true });
+  const payload = {
+    schemaVersion: "mds.command-centre.local-decisions.v1",
+    updatedAt: new Date().toISOString(),
+    authority: "D-local director decision exports only; not official ledger, company memory, GitHub truth, or provider live-state proof.",
+    decisions: decisions.map(sanitizeDecisionExport).slice(0, 200),
+  };
+  const temp = `${decisionStore}.${process.pid}.tmp`;
+  fs.writeFileSync(temp, `${JSON.stringify(payload, null, 2)}\n`);
+  fs.renameSync(temp, decisionStore);
+  return payload;
+}
+
+function readAgentRuns() {
+  if (!fs.existsSync(runStore)) return [];
+  const parsed = JSON.parse(fs.readFileSync(runStore, "utf8"));
+  const runs = Array.isArray(parsed) ? parsed : parsed.runs;
+  return Array.isArray(runs) ? runs.map(sanitizeAgentRun) : [];
+}
+
+function writeAgentRuns(runs) {
+  if (!Array.isArray(runs)) throw new Error("runs must be an array.");
+  if (runs.length > 200) throw new Error("Refusing to store more than 200 local agent runs.");
+  fs.mkdirSync(path.dirname(runStore), { recursive: true });
+  const payload = {
+    schemaVersion: "mds.command-centre.local-agent-runs.v1",
+    updatedAt: new Date().toISOString(),
+    authority: "D-local agent run control only; not external execution, official ledger, company memory, GitHub truth, or provider live-state proof.",
+    runs: runs.map(sanitizeAgentRun).slice(0, 200),
+  };
+  const temp = `${runStore}.${process.pid}.tmp`;
+  fs.writeFileSync(temp, `${JSON.stringify(payload, null, 2)}\n`);
+  fs.renameSync(temp, runStore);
+  return payload;
+}
+
+function readResearchBriefs() {
+  if (!fs.existsSync(researchStore)) return [];
+  const parsed = JSON.parse(fs.readFileSync(researchStore, "utf8"));
+  const briefs = Array.isArray(parsed) ? parsed : parsed.briefs;
+  return Array.isArray(briefs) ? briefs.map(sanitizeResearchBrief) : [];
+}
+
+function writeResearchBriefs(briefs) {
+  if (!Array.isArray(briefs)) throw new Error("briefs must be an array.");
+  if (briefs.length > 200) throw new Error("Refusing to store more than 200 local research briefs.");
+  fs.mkdirSync(path.dirname(researchStore), { recursive: true });
+  const payload = {
+    schemaVersion: "mds.command-centre.local-research-briefs.v1",
+    updatedAt: new Date().toISOString(),
+    authority: "D-local research-to-execution briefs only; NotebookLM/GitHub research is evidence input, not provider truth, official ledger, company memory, or external execution.",
+    briefs: briefs.map(sanitizeResearchBrief).slice(0, 200),
+  };
+  const temp = `${researchStore}.${process.pid}.tmp`;
+  fs.writeFileSync(temp, `${JSON.stringify(payload, null, 2)}\n`);
+  fs.renameSync(temp, researchStore);
+  return payload;
+}
+
+function readResearchSources() {
+  if (!fs.existsSync(researchSourceStore)) return [];
+  const parsed = JSON.parse(fs.readFileSync(researchSourceStore, "utf8"));
+  const sources = Array.isArray(parsed) ? parsed : parsed.sources;
+  return Array.isArray(sources) ? sources.map(sanitizeResearchSource).slice(0, 50) : [];
+}
+
+function readDeltaReviews() {
+  if (!fs.existsSync(deltaReviewStore)) return [];
+  const parsed = JSON.parse(fs.readFileSync(deltaReviewStore, "utf8"));
+  const reviews = Array.isArray(parsed) ? parsed : parsed.reviews;
+  return Array.isArray(reviews) ? reviews.map(sanitizeDeltaReview) : [];
+}
+
+function writeDeltaReviews(reviews) {
+  if (!Array.isArray(reviews)) throw new Error("reviews must be an array.");
+  if (reviews.length > 120) throw new Error("Refusing to store more than 120 local delta reviews.");
+  fs.mkdirSync(path.dirname(deltaReviewStore), { recursive: true });
+  const payload = {
+    schemaVersion: "mds.command-centre.local-delta-reviews.v1",
+    updatedAt: new Date().toISOString(),
+    authority: "D-local archive-vs-current review staging only; not a duplicate kernel, source-of-truth file, official ledger entry, memory promotion, GitHub release proof, provider truth, or external execution.",
+    reviews: reviews.map(sanitizeDeltaReview).slice(0, 120),
+  };
+  const temp = `${deltaReviewStore}.${process.pid}.tmp`;
+  fs.writeFileSync(temp, `${JSON.stringify(payload, null, 2)}\n`);
+  fs.renameSync(temp, deltaReviewStore);
+  return payload;
+}
+
+function snapshotHealth() {
+  const snapshot = fs.existsSync(snapshotFile) ? JSON.parse(fs.readFileSync(snapshotFile, "utf8")) : null;
+  const sources = snapshot?.sourceHealth || [];
+  return {
+    api: true,
+    appRoot,
+    snapshotExists: fs.existsSync(snapshotFile),
+    snapshotGeneratedAt: snapshot?.generatedAt || null,
+    ticketStore: path.relative(appRoot, ticketStore),
+    ticketStoreExists: fs.existsSync(ticketStore),
+    activityStore: path.relative(appRoot, activityStore),
+    activityStoreExists: fs.existsSync(activityStore),
+    activityEvents: fs.existsSync(activityStore) ? readActivityLog().length : 0,
+    decisionStore: path.relative(appRoot, decisionStore),
+    decisionStoreExists: fs.existsSync(decisionStore),
+    decisionExports: fs.existsSync(decisionStore) ? readDecisionExports().length : 0,
+    runStore: path.relative(appRoot, runStore),
+    runStoreExists: fs.existsSync(runStore),
+    agentRuns: fs.existsSync(runStore) ? readAgentRuns().length : 0,
+    researchStore: path.relative(appRoot, researchStore),
+    researchStoreExists: fs.existsSync(researchStore),
+    researchBriefs: fs.existsSync(researchStore) ? readResearchBriefs().length : 0,
+    researchSourceStore: path.relative(appRoot, researchSourceStore),
+    researchSourceStoreExists: fs.existsSync(researchSourceStore),
+    researchSources: fs.existsSync(researchSourceStore) ? readResearchSources().length : 0,
+    deltaReviewStore: path.relative(appRoot, deltaReviewStore),
+    deltaReviewStoreExists: fs.existsSync(deltaReviewStore),
+    deltaReviews: fs.existsSync(deltaReviewStore) ? readDeltaReviews().length : 0,
+    sources,
+  };
+}
+
+async function handleApi(request, response, pathname) {
+  try {
+    if (request.method === "GET" && pathname === "/api/health") {
+      sendJson(response, 200, snapshotHealth());
+      return true;
+    }
+    if (request.method === "GET" && pathname === "/api/tickets") {
+      sendJson(response, 200, { tickets: readTickets(), store: path.relative(appRoot, ticketStore) });
+      return true;
+    }
+    if (request.method === "PUT" && pathname === "/api/tickets") {
+      const parsed = JSON.parse(await readBody(request));
+      const tickets = Array.isArray(parsed) ? parsed : parsed.tickets;
+      const payload = writeTickets(tickets);
+      sendJson(response, 200, payload);
+      return true;
+    }
+    if (request.method === "GET" && pathname === "/api/activity") {
+      sendJson(response, 200, { events: readActivityLog(), store: path.relative(appRoot, activityStore) });
+      return true;
+    }
+    if (request.method === "PUT" && pathname === "/api/activity") {
+      const parsed = JSON.parse(await readBody(request, 512 * 1024));
+      const events = Array.isArray(parsed) ? parsed : parsed.events;
+      const payload = writeActivityLog(events);
+      sendJson(response, 200, payload);
+      return true;
+    }
+    if (request.method === "GET" && pathname === "/api/decisions") {
+      sendJson(response, 200, { decisions: readDecisionExports(), store: path.relative(appRoot, decisionStore) });
+      return true;
+    }
+    if (request.method === "PUT" && pathname === "/api/decisions") {
+      const parsed = JSON.parse(await readBody(request, 512 * 1024));
+      const decisions = Array.isArray(parsed) ? parsed : parsed.decisions;
+      const payload = writeDecisionExports(decisions);
+      sendJson(response, 200, payload);
+      return true;
+    }
+    if (request.method === "GET" && pathname === "/api/runs") {
+      sendJson(response, 200, { runs: readAgentRuns(), store: path.relative(appRoot, runStore) });
+      return true;
+    }
+    if (request.method === "PUT" && pathname === "/api/runs") {
+      const parsed = JSON.parse(await readBody(request, 512 * 1024));
+      const runs = Array.isArray(parsed) ? parsed : parsed.runs;
+      const payload = writeAgentRuns(runs);
+      sendJson(response, 200, payload);
+      return true;
+    }
+    if (request.method === "GET" && pathname === "/api/research") {
+      sendJson(response, 200, { briefs: readResearchBriefs(), store: path.relative(appRoot, researchStore) });
+      return true;
+    }
+    if (request.method === "GET" && pathname === "/api/research-sources") {
+      sendJson(response, 200, { sources: readResearchSources(), store: path.relative(appRoot, researchSourceStore) });
+      return true;
+    }
+    if (request.method === "GET" && pathname === "/api/delta-reviews") {
+      sendJson(response, 200, { reviews: readDeltaReviews(), store: path.relative(appRoot, deltaReviewStore) });
+      return true;
+    }
+    if (request.method === "PUT" && pathname === "/api/delta-reviews") {
+      const parsed = JSON.parse(await readBody(request, 512 * 1024));
+      const reviews = Array.isArray(parsed) ? parsed : parsed.reviews;
+      const payload = writeDeltaReviews(reviews);
+      sendJson(response, 200, payload);
+      return true;
+    }
+    if (request.method === "PUT" && pathname === "/api/research") {
+      const parsed = JSON.parse(await readBody(request, 512 * 1024));
+      const briefs = Array.isArray(parsed) ? parsed : parsed.briefs;
+      const payload = writeResearchBriefs(briefs);
+      sendJson(response, 200, payload);
+      return true;
+    }
+    if (request.method === "POST" && pathname === "/api/refresh-snapshot") {
+      execFile(process.execPath, [refreshScript], { cwd: appRoot, timeout: 30000 }, (error, stdout, stderr) => {
+        if (error) {
+          sendJson(response, 500, { ok: false, error: error.message, stderr: String(stderr || "").slice(0, 2000) });
+          return;
+        }
+        sendJson(response, 200, { ok: true, stdout: String(stdout || "").slice(0, 2000), health: snapshotHealth() });
+      });
+      return true;
+    }
+  } catch (error) {
+    sendJson(response, 400, { ok: false, error: error.message });
+    return true;
+  }
+  return false;
+}
+
+const server = http.createServer(async (request, response) => {
+  const pathname = new URL(request.url || "/", `http://${request.headers.host || "127.0.0.1"}`).pathname;
+  if (pathname.startsWith("/api/") && (await handleApi(request, response, pathname))) return;
+
+  const target = safePath(request.url || "/");
+  if (!target || !fs.existsSync(target) || fs.statSync(target).isDirectory()) {
+    response.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" });
+    response.end("Not found");
+    return;
+  }
+  response.writeHead(200, {
+    "Content-Type": contentTypes.get(path.extname(target)) || "application/octet-stream",
+    "Cache-Control": "no-store",
+  });
+  fs.createReadStream(target).pipe(response);
+});
+
+server.listen(portArg, "127.0.0.1", () => {
+  console.log(`MDS Command Centre serving ${root} at http://127.0.0.1:${portArg}/`);
+});

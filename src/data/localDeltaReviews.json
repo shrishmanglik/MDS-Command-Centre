@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "mds.command-centre.local-delta-reviews.v1",
+  "updatedAt": "2026-06-30T14:42:39.269Z",
+  "authority": "D-local archive-vs-current review staging only; not a duplicate kernel, source-of-truth file, official ledger entry, memory promotion, GitHub release proof, provider truth, or external execution.",
+  "reviews": [
+    {
+      "id": "DELTA-MR0QGM4W",
+      "createdAt": "2026-06-30T14:19:38.384Z",
+      "updatedAt": "2026-06-30T14:42:39.270Z",
+      "sourceId": "SRC-MIDAS-ARCHIVED-FRAMEWORK-DOCS",
+      "title": "Delta review: MIDAS Framework (Archived) docs",
+      "archivedEvidence": "Knowledge/Frameworks/1. MIDAS/MIDAS-v1-Architecture.md; Knowledge/Frameworks/1. MIDAS/MIDAS-v1-Complete-Manifest.md; Knowledge/Frameworks/1. MIDAS/MIDAS_TRANSFORMATION_AUDIT.md; Knowledge/Frameworks/1. MIDAS/SPEC-midas-master-build.md",
+      "currentAuthority": "CEO.md; business/strategy/source-authority-matrix.yaml; business/strategy/source-of-truth-map.md; vcos/mds-kernel/state/current-state.md; Products/MDS-Command-Centre/src/data/localResearchSources.json",
+      "archivedClaim": "Archived MIDAS framework docs can supply patterns and deltas, but must be compared against current D doctrine before execution.",
+      "currentConstraint": "D canonical doctrine wins; no duplicate kernels/source maps; provider/GitHub/live-state remain UNKNOWN unless owning authority proves them.",
+      "decision": "REVISE",
+      "rationale": "REVISE into a local Command Centre operator slice after current D authority and no-duplicate-kernel boundaries are checked.",
+      "owner": "Codex Strategic Board",
+      "lane": "VCOS Builder Studio",
+      "proofCondition": "Saved packet must preserve archived evidence path, current authority checked, PARK decision, no duplicate kernels, and UNKNOWN provider/live-state boundaries.",
+      "nextAction": "Stage one local run or ticket only after director/CEO/Board review confirms the decision.",
+      "stopCondition": "Stop before treating archive as current doctrine, creating duplicate kernels, deploying, provider mutation, external message, payment action, secret read, official ledger append, memory promotion, GitHub push, or live-state claim.",
+      "unknownsPreserved": "Archived material may be stale; live provider, payment, deployment, auth, schema, revenue, GitHub release, and promoted-memory status remain UNKNOWN until verified.",
+      "packet": "# MDS Command Centre Archive-Vs-Current Delta Packet\n\npacket_status: LOCAL_DELTA_REVIEW_ONLY\nreview_id: DELTA-MR0QGM4W\nsource_id: SRC-MIDAS-ARCHIVED-FRAMEWORK-DOCS\ntitle: Delta review: MIDAS Framework (Archived) docs\ndecision: REVISE\nowner: Codex Strategic Board\nlane: VCOS Builder Studio\nreadiness_score: 6/6\n\n## Archived Evidence\nKnowledge/Frameworks/1. MIDAS/MIDAS-v1-Architecture.md; Knowledge/Frameworks/1. MIDAS/MIDAS-v1-Complete-Manifest.md; Knowledge/Frameworks/1. MIDAS/MIDAS_TRANSFORMATION_AUDIT.md; Knowledge/Frameworks/1. MIDAS/SPEC-midas-master-build.md\n\n## Current Authority Checked\nCEO.md; business/strategy/source-authority-matrix.yaml; business/strategy/source-of-truth-map.md; vcos/mds-kernel/state/current-state.md; Products/MDS-Command-Centre/src/data/localResearchSources.json\n\n## Archived Claim / Pattern\nArchived MIDAS framework docs can supply patterns and deltas, but must be compared against current D doctrine before execution.\n\n## Current Constraint\nD canonical doctrine wins; no duplicate kernels/source maps; provider/GitHub/live-state remain UNKNOWN unless owning authority proves them.\n\n## Decision Rationale\nREVISE into a local Command Centre operator slice after current D authority and no-duplicate-kernel boundaries are checked.\n\n## Proof Condition\nSaved packet must preserve archived evidence path, current authority checked, PARK decision, no duplicate kernels, and UNKNOWN provider/live-state boundaries.\n\n## Next Action\nStage one local run or ticket only after director/CEO/Board review confirms the decision.\n\n## Stop Condition\nStop before treating archive as current doctrine, creating duplicate kernels, deploying, provider mutation, external message, payment action, secret read, official ledger append, memory promotion, GitHub push, or live-state claim.\n\n## Unknowns Preserved\nArchived material may be stale; live provider, payment, deployment, auth, schema, revenue, GitHub release, and promoted-memory status remain UNKNOWN until verified.\n\n## Readiness Checks\n- PASS | Archived evidence: Archived/reference evidence path required\n- PASS | Current authority: Current D authority files must be named\n- PASS | Decision: Decision must be REUSE, REVISE, or PARK\n- PASS | No duplicate kernel: Duplicate-kernel boundary must be explicit\n- PASS | Stop condition: Forbidden boundaries must be explicit\n- PASS | UNKNOWN preservation: Archive/current uncertainty must stay explicit\n\n## Forbidden Actions\n- Do not treat archived docs or session extracts as current doctrine.\n- Do not create duplicate kernels, source maps, CEO files, Board files, product registries, or source-of-truth files from this packet.\n- Do not deploy, mutate providers, move money, send external messages, read secrets, push GitHub, append the official ledger, or promote memory from this packet alone."
+    }
+  ]
+}
