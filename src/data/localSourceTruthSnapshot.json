@@ -1,6 +1,6 @@
 {
   "schemaVersion": "mds.command-centre.local-source-truth-snapshot.v1",
-  "generatedAt": "2026-07-07T14:10:19.274Z",
+  "generatedAt": "2026-07-07T14:36:06.420Z",
   "authority": "D-local filesystem/git metadata only. GitHub remains committed-code authority; drive roles per source-authority doctrine; secret-shaped paths refused at scan time.",
   "drives": {
     "drives": [
@@ -65,7 +65,7 @@
               "name": ".git",
               "kind": "dir",
               "sizeBytes": 0,
-              "modifiedAt": "2026-07-07T13:56:28.959Z"
+              "modifiedAt": "2026-07-07T14:15:00.371Z"
             },
             {
               "name": ".github",
@@ -277,7 +277,7 @@
               "name": "MDS-Command-Centre",
               "kind": "dir",
               "sizeBytes": 0,
-              "modifiedAt": "2026-07-07T14:08:03.615Z"
+              "modifiedAt": "2026-07-07T14:11:46.163Z"
             },
             {
               "name": "MIDAS Local Coding Studio",
@@ -313,7 +313,7 @@
               "name": "Prep AI Studio",
               "kind": "dir",
               "sizeBytes": 0,
-              "modifiedAt": "2026-07-07T14:02:19.363Z"
+              "modifiedAt": "2026-07-07T14:25:56.066Z"
             },
             {
               "name": "Prototypes",
@@ -839,7 +839,7 @@
       {
         "relativePath": "Products\\Jobflow AI Studio",
         "branch": "main",
-        "head": "c4ecf7a",
+        "head": "4e5cf56",
         "remote": "https://github.com/shrishmanglik/JobFlow.git",
         "dirty": "UNKNOWN (dirty probe skipped; no git subprocesses in adapter)",
         "status": "degraded"
@@ -855,7 +855,7 @@
       {
         "relativePath": "Products\\MDS-Command-Centre",
         "branch": "main",
-        "head": "861b661",
+        "head": "c2a2d2a",
         "remote": "UNKNOWN",
         "dirty": "UNKNOWN (dirty probe skipped; no git subprocesses in adapter)",
         "status": "degraded"
@@ -879,7 +879,7 @@
       {
         "relativePath": "Products\\Prep AI Studio",
         "branch": "codex/prep-public-section-transformation-20260707",
-        "head": "e50d9c7",
+        "head": "7ce398b",
         "remote": "https://github.com/shrishmanglik/Prep-AI-Studio.git",
         "dirty": "UNKNOWN (dirty probe skipped; no git subprocesses in adapter)",
         "status": "degraded"

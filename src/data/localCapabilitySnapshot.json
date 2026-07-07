@@ -1,6 +1,6 @@
 {
   "schemaVersion": "mds.command-centre.local-capability-snapshot.v1",
-  "generatedAt": "2026-07-07T14:10:19.274Z",
+  "generatedAt": "2026-07-07T14:36:06.420Z",
   "authority": "D-local capability records and validator summaries only. Live provider/deploy/db/auth/billing/payment states remain UNKNOWN until provider evidence is collected through an approved safe path.",
   "capabilityBroker": {
     "providers": [
@@ -813,7 +813,7 @@
         "command": "ollama",
         "kind": "local-oss",
         "notes": "presence only; server never started, models never pulled",
-        "present": true
+        "present": false
       },
       {
         "id": "python",

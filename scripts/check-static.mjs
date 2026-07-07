@@ -93,7 +93,7 @@ if (!serveJs.includes("SECRET_PATH_PATTERN") || !serveJs.includes("/api/browse")
   throw new Error("F5-MV-18 server-side secret refusal or new stores are missing.");
 }
 const adapterModule = fs.readFileSync(path.join(appRoot, "scripts/adapters/local-adapters.mjs"), "utf8");
-if (!adapterModule.includes("isSecretShapedPath") || !adapterModule.includes("no provider mutation")) {
+if (!adapterModule.includes("isSecretShapedPath") || !adapterModule.includes("isInsideDroot") || !adapterModule.includes("no provider mutation")) {
   throw new Error("F5-MV-18 adapter secret/mutation policy is missing.");
 }
 if (!js.includes("buildRunPacket") || !js.includes("LOCAL_RUN_CONTROL_ONLY") || !js.includes("agent_run_draft_created") || !js.includes("/api/runs")) {

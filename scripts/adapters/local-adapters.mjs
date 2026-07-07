@@ -15,6 +15,8 @@ const SECRET_PATH_PATTERN =
 const SECRET_CONTENT_PATTERN =
   /sk_live|sk_test|SUPABASE_SERVICE_ROLE|BEGIN (RSA|OPENSSH|EC|PGP) PRIVATE|ghp_[A-Za-z0-9]{20,}|gho_[A-Za-z0-9]{20,}|AKIA[0-9A-Z]{16}|xox[baprs]-/;
 
+const VALIDATOR_TIMEOUT_MS = 60000;
+
 export function isSecretShapedPath(candidate) {
   return SECRET_PATH_PATTERN.test(String(candidate || ""));
 }
@@ -25,6 +27,11 @@ export function redactSecretShapes(text) {
 
 function nowIso() {
   return new Date().toISOString();
+}
+
+function isInsideDroot(candidate) {
+  const relative = path.relative(D_ROOT, path.resolve(candidate));
+  return relative === "" || (!relative.startsWith("..") && !path.isAbsolute(relative));
 }
 
 function runCommand(command, args, timeoutMs = 8000) {
@@ -287,7 +294,7 @@ export function capabilityBrokerAdapter() {
           validators[id] = { status: "UNKNOWN", note: "validator script missing" };
           continue;
         }
-        const result = runCommand("python", [path.join(D_ROOT, script), "--json"], 25000);
+        const result = runCommand("python", [path.join(D_ROOT, script), "--json"], VALIDATOR_TIMEOUT_MS);
         if (!result.ok) {
           validators[id] = { status: result.timedOut ? "degraded (timeout)" : "degraded (error)", note: result.error || "timeout" };
           envelope.status = "degraded";
@@ -316,12 +323,14 @@ function resolveGitDir(repoAbsPath) {
   const dotGit = path.join(repoAbsPath, ".git");
   if (!fs.existsSync(dotGit)) return null;
   const stat = fs.statSync(dotGit);
-  if (stat.isDirectory()) return dotGit;
+  if (stat.isDirectory()) return isInsideDroot(dotGit) && !isSecretShapedPath(dotGit) ? dotGit : null;
   const content = fs.readFileSync(dotGit, "utf8").trim();
   const match = content.match(/^gitdir:\s*(.+)$/i);
   if (!match) return null;
   const gitDir = match[1].trim();
-  return path.isAbsolute(gitDir) ? gitDir : path.resolve(repoAbsPath, gitDir);
+  const resolvedGitDir = path.isAbsolute(gitDir) ? gitDir : path.resolve(repoAbsPath, gitDir);
+  if (!isInsideDroot(resolvedGitDir) || isSecretShapedPath(resolvedGitDir)) return null;
+  return resolvedGitDir;
 }
 
 function readPackedRef(gitDir, refPath) {
