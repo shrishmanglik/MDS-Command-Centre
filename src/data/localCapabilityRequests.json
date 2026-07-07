@@ -1,0 +1,26 @@
+{
+  "schemaVersion": "mds.command-centre.local-capability-requests.v1",
+  "updatedAt": "2026-07-07T00:00:03.892Z",
+  "authority": "D-local capability/action request packets; request-only staging. No packet grants execution authority by itself.",
+  "records": [
+    {
+      "id": "CAPREQ-MR9VU5CB",
+      "requestKind": "provider-metadata-read",
+      "target": "vercel (Astro project)",
+      "action": "Read deployment status metadata for Astro free-tier launch readiness",
+      "riskClass": "green_readonly",
+      "authorityBasis": "D-local request staging only; execution requires the MIDAS approval chain.",
+      "allowedActions": "record request; route to review",
+      "forbiddenActions": "No provider mutation, deploy, push, payment/auth/schema change, secret read, external send, or app launch from this packet.",
+      "evidenceRequired": "Sanitized status output stored as local evidence record",
+      "stopCondition": "Stop before any side effect not named in allowed actions.",
+      "validationCommands": "",
+      "unknownsPreserved": "Live provider states remain UNKNOWN.",
+      "closeoutFormat": "local closeout note + review routing; no official ledger append",
+      "owner": "shrish",
+      "status": "REQUESTED",
+      "createdAt": "2026-07-07T00:00:03.467Z",
+      "updatedAt": "2026-07-07T00:00:03.892Z"
+    }
+  ]
+}

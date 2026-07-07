@@ -227,8 +227,45 @@ function productVcosRows(productRows, frontendRows, productVcosInstanceRows = []
   const five = new Set(["Astro AI Studio", "Prep AI Studio", "Pathway AI Studio", "ATLAS", "NestIQ"]);
   const byName = new Map(productVcosInstanceRows.map((row) => [row.product_name, row]));
   const bySlug = new Map(productVcosInstanceRows.map((row) => [row.product_slug, row]));
-  return productRows
-    .filter((row) => five.has(row.product))
+  const matched = productRows.filter((row) => five.has(row.product));
+  if (!matched.length) {
+    // Fail-closed degradation (F5-MV-18): the readiness board is missing from
+    // the war room (untracked file loss). The five-product registry is stable
+    // doctrine, but every gate is UNKNOWN until the board is restored through a
+    // governed source. Nothing is fabricated.
+    const missingEvidence =
+      "command-centre/war-room/product-readiness-board.csv MISSING; all gates UNKNOWN until the board is restored from a governed source";
+    return [...five].map((product) => ({
+      product,
+      sourcePath: "UNKNOWN",
+      frontendPath: "UNKNOWN",
+      productVcosInstancePath: "UNKNOWN",
+      productVcosInstanceStatus: "UNKNOWN",
+      readiness: "UNKNOWN",
+      frontendGate: "UNKNOWN",
+      backendGate: "UNKNOWN",
+      paymentGate: "UNKNOWN",
+      deployGate: "UNKNOWN",
+      providerGate: "UNKNOWN",
+      securityGate: "UNKNOWN",
+      productMemory: "UNKNOWN",
+      releaseManagement: "UNKNOWN",
+      telemetry: "UNKNOWN",
+      support: "UNKNOWN",
+      aiCostMonitoring: "UNKNOWN",
+      churn: "UNKNOWN",
+      upsellTriggers: "UNKNOWN",
+      weeklyReview: "UNKNOWN",
+      knowledgePromotion: "UNKNOWN",
+      nexusCandidateExtraction: "UNKNOWN",
+      contentGate: "UNKNOWN",
+      biggestBlocker: "Readiness board missing from war room; restore it before trusting any gate.",
+      nextAction: "Restore command-centre/war-room/product-readiness-board.csv via a governed work order.",
+      evidence: missingEvidence,
+      claimCeiling: "No public claims; revenue and live states remain UNKNOWN without verified payment evidence.",
+    }));
+  }
+  return matched
     .map((row) => {
       const frontend = frontendRows.find((item) => item.product === row.product) || {};
       const instance = byName.get(row.product) || bySlug.get(String(row.product || "").toLowerCase().replace(/\s+/g, "-")) || {};
@@ -738,6 +775,40 @@ const workQueue = [
     }),
   ),
 ].slice(0, 16);
+
+// Fail-closed degradation (F5-MV-18): when the war-room index/work-order pack
+// is missing (untracked file loss), derive the queue from the REAL work orders
+// that still exist on disk: command-centre/war-room/fable-work-orders/*.md.
+// This reads actual governed work-order files; nothing is fabricated.
+if (workQueue.length < 4) {
+  const fableOrdersDir = path.join(warRoomRoot, "fable-work-orders");
+  if (fs.existsSync(fableOrdersDir)) {
+    const orderFiles = fs
+      .readdirSync(fableOrdersDir)
+      .filter((name) => name.endsWith(".md"))
+      .sort()
+      .slice(0, 12);
+    for (const [index, name] of orderFiles.entries()) {
+      let heading = name.replace(/\.md$/, "");
+      try {
+        const head = fs.readFileSync(path.join(fableOrdersDir, name), "utf8").slice(0, 1500);
+        const match = head.match(/^#\s+(.+)$/m);
+        if (match) heading = match[1].trim();
+      } catch {
+        // keep filename-derived heading
+      }
+      workQueue.push(
+        queueItem({
+          id: `queue-fable-order-${index + 1}`,
+          title: heading,
+          text: `Governed work order on disk: ${heading}. Index/work-order-pack boards are missing from the war room; this row is derived directly from the work-order file.`,
+          source: "Fable work orders (board-missing fallback)",
+          sourceEvidence: `command-centre/war-room/fable-work-orders/${name}`,
+        }),
+      );
+    }
+  }
+}
 
 const snapshot = {
   generatedAt: new Date().toISOString(),

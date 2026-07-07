@@ -1,0 +1,20 @@
+{
+  "schemaVersion": "mds.command-centre.local-source-evidence.v1",
+  "updatedAt": "2026-07-07T00:00:29.322Z",
+  "authority": "D-local source evidence intake; evidence inputs only until verified and promoted. Not GitHub, provider, or memory truth.",
+  "records": [
+    {
+      "id": "SRC-MR9VUOP0",
+      "sourceType": "d-path",
+      "pointer": "command-centre/war-room/battery-report-BR-2026-07-06-001.md",
+      "evidenceNote": "MV-09 battery report as evidence input for next product increment decision.",
+      "authorityClass": "evidence-input-until-verified",
+      "expectedUse": "",
+      "unknownsPreserved": "Live provider/payment/deploy/auth/schema states remain UNKNOWN.",
+      "forbiddenActions": "No login scraping, no cookie/session reads, no external posting, no secret reads.",
+      "status": "RECORDED",
+      "createdAt": "2026-07-07T00:00:28.548Z",
+      "updatedAt": "2026-07-07T00:00:29.322Z"
+    }
+  ]
+}

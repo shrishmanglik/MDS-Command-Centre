@@ -69,6 +69,29 @@ if (
 if (!js.includes("buildOperatorSpinePacket") || !js.includes("Operator OS spine") || !js.includes("create-spine-ticket") || !js.includes("operator_spine_ticket_created")) {
   throw new Error("Operator OS spine and local ticket wiring is missing.");
 }
+if (
+  !js.includes('navButton("vcos", "VCOS")') ||
+  !js.includes('navButton("files", "Files")') ||
+  !js.includes('navButton("git", "Git Truth")') ||
+  !js.includes('navButton("sources", "Sources")') ||
+  !js.includes('navButton("capabilities", "Capabilities")')
+) {
+  throw new Error("F5-MV-18 VCOS/Files/Git/Sources/Capabilities navigation missing.");
+}
+if (!js.includes("source_evidence_recorded") || !js.includes("/api/source-evidence") || !js.includes("capability_request_created") || !js.includes("/api/capability-requests")) {
+  throw new Error("F5-MV-18 source-evidence and capability-request wiring is missing.");
+}
+if (!js.includes("/api/browse") || !js.includes("secret-shaped") || !js.includes("refresh-adapters")) {
+  throw new Error("F5-MV-18 allowlisted browse, secret refusal, or adapter refresh wiring is missing.");
+}
+const serveJs = fs.readFileSync(path.join(appRoot, "scripts/serve.mjs"), "utf8");
+if (!serveJs.includes("SECRET_PATH_PATTERN") || !serveJs.includes("/api/browse") || !serveJs.includes("writeSourceEvidence") || !serveJs.includes("writeCapabilityRequests")) {
+  throw new Error("F5-MV-18 server-side secret refusal or new stores are missing.");
+}
+const adapterModule = fs.readFileSync(path.join(appRoot, "scripts/adapters/local-adapters.mjs"), "utf8");
+if (!adapterModule.includes("isSecretShapedPath") || !adapterModule.includes("no provider mutation")) {
+  throw new Error("F5-MV-18 adapter secret/mutation policy is missing.");
+}
 if (!js.includes("buildRunPacket") || !js.includes("LOCAL_RUN_CONTROL_ONLY") || !js.includes("agent_run_draft_created") || !js.includes("/api/runs")) {
   throw new Error("local agent run-control wiring is missing.");
 }

@@ -36,6 +36,19 @@ const state = {
   researchPersistence: "localStorage fallback",
   deltaPersistence: "localStorage fallback",
   lastSaveState: "not saved",
+  localCaps: null,
+  sourceTruth: null,
+  adapterHealth: null,
+  sourceEvidence: [],
+  capabilityRequests: [],
+  selectedSourceEvidenceId: "",
+  selectedCapabilityRequestId: "",
+  browsePath: ".",
+  browseListing: null,
+  browseNotice: "",
+  evidencePersistence: "localStorage fallback",
+  capabilityRequestPersistence: "localStorage fallback",
+  adapterRefreshState: "",
 };
 
 const storageKey = "mds-command-centre:tickets:v1";
@@ -66,6 +79,11 @@ function icon(name, size = 18) {
     operator: '<path d="M4 5h7v7H4z"/><path d="M13 5h7v4h-7z"/><path d="M13 11h7v8h-7z"/><path d="M4 14h7v5H4z"/><path d="M11 8h2"/><path d="M8 12v2"/><path d="M16 9v2"/>',
     benchmark: '<path d="M4 19V5"/><path d="M4 19h16"/><path d="M8 16V9"/><path d="M12 16V7"/><path d="M16 16v-4"/>',
     search: '<circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/>',
+    vcos: '<path d="M12 3v4"/><path d="M5 21v-4"/><path d="M19 21v-4"/><path d="M12 21v-6"/><rect x="9" y="7" width="6" height="4" rx="1"/><rect x="2" y="13" width="6" height="4" rx="1"/><rect x="16" y="13" width="6" height="4" rx="1"/><path d="M12 11v2"/><path d="M5 13v-1h14v1"/>',
+    files: '<path d="M3 6h6l2 2h10v12H3V6Z"/><path d="M3 10h18"/>',
+    git: '<circle cx="6" cy="6" r="2.5"/><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="12" r="2.5"/><path d="M6 8.5v7"/><path d="M8 7.4C12 8 15.4 9.7 15.8 12"/>',
+    sources: '<path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18Z"/><path d="M3 12h18"/><path d="M12 3c2.5 2.5 3.8 5.6 3.8 9S14.5 18.5 12 21c-2.5-2.5-3.8-5.6-3.8-9S9.5 5.5 12 3Z"/>',
+    capabilities: '<path d="m14 3-1 6h6L10 21l1-7H5L14 3Z"/>',
     health: '<path d="M22 12h-4l-3 7-6-14-3 7H2"/>',
     lock: '<rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/>',
     plus: '<path d="M12 5v14"/><path d="M5 12h14"/>',
@@ -2829,6 +2847,11 @@ function renderShell(content) {
           ${navButton("queue", "Queue")}
           ${navButton("boards", "Boards")}
           ${navButton("runtime", "Runtime")}
+          ${navButton("vcos", "VCOS")}
+          ${navButton("files", "Files")}
+          ${navButton("git", "Git Truth")}
+          ${navButton("sources", "Sources")}
+          ${navButton("capabilities", "Capabilities")}
           ${navButton("proof", "Proof")}
           ${navButton("operator", "Operator OS")}
           ${navButton("research", "Research")}
@@ -4691,12 +4714,478 @@ function renderDecisions() {
     </div>`);
 }
 
+// ---- F5-MV-18: local adapter surfaces (VCOS / Files / Git Truth / Sources / Capabilities) ----
+
+const storageEvidenceKey = "mds-command-centre:source-evidence:v1";
+const storageCapReqKey = "mds-command-centre:capability-requests:v1";
+const CLIENT_SECRET_PATH_PATTERN =
+  /(^|[\\/])\.env[^\\/]*$|\.pem$|\.p12$|\.pfx$|(^|[\\/])id_rsa[^\\/]*$|\.key$|(^|[\\/])(secrets?|tokens?|credentials?|cookies?)([\\/.]|$)|authinfo|(^|[\\/])hosts\.ya?ml$|\.npmrc$|(^|[\\/])\.aws([\\/]|$)|(^|[\\/])\.ssh([\\/]|$)/i;
+
+async function fetchLocalJson(fileName) {
+  try {
+    const response = await fetch(`/src/data/${fileName}?ts=${Date.now()}`, { cache: "no-store" });
+    if (!response.ok) return null;
+    return await response.json();
+  } catch {
+    return null;
+  }
+}
+
+async function loadAdapterSnapshots() {
+  state.localCaps = await fetchLocalJson("localCapabilitySnapshot.json");
+  state.sourceTruth = await fetchLocalJson("localSourceTruthSnapshot.json");
+  state.adapterHealth = await fetchLocalJson("localAdapterHealth.json");
+}
+
+async function loadSourceEvidence() {
+  try {
+    const payload = await apiJson("/api/source-evidence");
+    if (Array.isArray(payload.records)) {
+      state.evidencePersistence = `file-backed: ${payload.store || "src/data/localSourceEvidence.json"}`;
+      localStorage.setItem(storageEvidenceKey, JSON.stringify(payload.records));
+      return payload.records;
+    }
+  } catch {
+    state.evidencePersistence = "localStorage fallback";
+  }
+  try {
+    const stored = localStorage.getItem(storageEvidenceKey);
+    const parsed = stored ? JSON.parse(stored) : null;
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+async function saveSourceEvidence() {
+  localStorage.setItem(storageEvidenceKey, JSON.stringify(state.sourceEvidence));
+  try {
+    const payload = await apiJson("/api/source-evidence", {
+      method: "PUT",
+      body: JSON.stringify({ records: state.sourceEvidence }),
+    });
+    state.evidencePersistence = `file-backed: ${payload.updatedAt || "saved"}`;
+    state.browseNotice = "";
+    return true;
+  } catch (error) {
+    state.evidencePersistence = "localStorage fallback";
+    state.browseNotice = String(error.message || "save failed");
+    return false;
+  }
+}
+
+async function loadCapabilityRequests() {
+  try {
+    const payload = await apiJson("/api/capability-requests");
+    if (Array.isArray(payload.records)) {
+      state.capabilityRequestPersistence = `file-backed: ${payload.store || "src/data/localCapabilityRequests.json"}`;
+      localStorage.setItem(storageCapReqKey, JSON.stringify(payload.records));
+      return payload.records;
+    }
+  } catch {
+    state.capabilityRequestPersistence = "localStorage fallback";
+  }
+  try {
+    const stored = localStorage.getItem(storageCapReqKey);
+    const parsed = stored ? JSON.parse(stored) : null;
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+async function saveCapabilityRequests() {
+  localStorage.setItem(storageCapReqKey, JSON.stringify(state.capabilityRequests));
+  try {
+    const payload = await apiJson("/api/capability-requests", {
+      method: "PUT",
+      body: JSON.stringify({ records: state.capabilityRequests }),
+    });
+    state.capabilityRequestPersistence = `file-backed: ${payload.updatedAt || "saved"}`;
+    return true;
+  } catch (error) {
+    state.capabilityRequestPersistence = "localStorage fallback";
+    state.browseNotice = String(error.message || "save failed");
+    return false;
+  }
+}
+
+async function browseTo(relativePath) {
+  state.browsePath = relativePath || ".";
+  state.browseNotice = "";
+  try {
+    const listing = await apiJson(`/api/browse?path=${encodeURIComponent(state.browsePath)}`);
+    state.browseListing = listing;
+    if (listing.refused) state.browseNotice = listing.reason || "Refused.";
+  } catch (error) {
+    state.browseListing = null;
+    state.browseNotice = String(error.message || "browse unavailable (API offline)");
+  }
+}
+
+function adapterStatusCards() {
+  const adapters = state.adapterHealth?.adapters || [];
+  if (!adapters.length) {
+    return `<article class="empty-card"><strong>No adapter health snapshot.</strong><p>Run "Refresh adapters" to generate localAdapterHealth.json.</p></article>`;
+  }
+  return adapters
+    .map(
+      (adapter) => `<article>
+        <header><strong>${esc(adapter.adapter_id)}</strong><em class="${statusClass(adapter.status === "ok" ? "READY" : adapter.status === "degraded" ? "NEEDS FIX" : "BLOCKED")}">${esc(adapter.status)}</em></header>
+        <p>${esc(truncate(adapter.authority, 140))}</p>
+        <span>risk: ${esc(adapter.risk_class)} | ${esc(adapter.duration_ms)}ms | ${esc(adapter.last_checked_at || "")}</span>
+        ${(adapter.unknowns || []).length ? `<p class="unknown-note">UNKNOWN: ${esc(truncate((adapter.unknowns || []).join("; "), 180))}</p>` : ""}
+      </article>`,
+    )
+    .join("");
+}
+
+function snapshotBanner(snapshotObject, label) {
+  if (snapshotObject) return "";
+  return `<section class="objective-panel wide degraded-banner">
+    <div class="panel-title">${icon("warning")}<span>${esc(label)} snapshot missing</span></div>
+    <p>Local adapter snapshot not generated yet or the API is offline. Use "Refresh adapters" (requires npm run dev server). Fail-closed: nothing is assumed.</p>
+    <div class="dispatch-actions"><button class="primary" data-action="refresh-adapters">${icon("health", 16)} Refresh adapters</button></div>
+  </section>`;
+}
+
+function renderVcosView() {
+  const vcos = state.sourceTruth?.vcos || null;
+  const runtime = state.sourceTruth?.midasRuntime || null;
+  const broker = state.localCaps?.capabilityBroker || null;
+  const conflict = vcos?.midasPathConflict || "UNKNOWN";
+  renderShell(`
+    <div class="health-grid">
+      ${snapshotBanner(state.sourceTruth, "VCOS")}
+      <section class="objective-panel wide">
+        <div class="panel-title">${icon("vcos")}<span>VCOS end-to-end readiness</span></div>
+        <h2>${esc(vcos ? `${vcos.departmentCount} departments with DIRECTOR.md on disk` : "Department roster UNKNOWN until refresh")}</h2>
+        <p class="${/CONFLICT/i.test(conflict) ? "status blocked" : "status unknown"}">MIDAS path: ${esc(conflict)}</p>
+        <p>Studio readiness validator: ${esc(broker?.validators?.studioReadiness?.status || "UNKNOWN")}. Capability validator: ${esc(broker?.validators?.capabilities?.status || "UNKNOWN")}.</p>
+      </section>
+      <section class="table-panel wide">
+        <div class="panel-title">${icon("boards")}<span>Departments</span></div>
+        <div class="stack-list">
+          ${(vcos?.departments || [])
+            .map((dept) => `<article><strong>${esc(dept.slug)}</strong><p>${esc(dept.directorHeading)}</p><span class="status ready">DIRECTOR.md present</span></article>`)
+            .join("") || `<article class="empty-card"><strong>No department data. Refresh adapters.</strong></article>`}
+        </div>
+      </section>
+      <section class="table-panel wide">
+        <div class="panel-title">${icon("runtime")}<span>MIDAS runtime surfaces</span></div>
+        <div class="stack-list">
+          ${(runtime?.surfaces || [])
+            .map(
+              (surface) => `<article><strong>${esc(surface.id)}</strong><p>${esc(surface.relativePath)}</p><span class="${statusClass(surface.exists ? "READY" : "UNKNOWN")}">${esc(surface.exists ? `${surface.artifactCount} artifacts` : "missing")}</span></article>`,
+            )
+            .join("") || `<article class="empty-card"><strong>No runtime data. Refresh adapters.</strong></article>`}
+        </div>
+      </section>
+    </div>`);
+}
+
+function renderFilesView() {
+  const drives = state.sourceTruth?.drives?.drives || [];
+  const listing = state.browseListing;
+  renderShell(`
+    <div class="health-grid">
+      ${snapshotBanner(state.sourceTruth, "Files")}
+      <section class="objective-panel wide">
+        <div class="panel-title">${icon("files")}<span>Local system and drives (allowlisted)</span></div>
+        <h2>Browse allowlisted D roots. Secret-shaped paths are refused, never read.</h2>
+        <p>${drives.map((drive) => `${esc(drive.drive)} ${esc(drive.role)}: ${drive.present ? "present" : "absent"}`).join(" | ") || "Drive roles UNKNOWN until refresh."}</p>
+        ${state.browseNotice ? `<p class="status blocked">${esc(state.browseNotice)}</p>` : ""}
+        <div class="dispatch-actions">
+          ${["Products", "vcos", "command-centre", "output/playwright", "."].map((rootPath) => `<button data-browse="${esc(rootPath)}">${icon("files", 16)} ${esc(rootPath === "." ? "D root" : rootPath)}</button>`).join("")}
+        </div>
+      </section>
+      <section class="table-panel wide">
+        <div class="panel-title">${icon("boards")}<span>${esc(listing?.relativePath || state.browsePath)}</span></div>
+        ${
+          listing?.ok && listing.kind === "dir"
+            ? `<p>${esc(listing.total)} entries; ${esc(listing.refusedSecretShaped || 0)} secret-shaped name(s) refused from listing.</p>
+               <div class="stack-list">
+                 ${listing.relativePath !== "." ? `<article><button data-browse="${esc(listing.relativePath.split("/").slice(0, -1).join("/") || ".")}">${icon("upload", 14)} up one level</button></article>` : ""}
+                 ${(listing.entries || [])
+                   .map(
+                     (entry) =>
+                       `<article><strong>${entry.kind === "dir" ? `<button data-browse="${esc(`${listing.relativePath === "." ? "" : `${listing.relativePath}/`}${entry.name}`)}">${esc(entry.name)}/</button>` : esc(entry.name)}</strong><p>${esc(entry.kind)} ${entry.sizeBytes ? `| ${esc(entry.sizeBytes)} bytes` : ""}</p><span>${esc(entry.modifiedAt || "")}</span></article>`,
+                   )
+                   .join("")}
+               </div>`
+            : listing?.ok && listing.kind === "file"
+              ? `<div class="stack-list"><article><strong>${esc(listing.relativePath)}</strong><p>${esc(listing.sizeBytes)} bytes | ${esc(listing.modifiedAt)}</p><span>${esc(listing.note)}</span></article></div>`
+              : `<article class="empty-card"><strong>${esc(state.browseNotice || "Pick an allowlisted root to browse (requires local API).")}</strong></article>`
+        }
+      </section>
+      <section class="table-panel">
+        <div class="panel-title">${icon("lock")}<span>Refusal policy</span></div>
+        <div class="stack-list">
+          <article><strong>Secret-shaped paths</strong><p>.env*, keys, tokens, credentials, cookies, auth stores refused at server and adapter level.</p><span class="status blocked">never read</span></article>
+          <article><strong>Escape attempts</strong><p>Paths outside D allowlisted roots are refused.</p><span class="status blocked">403</span></article>
+          <article><strong>E drive</strong><p>Backup-only role; never written by Command Centre.</p><span class="status parked">read role only</span></article>
+        </div>
+      </section>
+    </div>`);
+}
+
+function renderGitTruthView() {
+  const gitLocal = state.sourceTruth?.gitLocal || null;
+  const github = state.sourceTruth?.github || null;
+  renderShell(`
+    <div class="health-grid">
+      ${snapshotBanner(state.sourceTruth, "Git")}
+      <section class="objective-panel wide">
+        <div class="panel-title">${icon("git")}<span>Git and GitHub source truth</span></div>
+        <h2>Local git metadata is read-only evidence; GitHub remains committed-code authority.</h2>
+        <p>gh CLI: ${esc(github ? (github.ghPresent ? "present" : "absent") : "UNKNOWN")}. Auth: ${esc(github?.authState || "UNKNOWN")}${github?.account && github.account !== "UNKNOWN" ? ` (account ${esc(github.account)})` : ""}. No push, PR, or mutation from this surface.</p>
+      </section>
+      <section class="table-panel wide">
+        <div class="panel-title">${icon("boards")}<span>Local repositories</span></div>
+        <div class="health-table">
+          <div class="health-head"><span>Repo</span><span>Branch</span><span>HEAD</span><span>Dirty</span><span>Remote</span></div>
+          ${(gitLocal?.repos || [])
+            .map(
+              (repo) => `<div class="health-row">
+                <strong>${esc(repo.relativePath)}</strong>
+                <em class="${statusClass(repo.status === "ok" ? "READY" : "UNKNOWN")}">${esc(repo.branch)}</em>
+                <span>${esc(repo.head)}</span>
+                <span>${esc(repo.dirty)}</span>
+                <span>${esc(truncate(repo.remote, 60))}</span>
+              </div>`,
+            )
+            .join("") || `<div class="health-row"><strong>No git snapshot. Refresh adapters.</strong><em class="status unknown">UNKNOWN</em><span></span><span></span><span></span></div>`}
+        </div>
+      </section>
+    </div>`);
+}
+
+function renderSourcesView() {
+  const records = state.sourceEvidence || [];
+  renderShell(`
+    <div class="health-grid">
+      <section class="objective-panel wide">
+        <div class="panel-title">${icon("sources")}<span>Web and source intake</span></div>
+        <h2>Record source evidence (URL, D-path, GitHub ref, NotebookLM note, session extract) as evidence inputs only.</h2>
+        <p>Persistence: ${esc(state.evidencePersistence)}. No login scraping, no cookie/session reads, no external posting. Public URL fetch happens only through a separately approved request packet, never from this form.</p>
+        ${state.browseNotice ? `<p class="status blocked">${esc(state.browseNotice)}</p>` : ""}
+      </section>
+      <form class="research-form" id="source-evidence-form">
+        <div class="panel-title">${icon("plus")}<span>New source evidence record</span></div>
+        <div class="form-grid three">
+          ${select("Source type", "sourceType", "url", ["url", "d-path", "github-repo-ref", "notebooklm-note", "session-extract"])}
+          ${input("Pointer (URL / path / ref)", "pointer", "", "https://... or vcos/... or repo#ref")}
+          ${select("Authority class", "authorityClass", "evidence-input-until-verified", ["evidence-input-until-verified", "committed-code-authority-ref", "provider-evidence-candidate", "reference-only"])}
+        </div>
+        ${textarea("Evidence note", "evidenceNote", "")}
+        ${textarea("Expected use", "expectedUse", "")}
+        ${textarea("Unknowns preserved", "unknownsPreserved", "Live provider/payment/deploy/auth/schema states remain UNKNOWN.")}
+        <div class="dispatch-actions"><button class="primary" type="submit">${icon("save", 16)} Record source evidence</button></div>
+      </form>
+      <section class="table-panel wide">
+        <div class="panel-title">${icon("boards")}<span>Source evidence records (${esc(records.length)})</span></div>
+        <div class="stack-list">
+          ${records
+            .slice(0, 60)
+            .map(
+              (record) => `<article>
+                <strong>${esc(record.id)} - ${esc(record.sourceType)}</strong>
+                <p>${esc(truncate(record.pointer, 140))}</p>
+                <p>${esc(truncate(record.evidenceNote, 160))}</p>
+                <span>${esc(record.authorityClass)} | ${esc(record.status)} | ${esc(record.createdAt)}</span>
+              </article>`,
+            )
+            .join("") || `<article class="empty-card"><strong>No source evidence yet.</strong><p>Record the first source above.</p></article>`}
+        </div>
+      </section>
+    </div>`);
+}
+
+function renderCapabilitiesView() {
+  const broker = state.localCaps?.capabilityBroker || null;
+  const clis = state.localCaps?.providerClis?.clis || [];
+  const models = state.localCaps?.modelProviders || null;
+  const requests = state.capabilityRequests || [];
+  renderShell(`
+    <div class="health-grid">
+      ${snapshotBanner(state.localCaps, "Capabilities")}
+      <section class="objective-panel wide">
+        <div class="panel-title">${icon("capabilities")}<span>Capability broker</span></div>
+        <h2>Provider records, risk classes, and request-only states. Red/provider actions never execute from here.</h2>
+        <p>Capability validator: ${esc(broker?.validators?.capabilities?.status || "UNKNOWN")}. Studio readiness: ${esc(broker?.validators?.studioReadiness?.status || "UNKNOWN")}. Request persistence: ${esc(state.capabilityRequestPersistence)}.</p>
+        <div class="dispatch-actions">
+          <button class="primary" data-action="refresh-adapters">${icon("health", 16)} Refresh adapters</button>
+          ${state.adapterRefreshState ? `<span class="status unknown">${esc(state.adapterRefreshState)}</span>` : ""}
+        </div>
+      </section>
+      <section class="table-panel wide">
+        <div class="panel-title">${icon("boards")}<span>Capability providers (${esc((broker?.providers || []).length)})</span></div>
+        <div class="stack-list">
+          ${(broker?.providers || [])
+            .slice(0, 40)
+            .map(
+              (provider) => `<article>
+                <strong>${esc(provider.provider_id || provider.id || "unnamed")}</strong>
+                <p>${esc(truncate(provider.description || provider.authority || "", 150))}</p>
+                <span class="${statusClass(String(provider.status || provider.live_state || "UNKNOWN"))}">${esc(provider.status || provider.live_state || "UNKNOWN")}</span>
+              </article>`,
+            )
+            .join("") || `<article class="empty-card"><strong>No capability provider records loaded.</strong></article>`}
+        </div>
+      </section>
+      <section class="table-panel wide">
+        <div class="panel-title">${icon("dispatch")}<span>Provider CLIs and model runtimes</span></div>
+        <div class="health-table">
+          <div class="health-head"><span>Tool</span><span>Present</span><span>Live state</span><span>Forbidden</span><span></span></div>
+          ${clis
+            .map(
+              (cli) => `<div class="health-row">
+                <strong>${esc(cli.provider)} (${esc(cli.command)})</strong>
+                <em class="${statusClass(cli.present ? "READY" : "UNKNOWN")}">${esc(cli.present ? "present" : "absent")}</em>
+                <span>${esc(cli.liveState)}</span>
+                <span>${esc((cli.forbiddenActions || []).join(", "))}</span>
+                <span></span>
+              </div>`,
+            )
+            .join("")}
+          ${(models?.runtimes || [])
+            .map(
+              (runtime) => `<div class="health-row">
+                <strong>${esc(runtime.id)} (${esc(runtime.kind)})</strong>
+                <em class="${statusClass(runtime.present ? "READY" : "UNKNOWN")}">${esc(runtime.present ? "present" : "absent")}</em>
+                <span>${esc(runtime.notes)}</span>
+                <span>no server start, no downloads, no API calls</span>
+                <span></span>
+              </div>`,
+            )
+            .join("")}
+          ${(models?.paidApiAdapters || [])
+            .map(
+              (adapter) => `<div class="health-row">
+                <strong>${esc(adapter.id)}</strong>
+                <em class="status blocked">${esc(adapter.riskClass)} / ${esc(adapter.status)}</em>
+                <span>${esc(adapter.liveState)}</span>
+                <span>${esc(adapter.note)}</span>
+                <span></span>
+              </div>`,
+            )
+            .join("")}
+        </div>
+      </section>
+      <form class="research-form" id="capability-request-form">
+        <div class="panel-title">${icon("plus")}<span>New local request packet</span></div>
+        <div class="form-grid three">
+          ${select("Request kind", "requestKind", "capability", ["capability", "file-action", "app-action", "provider-metadata-read", "model-run", "web-fetch"])}
+          ${input("Target", "target", "", "provider/path/app/model")}
+          ${select("Risk class", "riskClass", "green_readonly", ["green_readonly", "yellow_local_write", "yellow_metadata", "red_provider_action"])}
+        </div>
+        ${input("Action requested", "action", "", "one concrete action")}
+        ${textarea("Evidence required", "evidenceRequired", "")}
+        ${textarea("Stop condition", "stopCondition", "Stop before any side effect not named in allowed actions.")}
+        ${textarea("Validation commands", "validationCommands", "")}
+        <div class="dispatch-actions"><button class="primary" type="submit">${icon("save", 16)} Create request packet</button></div>
+      </form>
+      <section class="table-panel wide">
+        <div class="panel-title">${icon("boards")}<span>Local request packets (${esc(requests.length)})</span></div>
+        <div class="stack-list">
+          ${requests
+            .slice(0, 60)
+            .map(
+              (request) => `<article>
+                <strong>${esc(request.id)} - ${esc(request.requestKind)}</strong>
+                <p>${esc(truncate(`${request.action} -> ${request.target}`, 150))}</p>
+                <span class="${statusClass(request.riskClass.startsWith("red") ? "BLOCKED" : request.status)}">${esc(request.riskClass)} | ${esc(request.status)}</span>
+              </article>`,
+            )
+            .join("") || `<article class="empty-card"><strong>No request packets yet.</strong></article>`}
+        </div>
+      </section>
+      <section class="table-panel wide">
+        <div class="panel-title">${icon("health")}<span>Adapter health</span></div>
+        <div class="stack-list">${adapterStatusCards()}</div>
+      </section>
+    </div>`);
+}
+
+function wireMv18Events() {
+  document.addEventListener("click", async (event) => {
+    const button = event.target.closest("button");
+    if (!button) return;
+    if (button.dataset.browse !== undefined) {
+      event.preventDefault();
+      await browseTo(button.dataset.browse || ".");
+      state.view = "files";
+      render();
+      return;
+    }
+    if (button.dataset.action === "refresh-adapters") {
+      event.preventDefault();
+      state.adapterRefreshState = "refreshing (runs local adapters; may take a minute)...";
+      render();
+      try {
+        await apiJson("/api/refresh-adapters", { method: "POST" });
+        await loadAdapterSnapshots();
+        state.adapterRefreshState = "adapter snapshots refreshed";
+      } catch (error) {
+        state.adapterRefreshState = `refresh failed: ${String(error.message || "API offline")}`;
+      }
+      render();
+    }
+  });
+
+  document.addEventListener("submit", async (event) => {
+    const formElement = event.target?.closest?.("#source-evidence-form, #capability-request-form");
+    if (!formElement) return;
+    event.preventDefault();
+    const form = new FormData(formElement);
+    const values = Object.fromEntries(form.entries());
+    if (formElement.id === "source-evidence-form") {
+      if (!String(values.pointer || "").trim()) {
+        state.browseNotice = "Pointer is required.";
+        render();
+        return;
+      }
+      if (CLIENT_SECRET_PATH_PATTERN.test(String(values.pointer || ""))) {
+        state.browseNotice = "Refused: secret-shaped pointer. Command Centre never records env/keys/tokens/cookies/auth-store paths as sources.";
+        render();
+        return;
+      }
+      const record = { ...values, id: `SRC-${Date.now().toString(36).toUpperCase()}`, status: "RECORDED", createdAt: nowIso() };
+      state.sourceEvidence = [record, ...state.sourceEvidence];
+      const saved = await saveSourceEvidence();
+      if (!saved) {
+        state.sourceEvidence = state.sourceEvidence.filter((item) => item.id !== record.id);
+        state.browseNotice = `Refused by local store: ${state.browseNotice || "save failed"}. Record was not kept.`;
+      }
+      await recordActivity("source_evidence_recorded", selectedTicket(), {
+        details: `Recorded source evidence ${record.id} (${record.sourceType}).`,
+      });
+      render();
+      return;
+    }
+    if (formElement.id === "capability-request-form") {
+      const record = { ...values, id: `CAPREQ-${Date.now().toString(36).toUpperCase()}`, status: "REQUESTED", owner: "shrish", createdAt: nowIso() };
+      state.capabilityRequests = [record, ...state.capabilityRequests];
+      await saveCapabilityRequests();
+      await recordActivity("capability_request_created", selectedTicket(), {
+        details: `Created local request packet ${record.id}: ${record.requestKind} -> ${record.target}. Request-only; no execution authority.`,
+      });
+      render();
+    }
+  });
+}
+
 function render() {
   if (state.view === "today") renderToday();
   if (state.view === "search") renderSearch();
   if (state.view === "queue") renderQueue();
   if (state.view === "boards") renderBoards();
   if (state.view === "runtime") renderRuntime();
+  if (state.view === "vcos") renderVcosView();
+  if (state.view === "files") renderFilesView();
+  if (state.view === "git") renderGitTruthView();
+  if (state.view === "sources") renderSourcesView();
+  if (state.view === "capabilities") renderCapabilitiesView();
   if (state.view === "proof") renderProof();
   if (state.view === "operator") renderOperator();
   if (state.view === "research") renderResearch();
@@ -5762,6 +6251,10 @@ async function boot() {
   state.deltaReviews = await loadDeltaReviews();
   state.searchViews = loadSearchViews();
   await loadHealth();
+  await loadAdapterSnapshots();
+  state.sourceEvidence = await loadSourceEvidence();
+  state.capabilityRequests = await loadCapabilityRequests();
+  wireMv18Events();
   state.selectedTicketId = state.tickets[0]?.id || "";
   state.selectedActivityId = state.activity[0]?.id || "";
   state.selectedDecisionId = state.decisions[0]?.id || "";

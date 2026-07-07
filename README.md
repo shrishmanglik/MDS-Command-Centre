@@ -74,3 +74,26 @@ Local API routes:
 - `GET /api/delta-reviews` reads D-local archive-vs-current delta reviews.
 - `PUT /api/delta-reviews` writes sanitized D-local archive-vs-current delta reviews.
 - `POST /api/refresh-snapshot` regenerates the local war-room snapshot only.
+
+## F5-MV-18: End-to-end VCOS operating cockpit surfaces
+
+New lanes (left nav): **VCOS** (department roster, MIDAS path conflict, runtime
+surface counts, studio/capability validator states), **Files** (allowlisted
+D-root explorer with secret-path refusal; drives D active / E backup-only),
+**Git Truth** (local branch/HEAD/dirty/remote metadata for D-root + product
+repos; GitHub auth shown as account-name-or-UNKNOWN; no push/PR ever),
+**Sources** (evidence intake for URL / D-path / GitHub ref / NotebookLM note /
+session extract; records only, no fetching, no login scraping), **Capabilities**
+(capability broker records + request-only provider states + provider CLI and
+model runtime presence + local request packet creation + adapter health).
+
+Adapter snapshots: `npm run refresh-data` still builds the war-room snapshot;
+`node scripts/refresh-local-adapters.mjs` (or the "Refresh adapters" button,
+`POST /api/refresh-adapters`) builds `localCapabilitySnapshot.json`,
+`localSourceTruthSnapshot.json`, `localAdapterHealth.json` and seeds the
+`localSourceEvidence.json` / `localCapabilityRequests.json` stores. Degraded or
+failed adapters stay visible - timeouts are never hidden.
+
+Schemas: `scripts/schemas/local-adapters.md`. Hard boundaries unchanged: no
+secrets/env reads, no provider mutation, no deploy/push/PR, no external sends,
+no official-ledger append, no duplicate kernels/source maps.

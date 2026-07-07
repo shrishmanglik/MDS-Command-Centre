@@ -1,0 +1,741 @@
+{
+  "schemaVersion": "mds.command-centre.local-capability-snapshot.v1",
+  "generatedAt": "2026-07-06T23:45:36.254Z",
+  "authority": "D-local capability records and validator summaries only. Live provider/deploy/db/auth/billing/payment states remain UNKNOWN until provider evidence is collected through an approved safe path.",
+  "capabilityBroker": {
+    "providers": [
+      {
+        "schema": "midas.capability_provider.v1",
+        "provider_id": "cloudflare",
+        "name": "Cloudflare",
+        "provider_type": "cloud_provider",
+        "status": "unknown",
+        "authority": "Provider_dashboard_live_state",
+        "capability_classes": [
+          "green_readonly",
+          "red_provider_mutation"
+        ],
+        "allowed_actions": [
+          "metadata_request",
+          "create_provider_mutation_request"
+        ],
+        "blocked_actions": [
+          "dns_change",
+          "worker_deploy",
+          "read_tokens",
+          "provider_mutation_without_approval"
+        ],
+        "risk_class": "red_provider_mutation",
+        "live_state": "UNKNOWN",
+        "evidence": {
+          "verified_at": "UNKNOWN",
+          "method": "provider not queried in Slice 1",
+          "refs": []
+        },
+        "model_provider": null,
+        "notes": "Cloudflare portal/CLI state is metadata-only until verified by approved safe evidence."
+      },
+      {
+        "schema": "midas.capability_provider.v1",
+        "provider_id": "github",
+        "name": "GitHub",
+        "provider_type": "cloud_provider",
+        "status": "unknown",
+        "authority": "Provider_dashboard_live_state",
+        "capability_classes": [
+          "green_readonly",
+          "red_provider_mutation"
+        ],
+        "allowed_actions": [
+          "metadata_request",
+          "create_provider_mutation_request"
+        ],
+        "blocked_actions": [
+          "push",
+          "create_pr",
+          "change_branch_protection",
+          "read_tokens",
+          "provider_mutation_without_approval"
+        ],
+        "risk_class": "red_provider_mutation",
+        "live_state": "UNKNOWN",
+        "evidence": {
+          "verified_at": "UNKNOWN",
+          "method": "provider not queried in Slice 1",
+          "refs": []
+        },
+        "model_provider": null,
+        "notes": "GitHub remains committed/versioned code authority when verified through GitHub evidence."
+      },
+      {
+        "schema": "midas.capability_provider.v1",
+        "provider_id": "local-apps",
+        "name": "Local Apps",
+        "provider_type": "local_app",
+        "status": "metadata_only",
+        "authority": "local_machine_metadata",
+        "capability_classes": [
+          "yellow_local_app"
+        ],
+        "allowed_actions": [
+          "create_app_action_request"
+        ],
+        "blocked_actions": [
+          "launch_app",
+          "send_keystrokes",
+          "read_auth_session",
+          "mutate_system_settings"
+        ],
+        "risk_class": "yellow_local_app",
+        "live_state": "UNKNOWN",
+        "evidence": {
+          "verified_at": "UNKNOWN",
+          "method": "not verified in Slice 1",
+          "refs": []
+        },
+        "model_provider": null,
+        "notes": "Local app actions are request-only until a later approved app-control pattern exists."
+      },
+      {
+        "schema": "midas.capability_provider.v1",
+        "provider_id": "local-filesystem",
+        "name": "Local Filesystem",
+        "provider_type": "local_filesystem",
+        "status": "metadata_only",
+        "authority": "D_local_operating_root",
+        "capability_classes": [
+          "green_readonly",
+          "yellow_local_write"
+        ],
+        "allowed_actions": [
+          "list_allowed_root",
+          "read_non_secret_doc",
+          "create_edit_draft_request"
+        ],
+        "blocked_actions": [
+          "read_secret",
+          "read_env",
+          "apply_write",
+          "delete_file",
+          "path_traversal"
+        ],
+        "risk_class": "green_readonly",
+        "live_state": "UNKNOWN",
+        "evidence": {
+          "verified_at": "2026-07-06T00:00:00-04:00",
+          "method": "local metadata only",
+          "refs": [
+            "D:/Million Dollar AI Studio"
+          ]
+        },
+        "model_provider": null,
+        "notes": "Slice 1 creates request artifacts only for edit drafts; no file writes are applied through this broker."
+      },
+      {
+        "schema": "midas.capability_provider.v1",
+        "provider_id": "local-oss-model",
+        "name": "Local Open-Source Multimodal Model",
+        "provider_type": "local_model",
+        "status": "unknown",
+        "authority": "local_machine_metadata",
+        "capability_classes": [
+          "green_readonly",
+          "yellow_local_app"
+        ],
+        "allowed_actions": [
+          "command_metadata_request",
+          "adapter_contract_request"
+        ],
+        "blocked_actions": [
+          "start_model_server",
+          "download_model",
+          "claim_model_available_without_evidence",
+          "read_model_auth"
+        ],
+        "risk_class": "yellow_local_app",
+        "live_state": "UNKNOWN",
+        "evidence": {
+          "verified_at": "UNKNOWN",
+          "method": "no model runtime started or queried in Slice 1",
+          "refs": []
+        },
+        "model_provider": {
+          "kind": "local_oss_multimodal",
+          "runtime": "UNKNOWN",
+          "adapter_contract": "request_response_metadata_only_v1",
+          "availability": "UNKNOWN",
+          "detection": "safe command existence/version only; no server startup",
+          "evidence_refs": [],
+          "claim_status": "UNKNOWN",
+          "network_calls_allowed": false
+        },
+        "notes": "Gemma, Qwen, Ollama, LM Studio, llama.cpp, and other runtimes stay UNKNOWN unless verified by safe local metadata."
+      },
+      {
+        "schema": "midas.capability_provider.v1",
+        "provider_id": "local-shell-cli",
+        "name": "Local Shell and CLI",
+        "provider_type": "local_shell_cli",
+        "status": "metadata_only",
+        "authority": "local_machine_metadata",
+        "capability_classes": [
+          "green_readonly",
+          "yellow_local_write"
+        ],
+        "allowed_actions": [
+          "command_metadata_request",
+          "version_check_request",
+          "draft_cli_request"
+        ],
+        "blocked_actions": [
+          "execute_mutation",
+          "read_env",
+          "print_secrets",
+          "install_package",
+          "start_daemon"
+        ],
+        "risk_class": "yellow_local_write",
+        "live_state": "UNKNOWN",
+        "evidence": {
+          "verified_at": "2026-07-06T00:00:00-04:00",
+          "method": "shell available through current Codex session; individual CLIs unverified unless separately evidenced",
+          "refs": []
+        },
+        "model_provider": null,
+        "notes": "Slice 1 records CLI capability requests and safe metadata only; it does not execute arbitrary commands."
+      },
+      {
+        "schema": "midas.capability_provider.v1",
+        "provider_id": "paid-api-model",
+        "name": "Paid API Model Provider",
+        "provider_type": "paid_api_model",
+        "status": "disabled",
+        "authority": "Provider_dashboard_live_state",
+        "capability_classes": [
+          "red_provider_mutation",
+          "red_secret_or_payment"
+        ],
+        "allowed_actions": [
+          "adapter_contract_request"
+        ],
+        "blocked_actions": [
+          "api_call",
+          "read_env",
+          "read_api_key",
+          "change_billing",
+          "claim_configured_without_evidence"
+        ],
+        "risk_class": "red_secret_or_payment",
+        "live_state": "UNKNOWN",
+        "evidence": {
+          "verified_at": "UNKNOWN",
+          "method": "disabled/unconfigured; env values not read",
+          "refs": []
+        },
+        "model_provider": {
+          "kind": "paid_api",
+          "runtime": "UNKNOWN",
+          "adapter_contract": "disabled_until_provider_evidence_v1",
+          "availability": "UNKNOWN",
+          "detection": "do not read env values; require explicit non-secret provider evidence",
+          "evidence_refs": [],
+          "claim_status": "disabled_unconfigured",
+          "network_calls_allowed": false
+        },
+        "notes": "Paid API providers remain disabled/unconfigured in Slice 1 without provider/dashboard evidence."
+      },
+      {
+        "schema": "midas.capability_provider.v1",
+        "provider_id": "supabase",
+        "name": "Supabase",
+        "provider_type": "cloud_provider",
+        "status": "unknown",
+        "authority": "Provider_dashboard_live_state",
+        "capability_classes": [
+          "green_readonly",
+          "red_provider_mutation",
+          "red_secret_or_payment"
+        ],
+        "allowed_actions": [
+          "metadata_request",
+          "create_provider_mutation_request"
+        ],
+        "blocked_actions": [
+          "schema_change",
+          "rls_change",
+          "read_service_key",
+          "read_env",
+          "provider_mutation_without_approval"
+        ],
+        "risk_class": "red_provider_mutation",
+        "live_state": "UNKNOWN",
+        "evidence": {
+          "verified_at": "UNKNOWN",
+          "method": "provider not queried in Slice 1",
+          "refs": []
+        },
+        "model_provider": null,
+        "notes": "Database/auth/schema state requires provider evidence; no schema or auth mutation is available in Slice 1."
+      },
+      {
+        "schema": "midas.capability_provider.v1",
+        "provider_id": "vercel",
+        "name": "Vercel",
+        "provider_type": "cloud_provider",
+        "status": "unknown",
+        "authority": "Provider_dashboard_live_state",
+        "capability_classes": [
+          "green_readonly",
+          "red_provider_mutation"
+        ],
+        "allowed_actions": [
+          "metadata_request",
+          "create_provider_mutation_request"
+        ],
+        "blocked_actions": [
+          "deploy",
+          "promote",
+          "rollback",
+          "read_env",
+          "provider_mutation_without_approval"
+        ],
+        "risk_class": "red_provider_mutation",
+        "live_state": "UNKNOWN",
+        "evidence": {
+          "verified_at": "UNKNOWN",
+          "method": "provider not queried in Slice 1",
+          "refs": []
+        },
+        "model_provider": null,
+        "notes": "Vercel live deployment state is provider-owned and remains UNKNOWN without provider evidence."
+      }
+    ],
+    "requests": [
+      {
+        "schema": "midas.capability_request.v1",
+        "request_id": "CR-2026-07-06-001",
+        "created_at": "2026-07-06T00:00:00-04:00",
+        "work_order_id": "F5-MV-18-S1-capability-broker-model-adapter",
+        "requestor": "Codex Board",
+        "provider_id": "local-filesystem",
+        "capability_class": "green_readonly",
+        "action": "list_allowed_root",
+        "status": "REQUESTED",
+        "target": {
+          "path": "vcos/mds-kernel/midas-runtime/capabilities",
+          "description": "List capability broker artifact surface."
+        },
+        "approval_ref": "none",
+        "evidence_refs": [
+          "vcos/mds-kernel/midas-runtime/capabilities/README.md"
+        ],
+        "requested_output": "directory metadata only",
+        "guardrails": [
+          "no secrets",
+          "no path traversal",
+          "metadata only"
+        ],
+        "audit": {
+          "events": [
+            {
+              "at": "2026-07-06T00:00:00-04:00",
+              "actor": "Codex Board",
+              "event": "created",
+              "note": "Sample green readonly capability request."
+            }
+          ],
+          "last_event_at": "2026-07-06T00:00:00-04:00",
+          "decision": "pending",
+          "blocked_reason": "none"
+        }
+      },
+      {
+        "schema": "midas.capability_request.v1",
+        "request_id": "CR-2026-07-06-002",
+        "created_at": "2026-07-06T00:00:00-04:00",
+        "work_order_id": "F5-MV-18-S1-capability-broker-model-adapter",
+        "requestor": "Codex Board",
+        "provider_id": "local-filesystem",
+        "capability_class": "yellow_local_write",
+        "action": "create_edit_draft_request",
+        "status": "DRAFT_ONLY",
+        "target": {
+          "path": "vcos/mds-kernel/midas-runtime/capabilities/requests/drafts/example.patch",
+          "description": "Draft-only patch request placeholder."
+        },
+        "approval_ref": "none",
+        "evidence_refs": [
+          "vcos/mds-kernel/midas-runtime/capabilities/schemas.md"
+        ],
+        "requested_output": "draft patch artifact only; do not apply",
+        "guardrails": [
+          "request only",
+          "no write application",
+          "validator checked"
+        ],
+        "audit": {
+          "events": [
+            {
+              "at": "2026-07-06T00:00:00-04:00",
+              "actor": "Codex Board",
+              "event": "created",
+              "note": "Sample yellow local write request; no write execution."
+            }
+          ],
+          "last_event_at": "2026-07-06T00:00:00-04:00",
+          "decision": "draft_only",
+          "blocked_reason": "none"
+        }
+      }
+    ],
+    "validators": {
+      "capabilities": {
+        "status": "PASS",
+        "ok": true,
+        "summary": {
+          "local_command_detection": [
+            {
+              "command": "ollama",
+              "evidence": "PATH metadata only",
+              "status": "available"
+            },
+            {
+              "command": "lmstudio",
+              "evidence": "not found on PATH",
+              "status": "UNKNOWN"
+            },
+            {
+              "command": "llama-cli",
+              "evidence": "not found on PATH",
+              "status": "UNKNOWN"
+            },
+            {
+              "command": "llama-server",
+              "evidence": "not found on PATH",
+              "status": "UNKNOWN"
+            },
+            {
+              "command": "python",
+              "evidence": "PATH metadata only",
+              "status": "available"
+            },
+            {
+              "command": "node",
+              "evidence": "PATH metadata only",
+              "status": "available"
+            },
+            {
+              "command": "git",
+              "evidence": "PATH metadata only",
+              "status": "available"
+            },
+            {
+              "command": "gh",
+              "evidence": "PATH metadata only",
+              "status": "available"
+            },
+            {
+              "command": "vercel",
+              "evidence": "PATH metadata only",
+              "status": "available"
+            },
+            {
+              "command": "supabase",
+              "evidence": "PATH metadata only",
+              "status": "available"
+            },
+            {
+              "command": "wrangler",
+              "evidence": "not found on PATH",
+              "status": "UNKNOWN"
+            }
+          ],
+          "ok": true,
+          "providers": [
+            {
+              "allowed_actions": [
+                "metadata_request",
+                "create_provider_mutation_request"
+              ],
+              "authority": "Provider_dashboard_live_state",
+              "live_state": "UNKNOWN",
+              "name": "Cloudflare",
+              "path": "vcos/mds-kernel/midas-runtime/capabilities/providers/cloudflare.yaml",
+              "provider_id": "cloudflare",
+              "risk_class": "red_provider_mutation",
+              "status": "unknown"
+            },
+            {
+              "allowed_actions": [
+                "metadata_request",
+                "create_provider_mutation_request"
+              ],
+              "authority": "Provider_dashboard_live_state",
+              "live_state": "UNKNOWN",
+              "name": "GitHub",
+              "path": "vcos/mds-kernel/midas-runtime/capabilities/providers/github.yaml",
+              "provider_id": "github",
+              "risk_class": "red_provider_mutation",
+              "status": "unknown"
+            },
+            {
+              "allowed_actions": [
+                "create_app_action_request"
+              ],
+              "authority": "local_machine_metadata",
+              "live_state": "UNKNOWN",
+              "name": "Local Apps",
+              "path": "vcos/mds-kernel/midas-runtime/capabilities/providers/local-apps.yaml",
+              "provider_id": "local-apps",
+              "risk_class": "yellow_local_app",
+              "status": "metadata_only"
+            },
+            {
+              "allowed_actions": [
+                "list_allowed_root",
+                "read_non_secret_doc",
+                "create_edit_draft_request"
+              ],
+              "authority": "D_local_operating_root",
+              "live_state": "UNKNOWN",
+              "name": "Local Filesystem",
+              "path": "vcos/mds-kernel/midas-runtime/capabilities/providers/local-filesystem.yaml",
+              "provider_id": "local-filesystem",
+              "risk_class": "green_readonly",
+              "status": "metadata_only"
+            },
+            {
+              "allowed_actions": [
+                "command_metadata_request",
+                "adapter_contract_request"
+              ],
+              "authority": "local_machine_metadata",
+              "live_state": "UNKNOWN",
+              "name": "Local Open-Source Multimodal Model",
+              "path": "vcos/mds-kernel/midas-runtime/capabilities/providers/local-oss-model.yaml",
+              "provider_id": "local-oss-model",
+              "risk_class": "yellow_local_app",
+              "status": "unknown"
+            },
+            {
+              "allowed_actions": [
+                "command_metadata_request",
+                "version_check_request",
+                "draft_cli_request"
+              ],
+              "authority": "local_machine_metadata",
+              "live_state": "UNKNOWN",
+              "name": "Local Shell and CLI",
+              "path": "vcos/mds-kernel/midas-runtime/capabilities/providers/local-shell-cli.yaml",
+              "provider_id": "local-shell-cli",
+              "risk_class": "yellow_local_write",
+              "status": "metadata_only"
+            },
+            {
+              "allowed_actions": [
+                "adapter_contract_request"
+              ],
+              "authority": "Provider_dashboard_live_state",
+              "live_state": "UNKNOWN",
+              "name": "Paid API Model Provider",
+              "path": "vcos/mds-kernel/midas-runtime/capabilities/providers/paid-api-model.yaml",
+              "provider_id": "paid-api-model",
+              "risk_class": "red_secret_or_payment",
+              "status": "disabled"
+            },
+            {
+              "allowed_actions": [
+                "metadata_request",
+                "create_provider_mutation_request"
+              ],
+              "authority": "Provider_dashboard_live_state",
+              "live_state": "UNKNOWN",
+              "name": "Supabase",
+              "path": "vcos/mds-kernel/midas-runtime/capabilities/providers/supabase.yaml",
+              "provider_id": "supabase",
+              "risk_class": "red_provider_mutation",
+              "status": "unknown"
+            },
+            {
+              "allowed_actions": [
+                "metadata_request",
+                "create_provider_mutation_request"
+              ],
+              "authority": "Provider_dashboard_live_state",
+              "live_state": "UNKNOWN",
+              "name": "Vercel",
+              "path": "vcos/mds-kernel/midas-runtime/capabilities/providers/vercel.yaml",
+              "provider_id": "vercel",
+              "risk_class": "red_provider_mutation",
+              "status": "unknown"
+            }
+          ],
+          "requests": [
+            {
+              "action": "list_allowed_root",
+              "capability_class": "green_readonly",
+              "path": "vcos/mds-kernel/midas-runtime/capabilities/requests/CR-2026-07-06-001.yaml",
+              "provider_id": "local-filesystem",
+              "request_id": "CR-2026-07-06-001",
+              "status": "REQUESTED"
+            },
+            {
+              "action": "create_edit_draft_request",
+              "capability_class": "yellow_local_write",
+              "path": "vcos/mds-kernel/midas-runtime/capabilities/requests/CR-2026-07-06-002.yaml",
+              "provider_id": "local-filesystem",
+              "request_id": "CR-2026-07-06-002",
+              "status": "DRAFT_ONLY"
+            }
+          ],
+          "violations": [],
+          "warnings": []
+        }
+      },
+      "studioReadiness": {
+        "status": "degraded (timeout)",
+        "note": "timeout"
+      }
+    }
+  },
+  "providerClis": {
+    "clis": [
+      {
+        "id": "vercel",
+        "command": "vercel",
+        "provider": "Vercel",
+        "present": true,
+        "location": "C:\\Users\\Shris\\AppData\\Roaming\\npm\\vercel",
+        "liveState": "UNKNOWN (request_only)",
+        "allowedActions": [
+          "record capability",
+          "create local request packet"
+        ],
+        "forbiddenActions": [
+          "deploy",
+          "migrate",
+          "env read/write",
+          "billing/payment",
+          "external send"
+        ]
+      },
+      {
+        "id": "supabase",
+        "command": "supabase",
+        "provider": "Supabase",
+        "present": true,
+        "location": "C:\\Users\\Shris\\AppData\\Roaming\\npm\\supabase",
+        "liveState": "UNKNOWN (request_only)",
+        "allowedActions": [
+          "record capability",
+          "create local request packet"
+        ],
+        "forbiddenActions": [
+          "deploy",
+          "migrate",
+          "env read/write",
+          "billing/payment",
+          "external send"
+        ]
+      },
+      {
+        "id": "wrangler",
+        "command": "wrangler",
+        "provider": "Cloudflare",
+        "present": false,
+        "location": null,
+        "liveState": "UNKNOWN (request_only)",
+        "allowedActions": [
+          "record capability",
+          "create local request packet"
+        ],
+        "forbiddenActions": [
+          "deploy",
+          "migrate",
+          "env read/write",
+          "billing/payment",
+          "external send"
+        ]
+      },
+      {
+        "id": "railway",
+        "command": "railway",
+        "provider": "Railway",
+        "present": true,
+        "location": "C:\\Users\\Shris\\AppData\\Roaming\\npm\\railway",
+        "liveState": "UNKNOWN (request_only)",
+        "allowedActions": [
+          "record capability",
+          "create local request packet"
+        ],
+        "forbiddenActions": [
+          "deploy",
+          "migrate",
+          "env read/write",
+          "billing/payment",
+          "external send"
+        ]
+      },
+      {
+        "id": "gh",
+        "command": "gh",
+        "provider": "GitHub",
+        "present": true,
+        "location": "C:\\Program Files\\GitHub CLI\\gh.exe",
+        "liveState": "UNKNOWN (request_only)",
+        "allowedActions": [
+          "record capability",
+          "create local request packet"
+        ],
+        "forbiddenActions": [
+          "deploy",
+          "migrate",
+          "env read/write",
+          "billing/payment",
+          "external send"
+        ]
+      }
+    ]
+  },
+  "modelProviders": {
+    "runtimes": [
+      {
+        "id": "ollama",
+        "command": "ollama",
+        "kind": "local-oss",
+        "notes": "presence only; server never started, models never pulled",
+        "present": true
+      },
+      {
+        "id": "python",
+        "command": "python",
+        "kind": "local-runtime",
+        "notes": "runtime for validators",
+        "present": true
+      },
+      {
+        "id": "node",
+        "command": "node",
+        "kind": "local-runtime",
+        "notes": "runtime for Command Centre",
+        "present": true
+      }
+    ],
+    "paidApiAdapters": [
+      {
+        "id": "anthropic-api",
+        "status": "record_only",
+        "riskClass": "red",
+        "liveState": "UNKNOWN",
+        "note": "requires Red approval artifact before any use"
+      },
+      {
+        "id": "openai-api",
+        "status": "record_only",
+        "riskClass": "red",
+        "liveState": "UNKNOWN",
+        "note": "requires Red approval artifact before any use"
+      }
+    ]
+  }
+}

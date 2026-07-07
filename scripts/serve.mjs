@@ -18,6 +18,13 @@ const researchSourceStore = path.join(appRoot, "src", "data", "localResearchSour
 const deltaReviewStore = path.join(appRoot, "src", "data", "localDeltaReviews.json");
 const snapshotFile = path.join(appRoot, "src", "data", "warRoomSnapshot.json");
 const refreshScript = path.join(appRoot, "scripts", "refresh-war-room-data.mjs");
+const adapterRefreshScript = path.join(appRoot, "scripts", "refresh-local-adapters.mjs");
+const sourceEvidenceStore = path.join(appRoot, "src", "data", "localSourceEvidence.json");
+const capabilityRequestStore = path.join(appRoot, "src", "data", "localCapabilityRequests.json");
+const D_ROOT = "D:/Million Dollar AI Studio";
+const BROWSE_ROOTS = ["Products", "vcos", "command-centre", "output/playwright", "."];
+const SECRET_PATH_PATTERN =
+  /(^|[\\/])\.env[^\\/]*$|\.pem$|\.p12$|\.pfx$|(^|[\\/])id_rsa[^\\/]*$|\.key$|(^|[\\/])(secrets?|tokens?|credentials?|cookies?)([\\/.]|$)|authinfo|(^|[\\/])hosts\.ya?ml$|\.npmrc$|(^|[\\/])\.aws([\\/]|$)|(^|[\\/])\.ssh([\\/]|$)/i;
 
 const contentTypes = new Map([
   [".html", "text/html; charset=utf-8"],
@@ -406,6 +413,158 @@ function writeDeltaReviews(reviews) {
   return payload;
 }
 
+function sanitizeSourceEvidence(record) {
+  const now = new Date().toISOString();
+  return {
+    id: String(record.id || `SRC-${Date.now().toString(36).toUpperCase()}`).slice(0, 80),
+    sourceType: String(record.sourceType || "url").slice(0, 40),
+    pointer: String(record.pointer || "").slice(0, 2000),
+    evidenceNote: String(record.evidenceNote || "").slice(0, 3000),
+    authorityClass: String(record.authorityClass || "evidence-input-until-verified").slice(0, 200),
+    expectedUse: String(record.expectedUse || "").slice(0, 2000),
+    unknownsPreserved: String(record.unknownsPreserved || "Live provider/payment/deploy/auth/schema states remain UNKNOWN.").slice(0, 2000),
+    forbiddenActions: "No login scraping, no cookie/session reads, no external posting, no secret reads.",
+    status: String(record.status || "RECORDED").slice(0, 40),
+    createdAt: String(record.createdAt || now).slice(0, 80),
+    updatedAt: now,
+  };
+}
+
+function readSourceEvidence() {
+  if (!fs.existsSync(sourceEvidenceStore)) return [];
+  const parsed = JSON.parse(fs.readFileSync(sourceEvidenceStore, "utf8"));
+  const records = Array.isArray(parsed) ? parsed : parsed.records;
+  return Array.isArray(records) ? records.map(sanitizeSourceEvidence) : [];
+}
+
+function writeSourceEvidence(records) {
+  if (!Array.isArray(records)) throw new Error("records must be an array.");
+  if (records.length > 300) throw new Error("Refusing to store more than 300 local source evidence records.");
+  for (const record of records) {
+    if (SECRET_PATH_PATTERN.test(String(record.pointer || ""))) {
+      throw new Error("Refused: source pointer matches a secret-shaped path.");
+    }
+  }
+  fs.mkdirSync(path.dirname(sourceEvidenceStore), { recursive: true });
+  const payload = {
+    schemaVersion: "mds.command-centre.local-source-evidence.v1",
+    updatedAt: new Date().toISOString(),
+    authority: "D-local source evidence intake; evidence inputs only until verified and promoted. Not GitHub, provider, or memory truth.",
+    records: records.map(sanitizeSourceEvidence).slice(0, 300),
+  };
+  const temp = `${sourceEvidenceStore}.${process.pid}.tmp`;
+  fs.writeFileSync(temp, `${JSON.stringify(payload, null, 2)}\n`);
+  fs.renameSync(temp, sourceEvidenceStore);
+  return payload;
+}
+
+function sanitizeCapabilityRequest(record) {
+  const now = new Date().toISOString();
+  return {
+    id: String(record.id || `CAPREQ-${Date.now().toString(36).toUpperCase()}`).slice(0, 80),
+    requestKind: String(record.requestKind || "capability").slice(0, 60),
+    target: String(record.target || "").slice(0, 400),
+    action: String(record.action || "").slice(0, 400),
+    riskClass: String(record.riskClass || "green_readonly").slice(0, 60),
+    authorityBasis: String(record.authorityBasis || "D-local request staging only; execution requires the MIDAS approval chain.").slice(0, 1000),
+    allowedActions: String(record.allowedActions || "record request; route to review").slice(0, 1500),
+    forbiddenActions: String(
+      record.forbiddenActions ||
+        "No provider mutation, deploy, push, payment/auth/schema change, secret read, external send, or app launch from this packet.",
+    ).slice(0, 1500),
+    evidenceRequired: String(record.evidenceRequired || "").slice(0, 1500),
+    stopCondition: String(record.stopCondition || "Stop before any side effect not named in allowedActions.").slice(0, 1500),
+    validationCommands: String(record.validationCommands || "").slice(0, 1500),
+    unknownsPreserved: String(record.unknownsPreserved || "Live provider states remain UNKNOWN.").slice(0, 1500),
+    closeoutFormat: String(record.closeoutFormat || "local closeout note + review routing; no official ledger append").slice(0, 600),
+    owner: String(record.owner || "shrish").slice(0, 120),
+    status: String(record.status || "REQUESTED").slice(0, 40),
+    createdAt: String(record.createdAt || now).slice(0, 80),
+    updatedAt: now,
+  };
+}
+
+function readCapabilityRequests() {
+  if (!fs.existsSync(capabilityRequestStore)) return [];
+  const parsed = JSON.parse(fs.readFileSync(capabilityRequestStore, "utf8"));
+  const records = Array.isArray(parsed) ? parsed : parsed.records;
+  return Array.isArray(records) ? records.map(sanitizeCapabilityRequest) : [];
+}
+
+function writeCapabilityRequests(records) {
+  if (!Array.isArray(records)) throw new Error("records must be an array.");
+  if (records.length > 300) throw new Error("Refusing to store more than 300 local capability requests.");
+  for (const record of records) {
+    if (/red|provider_mutation|payment|deploy|external_send/i.test(String(record.riskClass || "")) && String(record.status || "") === "APPROVED") {
+      throw new Error("Refused: red-class requests cannot be stored as APPROVED from the Command Centre; approval lives in the MIDAS chain.");
+    }
+  }
+  fs.mkdirSync(path.dirname(capabilityRequestStore), { recursive: true });
+  const payload = {
+    schemaVersion: "mds.command-centre.local-capability-requests.v1",
+    updatedAt: new Date().toISOString(),
+    authority: "D-local capability/action request packets; request-only staging. No packet grants execution authority by itself.",
+    records: records.map(sanitizeCapabilityRequest).slice(0, 300),
+  };
+  const temp = `${capabilityRequestStore}.${process.pid}.tmp`;
+  fs.writeFileSync(temp, `${JSON.stringify(payload, null, 2)}\n`);
+  fs.renameSync(temp, capabilityRequestStore);
+  return payload;
+}
+
+function browseListing(requestedPath) {
+  const relative = String(requestedPath || ".").replace(/\\/g, "/").replace(/^\/+|\/+$/g, "") || ".";
+  const withinAllowlist = BROWSE_ROOTS.some((allowRoot) => {
+    if (allowRoot === ".") return true;
+    return relative === allowRoot || relative.startsWith(`${allowRoot}/`);
+  });
+  const rootLevelOnly = relative === "." || !relative.includes("/");
+  if (!withinAllowlist && !rootLevelOnly) {
+    return { ok: false, refused: true, reason: `Path outside allowlisted roots: ${BROWSE_ROOTS.join(", ")}` };
+  }
+  if (SECRET_PATH_PATTERN.test(relative)) {
+    return { ok: false, refused: true, reason: "Refused: secret-shaped path. Command Centre never reads env/keys/tokens/cookies/auth stores." };
+  }
+  const absolute = path.resolve(D_ROOT, relative);
+  const relativeCheck = path.relative(D_ROOT, absolute);
+  if (relativeCheck.startsWith("..") || path.isAbsolute(relativeCheck)) {
+    return { ok: false, refused: true, reason: "Refused: path escapes the D operating root." };
+  }
+  if (!fs.existsSync(absolute)) return { ok: false, refused: false, reason: "Path does not exist." };
+  const stat = fs.statSync(absolute);
+  if (!stat.isDirectory()) {
+    return {
+      ok: true,
+      kind: "file",
+      relativePath: relative,
+      sizeBytes: stat.size,
+      modifiedAt: stat.mtime.toISOString(),
+      note: "File metadata only; Command Centre does not stream file contents in this slice.",
+    };
+  }
+  const names = fs.readdirSync(absolute, { withFileTypes: true });
+  let refusedSecretShaped = 0;
+  const entries = [];
+  for (const entry of names) {
+    if (SECRET_PATH_PATTERN.test(entry.name)) {
+      refusedSecretShaped += 1;
+      continue;
+    }
+    if (entries.length >= 200) continue;
+    let sizeBytes = 0;
+    let modifiedAt = null;
+    try {
+      const entryStat = fs.statSync(path.join(absolute, entry.name));
+      sizeBytes = entry.isFile() ? entryStat.size : 0;
+      modifiedAt = entryStat.mtime.toISOString();
+    } catch {
+      modifiedAt = null;
+    }
+    entries.push({ name: entry.name, kind: entry.isDirectory() ? "dir" : "file", sizeBytes, modifiedAt });
+  }
+  return { ok: true, kind: "dir", relativePath: relative, total: names.length, refusedSecretShaped, entries };
+}
+
 function snapshotHealth() {
   const snapshot = fs.existsSync(snapshotFile) ? JSON.parse(fs.readFileSync(snapshotFile, "utf8")) : null;
   const sources = snapshot?.sourceHealth || [];
@@ -512,6 +671,44 @@ async function handleApi(request, response, pathname) {
       const briefs = Array.isArray(parsed) ? parsed : parsed.briefs;
       const payload = writeResearchBriefs(briefs);
       sendJson(response, 200, payload);
+      return true;
+    }
+    if (request.method === "GET" && pathname === "/api/source-evidence") {
+      sendJson(response, 200, { records: readSourceEvidence(), store: path.relative(appRoot, sourceEvidenceStore) });
+      return true;
+    }
+    if (request.method === "PUT" && pathname === "/api/source-evidence") {
+      const parsed = JSON.parse(await readBody(request, 512 * 1024));
+      const records = Array.isArray(parsed) ? parsed : parsed.records;
+      const payload = writeSourceEvidence(records);
+      sendJson(response, 200, payload);
+      return true;
+    }
+    if (request.method === "GET" && pathname === "/api/capability-requests") {
+      sendJson(response, 200, { records: readCapabilityRequests(), store: path.relative(appRoot, capabilityRequestStore) });
+      return true;
+    }
+    if (request.method === "PUT" && pathname === "/api/capability-requests") {
+      const parsed = JSON.parse(await readBody(request, 512 * 1024));
+      const records = Array.isArray(parsed) ? parsed : parsed.records;
+      const payload = writeCapabilityRequests(records);
+      sendJson(response, 200, payload);
+      return true;
+    }
+    if (request.method === "GET" && pathname === "/api/browse") {
+      const url = new URL(request.url || "/", "http://127.0.0.1");
+      const listing = browseListing(url.searchParams.get("path") || ".");
+      sendJson(response, listing.ok ? 200 : 403, listing);
+      return true;
+    }
+    if (request.method === "POST" && pathname === "/api/refresh-adapters") {
+      execFile(process.execPath, [adapterRefreshScript], { cwd: appRoot, timeout: 180000 }, (error, stdout, stderr) => {
+        if (error) {
+          sendJson(response, 500, { ok: false, error: error.message, stderr: String(stderr || "").slice(0, 2000) });
+          return;
+        }
+        sendJson(response, 200, { ok: true, stdout: String(stdout || "").slice(0, 2000) });
+      });
       return true;
     }
     if (request.method === "POST" && pathname === "/api/refresh-snapshot") {

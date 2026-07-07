@@ -1,0 +1,156 @@
+{
+  "schemaVersion": "mds.command-centre.local-adapter-health.v1",
+  "generatedAt": "2026-07-06T23:45:36.254Z",
+  "authority": "Adapter contract + health ledger; degraded/failed adapters must stay visible, never hidden.",
+  "adapters": [
+    {
+      "adapter_id": "local-files-adapter",
+      "authority": "D-local filesystem metadata only; not GitHub or provider truth.",
+      "risk_class": "green_readonly",
+      "read_scope": ".; Products; vcos; command-centre; output/playwright",
+      "write_scope": "none",
+      "secret_policy": "refuse secret-shaped paths; redact secret-shaped content; never read .env/keys/tokens/cookies/auth stores",
+      "mutation_policy": "no provider mutation, no deploy, no push, no external send, no payment/auth/schema change",
+      "last_checked_at": "2026-07-06T23:45:36.256Z",
+      "status": "ok",
+      "unknowns": [],
+      "evidence_paths": [
+        ".",
+        "Products",
+        "vcos",
+        "command-centre",
+        "output/playwright"
+      ],
+      "duration_ms": 10143
+    },
+    {
+      "adapter_id": "drive-roots-adapter",
+      "authority": "Configured drive roles only: D active, E backup-only. No drive crawling.",
+      "risk_class": "green_readonly",
+      "read_scope": "drive-root existence checks only",
+      "write_scope": "none",
+      "secret_policy": "refuse secret-shaped paths; redact secret-shaped content; never read .env/keys/tokens/cookies/auth stores",
+      "mutation_policy": "no provider mutation, no deploy, no push, no external send, no payment/auth/schema change",
+      "last_checked_at": "2026-07-06T23:45:46.399Z",
+      "status": "ok",
+      "unknowns": [
+        "drive free-space, health, and backup freshness are not checked in this slice"
+      ],
+      "evidence_paths": [],
+      "duration_ms": 0
+    },
+    {
+      "adapter_id": "vcos-adapter",
+      "authority": "D-local VCOS department/roster/readiness files; kernel and source map remain the owners.",
+      "risk_class": "green_readonly",
+      "read_scope": "vcos/*/DIRECTOR.md; vcos/mds-kernel/architecture-map/source-map.yaml; vcos/mds-kernel/studio-readiness/",
+      "write_scope": "none",
+      "secret_policy": "refuse secret-shaped paths; redact secret-shaped content; never read .env/keys/tokens/cookies/auth stores",
+      "mutation_policy": "no provider mutation, no deploy, no push, no external send, no payment/auth/schema change",
+      "last_checked_at": "2026-07-06T23:45:46.399Z",
+      "status": "ok",
+      "unknowns": [],
+      "evidence_paths": [
+        "vcos/mds-kernel/architecture-map/source-map.yaml"
+      ],
+      "duration_ms": 292
+    },
+    {
+      "adapter_id": "midas-runtime-adapter",
+      "authority": "MIDAS runtime artifacts are execution truth on D; validators are the verdict authority.",
+      "risk_class": "green_readonly",
+      "read_scope": "vcos/mds-kernel/midas-runtime/** (counts + shallow metadata only)",
+      "write_scope": "none",
+      "secret_policy": "refuse secret-shaped paths; redact secret-shaped content; never read .env/keys/tokens/cookies/auth stores",
+      "mutation_policy": "no provider mutation, no deploy, no push, no external send, no payment/auth/schema change",
+      "last_checked_at": "2026-07-06T23:45:46.691Z",
+      "status": "ok",
+      "unknowns": [
+        "deep validator verdicts require running the runtime validators; only counts are read here"
+      ],
+      "evidence_paths": [],
+      "duration_ms": 1
+    },
+    {
+      "adapter_id": "capability-broker-adapter",
+      "authority": "Capability provider/request records are D-local governance state; live provider state stays UNKNOWN.",
+      "risk_class": "green_readonly",
+      "read_scope": "vcos/mds-kernel/midas-runtime/capabilities/{providers,requests}; vcos/mds-kernel/studio-readiness/",
+      "write_scope": "none",
+      "secret_policy": "refuse secret-shaped paths; redact secret-shaped content; never read .env/keys/tokens/cookies/auth stores",
+      "mutation_policy": "no provider mutation, no deploy, no push, no external send, no payment/auth/schema change",
+      "last_checked_at": "2026-07-06T23:45:46.692Z",
+      "status": "degraded",
+      "unknowns": [],
+      "evidence_paths": [
+        "vcos/mds-kernel/midas-runtime/capabilities"
+      ],
+      "duration_ms": 35447
+    },
+    {
+      "adapter_id": "git-local-adapter",
+      "authority": "Local git metadata only; GitHub remains committed-code authority. No stage/commit/push/checkout.",
+      "risk_class": "green_readonly",
+      "read_scope": "D-root .git metadata; Products/*/.git metadata (max 12 repos)",
+      "write_scope": "none",
+      "secret_policy": "refuse secret-shaped paths; redact secret-shaped content; never read .env/keys/tokens/cookies/auth stores",
+      "mutation_policy": "no provider mutation, no deploy, no push, no external send, no payment/auth/schema change",
+      "last_checked_at": "2026-07-06T23:46:22.140Z",
+      "status": "degraded",
+      "unknowns": [
+        "dirty state may be UNKNOWN when concurrent git activity times a probe out"
+      ],
+      "evidence_paths": [],
+      "duration_ms": 211094
+    },
+    {
+      "adapter_id": "github-metadata-adapter",
+      "authority": "GitHub is committed-code authority; this adapter reads safe auth presence only. No mutations ever.",
+      "risk_class": "yellow_metadata",
+      "read_scope": "gh CLI presence + parsed login state (account name only, never tokens)",
+      "write_scope": "none",
+      "secret_policy": "refuse secret-shaped paths; redact secret-shaped content; never read .env/keys/tokens/cookies/auth stores",
+      "mutation_policy": "no provider mutation, no deploy, no push, no external send, no payment/auth/schema change",
+      "last_checked_at": "2026-07-06T23:49:53.234Z",
+      "status": "ok",
+      "unknowns": [
+        "repo/PR/release metadata not fetched in this slice; auth state UNKNOWN unless gh reports it safely"
+      ],
+      "evidence_paths": [],
+      "duration_ms": 2756
+    },
+    {
+      "adapter_id": "provider-cli-adapter",
+      "authority": "CLI presence is capability metadata only; provider dashboards remain live-state authority.",
+      "risk_class": "green_readonly",
+      "read_scope": "where.exe lookups only; no CLI is invoked against a provider",
+      "write_scope": "none",
+      "secret_policy": "refuse secret-shaped paths; redact secret-shaped content; never read .env/keys/tokens/cookies/auth stores",
+      "mutation_policy": "no provider mutation, no deploy, no push, no external send, no payment/auth/schema change",
+      "last_checked_at": "2026-07-06T23:49:55.990Z",
+      "status": "ok",
+      "unknowns": [
+        "all provider live states (deploy/db/schema/auth/billing/payments) are UNKNOWN and request-only"
+      ],
+      "evidence_paths": [],
+      "duration_ms": 2683
+    },
+    {
+      "adapter_id": "model-provider-adapter",
+      "authority": "Model adapter records only; no server start, no model download, no paid API call.",
+      "risk_class": "green_readonly",
+      "read_scope": "command presence lookups only",
+      "write_scope": "none",
+      "secret_policy": "refuse secret-shaped paths; redact secret-shaped content; never read .env/keys/tokens/cookies/auth stores",
+      "mutation_policy": "no provider mutation, no deploy, no push, no external send, no payment/auth/schema change",
+      "last_checked_at": "2026-07-06T23:49:58.673Z",
+      "status": "ok",
+      "unknowns": [
+        "local model viability is UNKNOWN until a governed benchmark run",
+        "paid API adapters (Anthropic/OpenAI-class) are record-only and red-gated; no keys are read or checked"
+      ],
+      "evidence_paths": [],
+      "duration_ms": 2110
+    }
+  ]
+}

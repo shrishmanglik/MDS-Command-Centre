@@ -1,0 +1,896 @@
+{
+  "schemaVersion": "mds.command-centre.local-source-truth-snapshot.v1",
+  "generatedAt": "2026-07-06T23:45:36.254Z",
+  "authority": "D-local filesystem/git metadata only. GitHub remains committed-code authority; drive roles per source-authority doctrine; secret-shaped paths refused at scan time.",
+  "drives": {
+    "drives": [
+      {
+        "drive": "D:",
+        "role": "active operating root",
+        "present": true,
+        "policy": "read/write via governed adapters"
+      },
+      {
+        "drive": "E:",
+        "role": "backup/recovery only",
+        "present": true,
+        "policy": "never written by Command Centre"
+      }
+    ]
+  },
+  "allowlistedRoots": {
+    "roots": [
+      {
+        "id": "d-root",
+        "relativePath": ".",
+        "label": "D root (active operating root)",
+        "exists": true,
+        "listing": {
+          "total": 52,
+          "dirs": 44,
+          "files": 8,
+          "refusedSecretShaped": 0,
+          "entries": [
+            {
+              "name": ".agents",
+              "kind": "dir",
+              "sizeBytes": 0,
+              "modifiedAt": "2026-07-02T21:56:32.179Z"
+            },
+            {
+              "name": ".claude",
+              "kind": "dir",
+              "sizeBytes": 0,
+              "modifiedAt": "2026-07-06T20:03:56.528Z"
+            },
+            {
+              "name": ".codex",
+              "kind": "dir",
+              "sizeBytes": 0,
+              "modifiedAt": "2026-07-02T21:56:33.022Z"
+            },
+            {
+              "name": ".codex-deploy",
+              "kind": "dir",
+              "sizeBytes": 0,
+              "modifiedAt": "2026-07-02T13:03:20.661Z"
+            },
+            {
+              "name": ".codex-remote-attachments",
+              "kind": "dir",
+              "sizeBytes": 0,
+              "modifiedAt": "2026-07-05T14:43:14.343Z"
+            },
+            {
+              "name": ".git",
+              "kind": "dir",
+              "sizeBytes": 0,
+              "modifiedAt": "2026-07-06T23:41:03.189Z"
+            },
+            {
+              "name": ".github",
+              "kind": "dir",
+              "sizeBytes": 0,
+              "modifiedAt": "2026-06-19T12:40:27.289Z"
+            },
+            {
+              "name": ".gitignore",
+              "kind": "file",
+              "sizeBytes": 2427,
+              "modifiedAt": "2026-07-02T21:47:54.488Z"
+            },
+            {
+              "name": ".playwright-cli",
+              "kind": "dir",
+              "sizeBytes": 0,
+              "modifiedAt": "2026-07-06T17:04:38.674Z"
+            },
+            {
+              "name": ".pytest_cache",
+              "kind": "dir",
+              "sizeBytes": 0,
+              "modifiedAt": "2026-05-14T12:18:05.908Z"
+            },
+            {
+              "name": ".tmp",
+              "kind": "dir",
+              "sizeBytes": 0,
+              "modifiedAt": "2026-06-03T18:39:31.850Z"
+            },
+            {
+              "name": ".tools",
+              "kind": "dir",
+              "sizeBytes": 0,
+              "modifiedAt": "2026-06-30T05:29:58.067Z"
+            },
+            {
+              "name": ".worktrees",
+              "kind": "dir",
+              "sizeBytes": 0,
+              "modifiedAt": "2026-06-16T21:49:59.351Z"
+            },
+            {
+              "name": "adaptive-ops-simulator",
+              "kind": "dir",
+              "sizeBytes": 0,
+              "modifiedAt": "2026-07-04T15:04:57.057Z"
+            },
+            {
+              "name": "BUILD-REPORT-2026-04-19.md",
+              "kind": "file",
+              "sizeBytes": 11490,
+              "modifiedAt": "2026-04-19T16:07:27.370Z"
+            },
+            {
+              "name": "builds",
+              "kind": "dir",
+              "sizeBytes": 0,
+              "modifiedAt": "2026-04-19T15:12:06.527Z"
+            },
+            {
+              "name": "business",
+              "kind": "dir",
+              "sizeBytes": 0,
+              "modifiedAt": "2026-07-02T13:12:19.503Z"
+            },
+            {
+              "name": "Calender",
+              "kind": "dir",
+              "sizeBytes": 0,
+              "modifiedAt": "2026-04-27T20:39:34.115Z"
+            },
+            {
+              "name": "chat-history",
+              "kind": "dir",
+              "sizeBytes": 0,
+              "modifiedAt": "2026-05-24T07:37:15.661Z"
+            },
+            {
+              "name": "CLAUDE.md",
+              "kind": "file",
+              "sizeBytes": 19244,
+              "modifiedAt": "2026-07-06T19:27:18.460Z"
+            },
+            {
+              "name": "command-centre",
+              "kind": "dir",
+              "sizeBytes": 0,
+              "modifiedAt": "2026-06-18T06:35:45.983Z"
+            },
+            {
+              "name": "content",
+              "kind": "dir",
+              "sizeBytes": 0,
+              "modifiedAt": "2026-07-06T05:19:50.450Z"
+            },
+            {
+              "name": "distill",
+              "kind": "dir",
+              "sizeBytes": 0,
+              "modifiedAt": "2026-07-06T23:05:20.726Z"
+            },
+            {
+              "name": "Job Applications",
+              "kind": "dir",
+              "sizeBytes": 0,
+              "modifiedAt": "2026-07-02T13:03:25.327Z"
+            },
+            {
+              "name": "Knowledge",
+              "kind": "dir",
+              "sizeBytes": 0,
+              "modifiedAt": "2026-07-06T20:04:09.134Z"
+            },
+            {
+              "name": "MDS CEO",
+              "kind": "dir",
+              "sizeBytes": 0,
+              "modifiedAt": "2026-07-02T13:03:27.023Z"
+            },
+            {
+              "name": "open-source",
+              "kind": "dir",
+              "sizeBytes": 0,
+              "modifiedAt": "2026-07-02T13:12:27.808Z"
+            },
+            {
+              "name": "ops",
+              "kind": "dir",
+              "sizeBytes": 0,
+              "modifiedAt": "2026-07-02T21:45:44.268Z"
+            },
+            {
+              "name": "output",
+              "kind": "dir",
+              "sizeBytes": 0,
+              "modifiedAt": "2026-07-06T07:19:15.574Z"
+            },
+            {
+              "name": "personal",
+              "kind": "dir",
+              "sizeBytes": 0,
+              "modifiedAt": "2026-06-17T14:36:59.367Z"
+            }
+          ]
+        }
+      },
+      {
+        "id": "products",
+        "relativePath": "Products",
+        "label": "Products",
+        "exists": true,
+        "listing": {
+          "total": 17,
+          "dirs": 16,
+          "files": 1,
+          "refusedSecretShaped": 0,
+          "entries": [
+            {
+              "name": ".codex-scratch",
+              "kind": "dir",
+              "sizeBytes": 0,
+              "modifiedAt": "2026-07-06T21:38:07.479Z"
+            },
+            {
+              "name": ".codex-worktrees",
+              "kind": "dir",
+              "sizeBytes": 0,
+              "modifiedAt": "2026-07-06T20:00:37.147Z"
+            },
+            {
+              "name": "Astro AI Studio",
+              "kind": "dir",
+              "sizeBytes": 0,
+              "modifiedAt": "2026-07-04T17:13:29.966Z"
+            },
+            {
+              "name": "Atlas AI Studio",
+              "kind": "dir",
+              "sizeBytes": 0,
+              "modifiedAt": "2026-07-06T19:29:58.134Z"
+            },
+            {
+              "name": "Catering Command Centre",
+              "kind": "dir",
+              "sizeBytes": 0,
+              "modifiedAt": "2026-06-10T19:36:23.265Z"
+            },
+            {
+              "name": "Clients",
+              "kind": "dir",
+              "sizeBytes": 0,
+              "modifiedAt": "2026-07-04T15:05:16.875Z"
+            },
+            {
+              "name": "Jobflow AI Studio",
+              "kind": "dir",
+              "sizeBytes": 0,
+              "modifiedAt": "2026-07-06T20:01:19.408Z"
+            },
+            {
+              "name": "Legal AI Studio",
+              "kind": "dir",
+              "sizeBytes": 0,
+              "modifiedAt": "2026-07-06T19:45:10.218Z"
+            },
+            {
+              "name": "MDS-Command-Centre",
+              "kind": "dir",
+              "sizeBytes": 0,
+              "modifiedAt": "2026-07-02T04:03:46.799Z"
+            },
+            {
+              "name": "MIDAS Local Coding Studio",
+              "kind": "dir",
+              "sizeBytes": 0,
+              "modifiedAt": "2026-06-24T18:54:08.259Z"
+            },
+            {
+              "name": "MIDAS-Website",
+              "kind": "dir",
+              "sizeBytes": 0,
+              "modifiedAt": "2026-07-06T02:39:36.073Z"
+            },
+            {
+              "name": "NestIQ AI Studio",
+              "kind": "dir",
+              "sizeBytes": 0,
+              "modifiedAt": "2026-07-06T20:47:00.243Z"
+            },
+            {
+              "name": "Pathway AI Studio",
+              "kind": "dir",
+              "sizeBytes": 0,
+              "modifiedAt": "2026-06-16T20:27:49.017Z"
+            },
+            {
+              "name": "Personal Website",
+              "kind": "dir",
+              "sizeBytes": 0,
+              "modifiedAt": "2026-07-06T20:00:43.163Z"
+            },
+            {
+              "name": "Prep AI Studio",
+              "kind": "dir",
+              "sizeBytes": 0,
+              "modifiedAt": "2026-07-04T17:17:59.812Z"
+            },
+            {
+              "name": "README.md",
+              "kind": "file",
+              "sizeBytes": 3695,
+              "modifiedAt": "2026-07-04T15:06:21.913Z"
+            },
+            {
+              "name": "Thread Intelligence",
+              "kind": "dir",
+              "sizeBytes": 0,
+              "modifiedAt": "2026-04-19T12:24:36.193Z"
+            }
+          ]
+        }
+      },
+      {
+        "id": "vcos",
+        "relativePath": "vcos",
+        "label": "vcos",
+        "exists": true,
+        "listing": {
+          "total": 31,
+          "dirs": 31,
+          "files": 0,
+          "refusedSecretShaped": 0,
+          "entries": [
+            {
+              "name": "Content Studio (Myra)",
+              "kind": "dir",
+              "sizeBytes": 0,
+              "modifiedAt": "2026-07-02T13:13:01.764Z"
+            },
+            {
+              "name": "content-studio",
+              "kind": "dir",
+              "sizeBytes": 0,
+              "modifiedAt": "2026-07-02T13:15:43.698Z"
+            },
+            {
+              "name": "Continuos Improvement Studio (Meridian)",
+              "kind": "dir",
+              "sizeBytes": 0,
+              "modifiedAt": "2026-07-02T13:13:02.240Z"
+            },
+            {
+              "name": "continuous-improvement-studio",
+              "kind": "dir",
+              "sizeBytes": 0,
+              "modifiedAt": "2026-07-02T13:15:45.216Z"
+            },
+            {
+              "name": "Customer Success-Care Studio (Isla)",
+              "kind": "dir",
+              "sizeBytes": 0,
+              "modifiedAt": "2026-07-02T13:13:02.266Z"
+            },
+            {
+              "name": "customer-care-studio",
+              "kind": "dir",
+              "sizeBytes": 0,
+              "modifiedAt": "2026-07-02T13:15:45.948Z"
+            },
+            {
+              "name": "Design Studio (Mira)",
+              "kind": "dir",
+              "sizeBytes": 0,
+              "modifiedAt": "2026-07-02T13:15:29.997Z"
+            },
+            {
+              "name": "design-studio",
+              "kind": "dir",
+              "sizeBytes": 0,
+              "modifiedAt": "2026-07-02T13:15:46.353Z"
+            },
+            {
+              "name": "Dev Ops Studio",
+              "kind": "dir",
+              "sizeBytes": 0,
+              "modifiedAt": "2026-07-02T13:13:02.740Z"
+            },
+            {
+              "name": "Development Studio",
+              "kind": "dir",
+              "sizeBytes": 0,
+              "modifiedAt": "2026-07-02T13:13:03.762Z"
+            },
+            {
+              "name": "development-studio",
+              "kind": "dir",
+              "sizeBytes": 0,
+              "modifiedAt": "2026-07-02T13:15:47.062Z"
+            },
+            {
+              "name": "devops-studio",
+              "kind": "dir",
+              "sizeBytes": 0,
+              "modifiedAt": "2026-07-02T13:15:47.449Z"
+            },
+            {
+              "name": "Finance Studio (Aria)",
+              "kind": "dir",
+              "sizeBytes": 0,
+              "modifiedAt": "2026-07-02T13:13:03.791Z"
+            },
+            {
+              "name": "finance-studio",
+              "kind": "dir",
+              "sizeBytes": 0,
+              "modifiedAt": "2026-07-02T13:15:47.673Z"
+            },
+            {
+              "name": "Marketing Studio",
+              "kind": "dir",
+              "sizeBytes": 0,
+              "modifiedAt": "2026-07-02T13:13:04.120Z"
+            },
+            {
+              "name": "marketing-growth-studio",
+              "kind": "dir",
+              "sizeBytes": 0,
+              "modifiedAt": "2026-07-02T13:15:47.858Z"
+            },
+            {
+              "name": "mds-kernel",
+              "kind": "dir",
+              "sizeBytes": 0,
+              "modifiedAt": "2026-07-06T19:35:48.031Z"
+            },
+            {
+              "name": "product-ops-studio",
+              "kind": "dir",
+              "sizeBytes": 0,
+              "modifiedAt": "2026-07-02T13:15:48.171Z"
+            },
+            {
+              "name": "products",
+              "kind": "dir",
+              "sizeBytes": 0,
+              "modifiedAt": "2026-07-02T13:15:48.176Z"
+            },
+            {
+              "name": "Products Ops Studio (Orion)",
+              "kind": "dir",
+              "sizeBytes": 0,
+              "modifiedAt": "2026-07-02T13:13:04.176Z"
+            },
+            {
+              "name": "QA Studio (Rook)",
+              "kind": "dir",
+              "sizeBytes": 0,
+              "modifiedAt": "2026-07-02T13:13:04.200Z"
+            },
+            {
+              "name": "qa-audit-studio",
+              "kind": "dir",
+              "sizeBytes": 0,
+              "modifiedAt": "2026-07-02T13:15:48.733Z"
+            },
+            {
+              "name": "registry",
+              "kind": "dir",
+              "sizeBytes": 0,
+              "modifiedAt": "2026-07-02T13:15:48.847Z"
+            },
+            {
+              "name": "Research Studio (Atlas)",
+              "kind": "dir",
+              "sizeBytes": 0,
+              "modifiedAt": "2026-07-02T13:13:04.247Z"
+            },
+            {
+              "name": "research-studio",
+              "kind": "dir",
+              "sizeBytes": 0,
+              "modifiedAt": "2026-07-02T13:15:49.014Z"
+            },
+            {
+              "name": "Sales Studio (Priya)",
+              "kind": "dir",
+              "sizeBytes": 0,
+              "modifiedAt": "2026-07-02T13:13:04.280Z"
+            },
+            {
+              "name": "sales-studio",
+              "kind": "dir",
+              "sizeBytes": 0,
+              "modifiedAt": "2026-07-02T13:15:49.339Z"
+            },
+            {
+              "name": "VCOS Builder Studio (Vesper)",
+              "kind": "dir",
+              "sizeBytes": 0,
+              "modifiedAt": "2026-07-02T13:13:04.329Z"
+            },
+            {
+              "name": "vcos-architect-builder-studio",
+              "kind": "dir",
+              "sizeBytes": 0,
+              "modifiedAt": "2026-07-02T13:13:53.546Z"
+            },
+            {
+              "name": "vcos-builder-studio",
+              "kind": "dir",
+              "sizeBytes": 0,
+              "modifiedAt": "2026-07-02T13:15:51.638Z"
+            }
+          ]
+        }
+      },
+      {
+        "id": "command-centre",
+        "relativePath": "command-centre",
+        "label": "command-centre",
+        "exists": true,
+        "listing": {
+          "total": 1,
+          "dirs": 1,
+          "files": 0,
+          "refusedSecretShaped": 0,
+          "entries": [
+            {
+              "name": "war-room",
+              "kind": "dir",
+              "sizeBytes": 0,
+              "modifiedAt": "2026-07-06T20:50:37.900Z"
+            }
+          ]
+        }
+      },
+      {
+        "id": "playwright-output",
+        "relativePath": "output/playwright",
+        "label": "output/playwright",
+        "exists": true,
+        "listing": {
+          "total": 19,
+          "dirs": 2,
+          "files": 17,
+          "refusedSecretShaped": 0,
+          "entries": [
+            {
+              "name": "capabilities-console-server.err",
+              "kind": "file",
+              "sizeBytes": 0,
+              "modifiedAt": "2026-07-06T19:10:53.605Z"
+            },
+            {
+              "name": "capabilities-console-server.out",
+              "kind": "file",
+              "sizeBytes": 0,
+              "modifiedAt": "2026-07-06T19:10:53.365Z"
+            },
+            {
+              "name": "capabilities-tab.png",
+              "kind": "file",
+              "sizeBytes": 80926,
+              "modifiedAt": "2026-07-06T19:13:09.966Z"
+            },
+            {
+              "name": "mv04-console-operate.png",
+              "kind": "file",
+              "sizeBytes": 69158,
+              "modifiedAt": "2026-07-06T04:45:19.257Z"
+            },
+            {
+              "name": "mv04-console-today.png",
+              "kind": "file",
+              "sizeBytes": 76119,
+              "modifiedAt": "2026-07-06T04:43:41.366Z"
+            },
+            {
+              "name": "mv04-live-server.err.log",
+              "kind": "file",
+              "sizeBytes": 0,
+              "modifiedAt": "2026-07-06T04:55:18.908Z"
+            },
+            {
+              "name": "mv04-live-server.out.log",
+              "kind": "file",
+              "sizeBytes": 0,
+              "modifiedAt": "2026-07-06T04:55:18.905Z"
+            },
+            {
+              "name": "mv04-walkthrough-operate.png",
+              "kind": "file",
+              "sizeBytes": 69158,
+              "modifiedAt": "2026-07-06T05:11:08.580Z"
+            },
+            {
+              "name": "mv04-walkthrough-today.png",
+              "kind": "file",
+              "sizeBytes": 76071,
+              "modifiedAt": "2026-07-06T05:11:00.355Z"
+            },
+            {
+              "name": "mv05-learn.png",
+              "kind": "file",
+              "sizeBytes": 66019,
+              "modifiedAt": "2026-07-06T06:27:29.559Z"
+            },
+            {
+              "name": "mv05-today.png",
+              "kind": "file",
+              "sizeBytes": 61936,
+              "modifiedAt": "2026-07-06T06:27:39.003Z"
+            },
+            {
+              "name": "mv06-registry",
+              "kind": "dir",
+              "sizeBytes": 0,
+              "modifiedAt": "2026-07-06T07:21:04.612Z"
+            },
+            {
+              "name": "mv07-breaksuite",
+              "kind": "dir",
+              "sizeBytes": 0,
+              "modifiedAt": "2026-07-06T09:14:53.842Z"
+            },
+            {
+              "name": "mv08-console-server.err.log",
+              "kind": "file",
+              "sizeBytes": 3526,
+              "modifiedAt": "2026-07-06T14:47:58.865Z"
+            },
+            {
+              "name": "mv08-console-server.log",
+              "kind": "file",
+              "sizeBytes": 0,
+              "modifiedAt": "2026-07-06T14:45:59.284Z"
+            },
+            {
+              "name": "mv08-harness-console.png",
+              "kind": "file",
+              "sizeBytes": 182473,
+              "modifiedAt": "2026-07-06T14:51:45.931Z"
+            },
+            {
+              "name": "mv09-console-server.err.log",
+              "kind": "file",
+              "sizeBytes": 0,
+              "modifiedAt": "2026-07-06T17:00:49.801Z"
+            },
+            {
+              "name": "mv09-console-server.out.log",
+              "kind": "file",
+              "sizeBytes": 0,
+              "modifiedAt": "2026-07-06T17:00:49.776Z"
+            },
+            {
+              "name": "mv09-harness-battery.png",
+              "kind": "file",
+              "sizeBytes": 238833,
+              "modifiedAt": "2026-07-06T17:07:41.009Z"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "vcos": {
+    "departmentCount": 13,
+    "departments": [
+      {
+        "slug": "content-studio",
+        "directorHeading": "Nyra — Director of Content Studio"
+      },
+      {
+        "slug": "continuous-improvement-studio",
+        "directorHeading": "Meridian — Director of Continuous Improvement Studio"
+      },
+      {
+        "slug": "customer-care-studio",
+        "directorHeading": "Isla — Director of Customer Care Studio"
+      },
+      {
+        "slug": "design-studio",
+        "directorHeading": "Mira — Director of Design Studio"
+      },
+      {
+        "slug": "development-studio",
+        "directorHeading": "Kai — Director of Development Studio"
+      },
+      {
+        "slug": "devops-studio",
+        "directorHeading": "Vesper — Director of DevOps Studio"
+      },
+      {
+        "slug": "finance-studio",
+        "directorHeading": "Aria — Director of Finance Studio"
+      },
+      {
+        "slug": "marketing-growth-studio",
+        "directorHeading": "Zane — Director of Marketing & Growth Studio"
+      },
+      {
+        "slug": "product-ops-studio",
+        "directorHeading": "Orion — Director of Product Ops Studio"
+      },
+      {
+        "slug": "qa-audit-studio",
+        "directorHeading": "Rook — Director of QA & Audit Studio"
+      },
+      {
+        "slug": "research-studio",
+        "directorHeading": "Atlas — Director of Research Studio"
+      },
+      {
+        "slug": "sales-studio",
+        "directorHeading": "Priya — Director of Sales Studio"
+      },
+      {
+        "slug": "vcos-builder-studio",
+        "directorHeading": "Axiom — Director of VCOS Builder Studio"
+      }
+    ],
+    "midasPathConflict": "CONFLICT RECORDED: canonical MIDAS path unresolved (Claude.md says E:/, disk shows vcos/development-studio/frameworks/midas/); pending Shrish ADR"
+  },
+  "midasRuntime": {
+    "surfaces": [
+      {
+        "id": "work-orders",
+        "relativePath": "vcos/mds-kernel/midas-runtime/work-orders",
+        "exists": true,
+        "artifactCount": 6
+      },
+      {
+        "id": "approvals",
+        "relativePath": "vcos/mds-kernel/midas-runtime/approvals",
+        "exists": true,
+        "artifactCount": 0
+      },
+      {
+        "id": "packets",
+        "relativePath": "vcos/mds-kernel/midas-runtime/packets",
+        "exists": true,
+        "artifactCount": 1
+      },
+      {
+        "id": "proof",
+        "relativePath": "vcos/mds-kernel/midas-runtime/proof",
+        "exists": true,
+        "artifactCount": 1
+      },
+      {
+        "id": "loop",
+        "relativePath": "vcos/mds-kernel/midas-runtime/loop",
+        "exists": true,
+        "artifactCount": 5
+      },
+      {
+        "id": "learning",
+        "relativePath": "vcos/mds-kernel/midas-runtime/learning",
+        "exists": true,
+        "artifactCount": 7
+      },
+      {
+        "id": "registry",
+        "relativePath": "vcos/mds-kernel/midas-runtime/registry",
+        "exists": true,
+        "artifactCount": 7
+      },
+      {
+        "id": "harness",
+        "relativePath": "vcos/mds-kernel/midas-runtime/harness",
+        "exists": true,
+        "artifactCount": 11
+      },
+      {
+        "id": "breaksuite",
+        "relativePath": "vcos/mds-kernel/midas-runtime/breaksuite/cases",
+        "exists": true,
+        "artifactCount": 51
+      },
+      {
+        "id": "capabilities",
+        "relativePath": "vcos/mds-kernel/midas-runtime/capabilities",
+        "exists": true,
+        "artifactCount": 6
+      }
+    ]
+  },
+  "gitLocal": {
+    "repos": [
+      {
+        "relativePath": ".",
+        "branch": "feat/vcos-runtime-provenance-2026-07-06",
+        "head": "bfc3490f",
+        "remote": "https://github.com/shrishmanglik/Million-Dollar-AI-Studio.git",
+        "dirty": "462 tracked file(s) modified",
+        "status": "ok"
+      },
+      {
+        "relativePath": "Products\\Astro AI Studio",
+        "branch": "main",
+        "head": "1c6e674",
+        "remote": "https://github.com/shrishmanglik/Astro-AI-Studio.git",
+        "dirty": "UNKNOWN",
+        "status": "degraded"
+      },
+      {
+        "relativePath": "Products\\Atlas AI Studio",
+        "branch": "UNKNOWN",
+        "head": "f649196",
+        "remote": "https://github.com/shrishmanglik/atlas.git",
+        "dirty": "11 tracked file(s) modified",
+        "status": "ok"
+      },
+      {
+        "relativePath": "Products\\Catering Command Centre",
+        "branch": "main",
+        "head": "5dfb1a8",
+        "remote": "UNKNOWN",
+        "dirty": "UNKNOWN",
+        "status": "degraded"
+      },
+      {
+        "relativePath": "Products\\Jobflow AI Studio",
+        "branch": "main",
+        "head": "17409e5",
+        "remote": "https://github.com/shrishmanglik/JobFlow.git",
+        "dirty": "clean (tracked)",
+        "status": "ok"
+      },
+      {
+        "relativePath": "Products\\Legal AI Studio",
+        "branch": "transform/full-product-2026-07-06",
+        "head": "4bfc32e",
+        "remote": "https://github.com/shrishmanglik/Legal-AI-Studio.git",
+        "dirty": "UNKNOWN",
+        "status": "degraded"
+      },
+      {
+        "relativePath": "Products\\MDS-Command-Centre",
+        "branch": "main",
+        "head": "69c0c23",
+        "remote": "UNKNOWN",
+        "dirty": "1 tracked file(s) modified",
+        "status": "ok"
+      },
+      {
+        "relativePath": "Products\\MIDAS-Website",
+        "branch": "main",
+        "head": "996fc35",
+        "remote": "https://github.com/shrishmanglik/MIDAS-Website.git",
+        "dirty": "clean (tracked)",
+        "status": "ok"
+      },
+      {
+        "relativePath": "Products\\NestIQ AI Studio",
+        "branch": "main",
+        "head": "76d44f4",
+        "remote": "https://github.com/shrishmanglik/NestIQ-AI-Studio.git",
+        "dirty": "UNKNOWN",
+        "status": "degraded"
+      },
+      {
+        "relativePath": "Products\\Prep AI Studio",
+        "branch": "codex/prep-uiux-psychology-layout-20260705",
+        "head": "65c9b4a",
+        "remote": "https://github.com/shrishmanglik/Prep-AI-Studio.git",
+        "dirty": "UNKNOWN",
+        "status": "degraded"
+      },
+      {
+        "relativePath": "Products\\Thread Intelligence",
+        "branch": "UNKNOWN",
+        "head": "UNKNOWN",
+        "remote": "UNKNOWN",
+        "dirty": "UNKNOWN",
+        "status": "degraded"
+      }
+    ]
+  },
+  "github": {
+    "ghPresent": true,
+    "authState": "logged-in",
+    "account": "shrishmanglik"
+  }
+}
