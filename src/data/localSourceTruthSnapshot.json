@@ -1,6 +1,6 @@
 {
   "schemaVersion": "mds.command-centre.local-source-truth-snapshot.v1",
-  "generatedAt": "2026-07-07T14:36:06.420Z",
+  "generatedAt": "2026-07-07T14:39:57.812Z",
   "authority": "D-local filesystem/git metadata only. GitHub remains committed-code authority; drive roles per source-authority doctrine; secret-shaped paths refused at scan time.",
   "drives": {
     "drives": [
@@ -65,7 +65,7 @@
               "name": ".git",
               "kind": "dir",
               "sizeBytes": 0,
-              "modifiedAt": "2026-07-07T14:15:00.371Z"
+              "modifiedAt": "2026-07-07T14:39:05.020Z"
             },
             {
               "name": ".github",
@@ -277,7 +277,7 @@
               "name": "MDS-Command-Centre",
               "kind": "dir",
               "sizeBytes": 0,
-              "modifiedAt": "2026-07-07T14:11:46.163Z"
+              "modifiedAt": "2026-07-07T14:37:09.546Z"
             },
             {
               "name": "MIDAS Local Coding Studio",
@@ -301,7 +301,7 @@
               "name": "Pathway AI Studio",
               "kind": "dir",
               "sizeBytes": 0,
-              "modifiedAt": "2026-07-07T13:39:51.656Z"
+              "modifiedAt": "2026-07-07T14:36:46.942Z"
             },
             {
               "name": "Personal Website",
@@ -855,7 +855,7 @@
       {
         "relativePath": "Products\\MDS-Command-Centre",
         "branch": "main",
-        "head": "c2a2d2a",
+        "head": "ff947d6",
         "remote": "UNKNOWN",
         "dirty": "UNKNOWN (dirty probe skipped; no git subprocesses in adapter)",
         "status": "degraded"
@@ -895,8 +895,7 @@
     ]
   },
   "github": {
-    "ghPresent": true,
-    "authState": "logged-in",
-    "account": "shrishmanglik"
+    "ghPresent": false,
+    "authState": "UNKNOWN"
   }
 }

@@ -1,6 +1,6 @@
 {
   "schemaVersion": "mds.command-centre.local-adapter-health.v1",
-  "generatedAt": "2026-07-07T14:36:06.420Z",
+  "generatedAt": "2026-07-07T14:39:57.812Z",
   "authority": "Adapter contract + health ledger; degraded/failed adapters must stay visible, never hidden.",
   "adapters": [
     {
@@ -11,7 +11,7 @@
       "write_scope": "none",
       "secret_policy": "refuse secret-shaped paths; redact secret-shaped content; never read .env/keys/tokens/cookies/auth stores",
       "mutation_policy": "no provider mutation, no deploy, no push, no external send, no payment/auth/schema change",
-      "last_checked_at": "2026-07-07T14:36:06.421Z",
+      "last_checked_at": "2026-07-07T14:39:57.813Z",
       "status": "ok",
       "unknowns": [],
       "evidence_paths": [
@@ -21,7 +21,7 @@
         "command-centre",
         "output/playwright"
       ],
-      "duration_ms": 5
+      "duration_ms": 6
     },
     {
       "adapter_id": "drive-roots-adapter",
@@ -31,7 +31,7 @@
       "write_scope": "none",
       "secret_policy": "refuse secret-shaped paths; redact secret-shaped content; never read .env/keys/tokens/cookies/auth stores",
       "mutation_policy": "no provider mutation, no deploy, no push, no external send, no payment/auth/schema change",
-      "last_checked_at": "2026-07-07T14:36:06.427Z",
+      "last_checked_at": "2026-07-07T14:39:57.820Z",
       "status": "ok",
       "unknowns": [
         "drive free-space, health, and backup freshness are not checked in this slice"
@@ -47,7 +47,7 @@
       "write_scope": "none",
       "secret_policy": "refuse secret-shaped paths; redact secret-shaped content; never read .env/keys/tokens/cookies/auth stores",
       "mutation_policy": "no provider mutation, no deploy, no push, no external send, no payment/auth/schema change",
-      "last_checked_at": "2026-07-07T14:36:06.427Z",
+      "last_checked_at": "2026-07-07T14:39:57.820Z",
       "status": "ok",
       "unknowns": [],
       "evidence_paths": [
@@ -63,13 +63,13 @@
       "write_scope": "none",
       "secret_policy": "refuse secret-shaped paths; redact secret-shaped content; never read .env/keys/tokens/cookies/auth stores",
       "mutation_policy": "no provider mutation, no deploy, no push, no external send, no payment/auth/schema change",
-      "last_checked_at": "2026-07-07T14:36:06.430Z",
+      "last_checked_at": "2026-07-07T14:39:57.823Z",
       "status": "ok",
       "unknowns": [
         "deep validator verdicts require running the runtime validators; only counts are read here"
       ],
       "evidence_paths": [],
-      "duration_ms": 2
+      "duration_ms": 1
     },
     {
       "adapter_id": "capability-broker-adapter",
@@ -79,13 +79,13 @@
       "write_scope": "none",
       "secret_policy": "refuse secret-shaped paths; redact secret-shaped content; never read .env/keys/tokens/cookies/auth stores",
       "mutation_policy": "no provider mutation, no deploy, no push, no external send, no payment/auth/schema change",
-      "last_checked_at": "2026-07-07T14:36:06.432Z",
+      "last_checked_at": "2026-07-07T14:39:57.824Z",
       "status": "ok",
       "unknowns": [],
       "evidence_paths": [
         "vcos/mds-kernel/midas-runtime/capabilities"
       ],
-      "duration_ms": 7306
+      "duration_ms": 9469
     },
     {
       "adapter_id": "git-local-adapter",
@@ -95,13 +95,13 @@
       "write_scope": "none",
       "secret_policy": "refuse secret-shaped paths; redact secret-shaped content; never read .env/keys/tokens/cookies/auth stores",
       "mutation_policy": "no provider mutation, no deploy, no push, no external send, no payment/auth/schema change",
-      "last_checked_at": "2026-07-07T14:36:13.738Z",
+      "last_checked_at": "2026-07-07T14:40:07.294Z",
       "status": "degraded",
       "unknowns": [
         "dirty state intentionally remains UNKNOWN in the adapter because git status can hang on large D-root worktrees"
       ],
       "evidence_paths": [],
-      "duration_ms": 5
+      "duration_ms": 6
     },
     {
       "adapter_id": "github-metadata-adapter",
@@ -111,13 +111,14 @@
       "write_scope": "none",
       "secret_policy": "refuse secret-shaped paths; redact secret-shaped content; never read .env/keys/tokens/cookies/auth stores",
       "mutation_policy": "no provider mutation, no deploy, no push, no external send, no payment/auth/schema change",
-      "last_checked_at": "2026-07-07T14:36:13.743Z",
+      "last_checked_at": "2026-07-07T14:40:07.300Z",
       "status": "ok",
       "unknowns": [
-        "repo/PR/release metadata not fetched in this slice; auth state UNKNOWN unless gh reports it safely"
+        "repo/PR/release metadata not fetched in this slice; auth state UNKNOWN unless gh reports it safely",
+        "gh CLI not found; GitHub metadata UNKNOWN"
       ],
       "evidence_paths": [],
-      "duration_ms": 7730
+      "duration_ms": 5249
     },
     {
       "adapter_id": "provider-cli-adapter",
@@ -127,13 +128,13 @@
       "write_scope": "none",
       "secret_policy": "refuse secret-shaped paths; redact secret-shaped content; never read .env/keys/tokens/cookies/auth stores",
       "mutation_policy": "no provider mutation, no deploy, no push, no external send, no payment/auth/schema change",
-      "last_checked_at": "2026-07-07T14:36:21.473Z",
+      "last_checked_at": "2026-07-07T14:40:12.549Z",
       "status": "ok",
       "unknowns": [
         "all provider live states (deploy/db/schema/auth/billing/payments) are UNKNOWN and request-only"
       ],
       "evidence_paths": [],
-      "duration_ms": 12861
+      "duration_ms": 20794
     },
     {
       "adapter_id": "model-provider-adapter",
@@ -143,14 +144,14 @@
       "write_scope": "none",
       "secret_policy": "refuse secret-shaped paths; redact secret-shaped content; never read .env/keys/tokens/cookies/auth stores",
       "mutation_policy": "no provider mutation, no deploy, no push, no external send, no payment/auth/schema change",
-      "last_checked_at": "2026-07-07T14:36:34.335Z",
+      "last_checked_at": "2026-07-07T14:40:33.344Z",
       "status": "ok",
       "unknowns": [
         "local model viability is UNKNOWN until a governed benchmark run",
         "paid API adapters (Anthropic/OpenAI-class) are record-only and red-gated; no keys are read or checked"
       ],
       "evidence_paths": [],
-      "duration_ms": 11293
+      "duration_ms": 12216
     }
   ]
 }
