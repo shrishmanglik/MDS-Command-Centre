@@ -1,6 +1,6 @@
 {
   "schemaVersion": "mds.command-centre.local-capability-snapshot.v1",
-  "generatedAt": "2026-07-07T14:39:57.812Z",
+  "generatedAt": "2026-07-07T16:04:56.240Z",
   "authority": "D-local capability records and validator summaries only. Live provider/deploy/db/auth/billing/payment states remain UNKNOWN until provider evidence is collected through an approved safe path.",
   "capabilityBroker": {
     "providers": [
@@ -713,8 +713,8 @@
         "id": "vercel",
         "command": "vercel",
         "provider": "Vercel",
-        "present": false,
-        "location": null,
+        "present": true,
+        "location": "C:\\Users\\Shris\\AppData\\Roaming\\npm\\vercel",
         "liveState": "UNKNOWN (request_only)",
         "allowedActions": [
           "record capability",

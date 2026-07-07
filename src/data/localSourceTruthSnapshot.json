@@ -1,6 +1,6 @@
 {
   "schemaVersion": "mds.command-centre.local-source-truth-snapshot.v1",
-  "generatedAt": "2026-07-07T14:39:57.812Z",
+  "generatedAt": "2026-07-07T16:04:56.240Z",
   "authority": "D-local filesystem/git metadata only. GitHub remains committed-code authority; drive roles per source-authority doctrine; secret-shaped paths refused at scan time.",
   "drives": {
     "drives": [
@@ -65,7 +65,7 @@
               "name": ".git",
               "kind": "dir",
               "sizeBytes": 0,
-              "modifiedAt": "2026-07-07T14:39:05.020Z"
+              "modifiedAt": "2026-07-07T16:02:47.711Z"
             },
             {
               "name": ".github",
@@ -277,7 +277,7 @@
               "name": "MDS-Command-Centre",
               "kind": "dir",
               "sizeBytes": 0,
-              "modifiedAt": "2026-07-07T14:37:09.546Z"
+              "modifiedAt": "2026-07-07T16:02:04.775Z"
             },
             {
               "name": "MIDAS Local Coding Studio",
@@ -295,7 +295,7 @@
               "name": "NestIQ AI Studio",
               "kind": "dir",
               "sizeBytes": 0,
-              "modifiedAt": "2026-07-06T20:47:00.243Z"
+              "modifiedAt": "2026-07-07T15:00:13.742Z"
             },
             {
               "name": "Pathway AI Studio",
@@ -324,8 +324,8 @@
             {
               "name": "README.md",
               "kind": "file",
-              "sizeBytes": 3695,
-              "modifiedAt": "2026-07-04T15:06:21.913Z"
+              "sizeBytes": 3722,
+              "modifiedAt": "2026-07-07T14:46:33.840Z"
             },
             {
               "name": "Thread Intelligence",
@@ -807,7 +807,7 @@
       {
         "relativePath": ".",
         "branch": "feat/vcos-runtime-provenance-2026-07-06",
-        "head": "fb78bad",
+        "head": "7753b9b",
         "remote": "https://github.com/shrishmanglik/Million-Dollar-AI-Studio.git",
         "dirty": "UNKNOWN (dirty probe skipped; no git subprocesses in adapter)",
         "status": "degraded"
@@ -855,8 +855,8 @@
       {
         "relativePath": "Products\\MDS-Command-Centre",
         "branch": "main",
-        "head": "ff947d6",
-        "remote": "UNKNOWN",
+        "head": "72d6c8c",
+        "remote": "https://github.com/shrishmanglik/MDS-Command-Centre.git",
         "dirty": "UNKNOWN (dirty probe skipped; no git subprocesses in adapter)",
         "status": "degraded"
       },
@@ -871,7 +871,7 @@
       {
         "relativePath": "Products\\NestIQ AI Studio",
         "branch": "main",
-        "head": "76d44f4",
+        "head": "19fb9aa",
         "remote": "https://github.com/shrishmanglik/NestIQ-AI-Studio.git",
         "dirty": "UNKNOWN (dirty probe skipped; no git subprocesses in adapter)",
         "status": "degraded"
@@ -895,7 +895,8 @@
     ]
   },
   "github": {
-    "ghPresent": false,
-    "authState": "UNKNOWN"
+    "ghPresent": true,
+    "authState": "logged-in",
+    "account": "shrishmanglik"
   }
 }

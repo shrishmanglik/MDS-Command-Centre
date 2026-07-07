@@ -64,6 +64,7 @@ const validViews = new Set([
   "search",
   "queue",
   "boards",
+  "launch",
   "operator",
   "vcos",
   "files",
@@ -91,6 +92,7 @@ function icon(name, size = 18) {
     today: '<path d="m4 7 2 2 3-4"/><path d="M12 8h8"/><path d="m4 16 2 2 3-4"/><path d="M12 17h8"/>',
     queue: '<path d="M4 5h16"/><path d="M4 12h16"/><path d="M4 19h16"/><path d="M8 5v14"/><path d="m15 9 3 3-3 3"/>',
     boards: '<path d="M3 6h7l2 2h9v11H3V6Z"/><path d="M8 12v4"/><path d="M12 11v5"/><path d="M16 13v3"/>',
+    launch: '<path d="M12 3 7 8l2 2-5 5 5 5 5-5 2 2 5-5-9-9Z"/><path d="M9 20h6"/><path d="M12 16v4"/>',
     tickets: '<path d="M4 7h16v4a2 2 0 0 0 0 4v4H4v-4a2 2 0 0 0 0-4V7Z"/><path d="M9 9v6"/>',
     dispatch: '<path d="M9 4h6l1 2h3v15H5V6h3l1-2Z"/><path d="M9 10h6"/><path d="M9 14h6"/>',
     runs: '<path d="M5 4h14v5H5z"/><path d="M5 15h14v5H5z"/><path d="M8 9v6"/><path d="M16 9v6"/><path d="m10 12 2 2 4-4"/>',
@@ -135,11 +137,12 @@ function esc(value) {
 
 function statusClass(value) {
   const normalized = String(value).toUpperCase();
-  if (normalized.includes("READY") || normalized.includes("PASS")) return "status ready";
-  if (normalized.includes("BLOCK") || normalized.includes("NO_GO") || normalized.includes("FORBIDDEN")) return "status blocked";
+  if (normalized.includes("READY") || normalized.includes("PASS") || normalized.includes("GREEN")) return "status ready";
+  if (normalized.includes("BLOCK") || normalized.includes("NO_GO") || normalized.includes("FORBIDDEN") || normalized.includes("GAP")) return "status blocked";
   if (normalized.includes("PARK")) return "status parked";
-  if (normalized.includes("FIX") || normalized.includes("REVIEW")) return "status fix";
+  if (normalized.includes("FIX") || normalized.includes("REVIEW") || normalized.includes("PARTIAL")) return "status fix";
   if (normalized.includes("UNKNOWN")) return "status unknown";
+  if (normalized.includes("WAIVED")) return "status parked";
   return "status active";
 }
 
@@ -2870,7 +2873,7 @@ function renderShell(content) {
           <div><strong>MDS Command Centre</strong><span>Local-first Sprint 001</span></div>
         </div>
         <nav>
-          ${navGroup("Operate", ["today", "search", "queue", "boards", "operator"])}
+          ${navGroup("Operate", ["today", "launch", "search", "queue", "boards", "operator"])}
           ${navGroup("System", ["vcos", "files", "git", "sources", "capabilities", "providers", "models"])}
           ${navGroup("Execution", ["runtime", "runs", "tickets", "dispatch", "proof"])}
           ${navGroup("Govern", ["closeout", "review", "promote", "activity", "decisions", "benchmark", "health"])}
@@ -2879,7 +2882,7 @@ function renderShell(content) {
       </aside>
       <main class="workspace">
         <header class="top-strip">
-          <div><span class="eyebrow">Snapshot ${state.snapshot.generatedAt}</span><h1>${esc(titleCase(state.view))}</h1></div>
+          <div><span class="eyebrow">Snapshot ${state.snapshot.generatedAt}</span><h1>${esc(navLabels[state.view] || titleCase(state.view))}</h1></div>
           <div class="strip-actions"><span class="timestamp">${new Date().toLocaleString()}</span><button class="primary" data-action="new-ticket">${icon("plus", 16)} New ticket</button></div>
         </header>
         <section class="guardrail-strip" aria-label="Authority model">
@@ -2900,6 +2903,7 @@ const navLabels = {
   search: "Search",
   queue: "Queue",
   boards: "Boards",
+  launch: "Launch OS",
   operator: "Operator OS",
   vcos: "VCOS",
   files: "Files",
@@ -3167,6 +3171,185 @@ function renderAgentAssignments(control) {
         : `<article class="empty-card"><strong>No route assignments loaded.</strong></article>`
     }
   </div>`;
+}
+
+const launchScoreRows = [
+  ["Landing/public surface", 3, 6, 6, 6, 7, 2, 4, 2, 2, "GAP"],
+  ["Onboarding and auth", 2, 5, 4, 5, 6, 1, 3, 1, 3, "GAP"],
+  ["Today cockpit", 8, 8, 9, 7, 8, 5, 8, 6, 4, "PARTIAL"],
+  ["Core run-control workflow", 8, 9, 8, 7, 7, 4, 8, 6, 4, "PARTIAL"],
+  ["Proof/review/promote loop", 8, 9, 8, 7, 7, 4, 8, 6, 5, "PARTIAL"],
+  ["Provider/model/source boundaries", 9, 9, 8, 7, 8, 3, 8, 5, 4, "PARTIAL"],
+  ["Revenue/pricing path", 5, 7, 5, 6, 7, 4, 4, 2, 3, "GAP"],
+  ["Mobile operator access", 7, 7, 7, 6, 7, 3, 6, 4, 4, "PARTIAL"],
+  ["Backend/API assumptions", 6, 8, 7, 5, 7, 2, 5, 4, 5, "PARTIAL"],
+  ["Docs and deploy readiness", 7, 8, 6, 5, 7, 3, 6, 3, 4, "PARTIAL"],
+];
+
+const launchComponents = [
+  ["Positioning", "PARTIAL", "Local AI operating system for VCOS work, not a public SaaS dashboard yet."],
+  ["Pricing state", "UNKNOWN", "No live checkout, price object, invoice route, or buyer-facing offer evidence in this product."],
+  ["Onboarding", "GAP", "No account creation path. Current mode is local founder/operator only."],
+  ["Demo flow", "PARTIAL", "Local demo works through Today -> Launch OS -> Queue -> Runs -> Closeout -> Review -> Promote."],
+  ["Support path", "GAP", "No user support channel, contact surface, or escalation SLA in app."],
+  ["Legal/safety copy", "PARTIAL", "Strong local guardrails exist; public-facing legal/payment claims are not ready."],
+  ["Analytics plan", "UNKNOWN", "No provider telemetry is verified. Do not infer usage."],
+  ["Telemetry plan", "GAP", "Local activity exists; product analytics/observability are not wired."],
+  ["Feedback loop", "PARTIAL", "Activity and Decisions can stage evidence, but no customer feedback intake exists."],
+  ["Incident response", "GAP", "No incident workflow beyond local tickets and guardrail copy."],
+  ["Release notes", "PARTIAL", "README and local commits exist; no public release channel yet."],
+  ["Rollback plan", "PARTIAL", "Git history exists; no deployed rollback path because live deploy is UNKNOWN."],
+  ["Product VCOS updates", "PARTIAL", "War Room/Product VCOS data feeds the app; promotion remains manual."],
+];
+
+const revenuePathRows = [
+  ["ICP", "Founder/operators building governed AI companies or client VCOS pilots."],
+  ["Offer", "Private local operating cockpit plus setup advisory for one product/company operating system."],
+  ["Free/demo tier", "Local demo with seeded evidence, no provider/live claims, no payments."],
+  ["Paid tier", "Managed setup and training after proof of value; pricing not live inside product."],
+  ["Professional tier", "Custom VCOS cockpit, product proof gates, local run-control, and closeout workflows."],
+  ["Enterprise path", "Security-reviewed deployment, SSO/provider integrations, audit retention, and support SLA."],
+  ["CTA strategy", "Schedule/manual review first. No checkout until provider/payment/legal evidence is complete."],
+  ["Trust before payment", "GitHub source, local build proof, screenshots, support path, legal copy, and provider boundaries."],
+];
+
+function launchAverage(row) {
+  const scores = row.slice(1, 10).map(Number);
+  return Math.round(scores.reduce((sum, value) => sum + value, 0) / scores.length);
+}
+
+function renderLaunchScoreTable(rows) {
+  return `<div class="launch-score-table">
+    <div class="launch-score-head"><span>Surface</span><span>Avg</span><span>Clarity</span><span>Trust</span><span>Useful</span><span>Beauty</span><span>Speed</span><span>Convert</span><span>Demo</span><span>Launch</span><span>Risk</span><span>Status</span></div>
+    ${rows
+      .map(
+        (row) => `<div class="launch-score-row">
+          <strong>${esc(row[0])}</strong>
+          <em>${esc(launchAverage(row))}</em>
+          ${row.slice(1, 10).map((score) => `<span>${esc(score)}</span>`).join("")}
+          <b class="${statusClass(row[10])}">${esc(row[10])}</b>
+        </div>`,
+      )
+      .join("")}
+  </div>`;
+}
+
+function renderLaunchComponentGrid(items) {
+  return `<div class="launch-component-grid">
+    ${items
+      .map(
+        ([label, status, detail]) => `<article>
+          <header><strong>${esc(label)}</strong><em class="${statusClass(status)}">${esc(status)}</em></header>
+          <p>${esc(detail)}</p>
+        </article>`,
+      )
+      .join("")}
+  </div>`;
+}
+
+function renderDefinitionList(rows) {
+  return `<dl class="launch-definition-list">
+    ${rows.map(([term, detail]) => `<dt>${esc(term)}</dt><dd>${esc(detail)}</dd>`).join("")}
+  </dl>`;
+}
+
+function renderLaunchOs() {
+  const control = controlSurface();
+  const adapterCount = state.adapterHealth?.adapters?.length || 0;
+  const adapterOk = state.adapterHealth?.adapters?.filter((adapter) => adapter.status === "ok").length || 0;
+  const activeTickets = state.tickets.filter((ticket) => !/CLOSED|DONE|PARKED/i.test(ticket.status || "")).length;
+  const pendingDirector = pendingDirectorBundles().length;
+  renderShell(`
+    <div class="launch-grid">
+      <section class="objective-panel launch-hero wide">
+        <div class="panel-title">${icon("launch")}<span>Launch operating brief</span></div>
+        <h2>MDS Command Centre is a local AI operating system for governing product execution, evidence, and agent work before public/live claims.</h2>
+        <p>It should own the category of founder-grade VCOS cockpit: local-first, proof-gated, source-aware, agent-ready, and honest about UNKNOWN provider/payment/live state.</p>
+        <div class="launch-truth-strip">
+          <span><strong>Primary user</strong>Shrish / MDS operator</span>
+          <span><strong>Workflow</strong>Evidence -> ticket -> run -> proof -> review -> promote</span>
+          <span><strong>Promise</strong>Less chaos, more governed shipping</span>
+          <span><strong>Risk</strong>Pretending local proof is live proof</span>
+        </div>
+      </section>
+      <section class="metrics-panel launch-metrics wide">
+        ${metric("Adapter health", adapterCount ? `${adapterOk}/${adapterCount}` : "UNKNOWN", "health")}
+        ${metric("Active tickets", activeTickets, "tickets")}
+        ${metric("Director packets", pendingDirector, "review")}
+        ${metric("Revenue mode", "MANUAL", "warning")}
+        ${metric("Live state", "UNKNOWN", "lock")}
+      </section>
+      <section class="table-panel wide">
+        <div class="panel-title">${icon("boards")}<span>Section truth and category</span></div>
+        ${renderDefinitionList([
+          ["One-sentence truth", "A local proof-gated command cockpit that turns MDS source evidence into accountable agent work without crossing provider, payment, deploy, or live-state boundaries."],
+          ["Category definition", "Founder VCOS operating cockpit: part command center, part proof ledger, part agent run-control desk."],
+          ["Primary user", "The founder/operator who needs one governed surface for product execution."],
+          ["Secondary user", "Director, reviewer, or builder agent receiving scoped packets and closeout requirements."],
+          ["Primary workflow", "Inspect source truth, route one work item, create run-control, collect proof, review, stage promotion."],
+          ["Revenue path", "Private demo and managed VCOS setup first; public self-serve checkout only after trust, support, legal, and provider/payment evidence are ready."],
+          ["Strongest wedge", "Local truth and approval boundaries that agentic coding tools and issue trackers do not own."],
+          ["Biggest delusion/risk", "Calling it deployable SaaS before auth, support, payment, telemetry, and provider evidence exist."],
+        ])}
+      </section>
+      <section class="table-panel wide">
+        <div class="panel-title">${icon("proof")}<span>Whole-section scorecard</span></div>
+        ${renderLaunchScoreTable(launchScoreRows)}
+      </section>
+      <section class="table-panel">
+        <div class="panel-title">${icon("runtime")}<span>Ideal architecture</span></div>
+        <div class="launch-flow">
+          ${["Source intake", "Local ticket", "Run control", "Proof closeout", "Review", "Promotion draft", "Manual authority"].map((step) => `<span>${esc(step)}</span>`).join("")}
+        </div>
+        ${renderDefinitionList([
+          ["Routes", "Today, Launch OS, Search, Queue, Boards, Operator OS, System lanes, Execution lanes, Govern lanes."],
+          ["Roles", "Founder/operator, director/reviewer, builder agent, auditor, future client admin."],
+          ["Permission model", "Local write to app state only; red/provider/payment/deploy actions become request packets."],
+          ["State model", "Snapshot JSON plus local tickets, activity, decisions, runs, research, evidence, requests."],
+          ["Provider mode", "UNKNOWN/request-only until provider dashboard evidence is intentionally collected."],
+        ])}
+      </section>
+      <section class="table-panel">
+        <div class="panel-title">${icon("operator")}<span>UX journey</span></div>
+        ${renderDefinitionList([
+          ["First visit", "See current truth, next safe action, blockers, and why live claims are capped."],
+          ["First value moment", "Create a local ticket or run packet from real source evidence."],
+          ["Repeat loop", "Search, dispatch, close out, review, and promote evidence."],
+          ["Power loop", "Bundle decisions, route to directors, harvest reusable VCOS patterns."],
+          ["Failure path", "Stop, preserve UNKNOWN, create resolver packet, do not fake green state."],
+        ])}
+      </section>
+      <section class="table-panel">
+        <div class="panel-title">${icon("warning")}<span>Revenue path</span></div>
+        ${renderDefinitionList(revenuePathRows)}
+      </section>
+      <section class="table-panel">
+        <div class="panel-title">${icon("check")}<span>Launch package</span></div>
+        ${renderLaunchComponentGrid(launchComponents)}
+      </section>
+      <section class="table-panel">
+        <div class="panel-title">${icon("lock")}<span>Deterministic spine</span></div>
+        ${renderDefinitionList([
+          ["Rules", "UNKNOWN preservation, source evidence, stop conditions, red action gates, local-only state writes."],
+          ["Validators", "Static checks, capability validator, studio readiness validator, build, browser proof."],
+          ["State machines", "Ticket status, run readiness, review acceptance, promotion preflight, decision disposition."],
+          ["Unsafe AI zones", "Provider truth, payments, legal/public claims, deploy decisions, secrets, official ledger promotion."],
+          ["AI assist zones", "Draft packets, summarize source evidence, propose next actions, identify missing proof."],
+        ])}
+      </section>
+      <section class="table-panel">
+        <div class="panel-title">${icon("promote")}<span>30 / 90 / 365 day product arc</span></div>
+        ${renderDefinitionList([
+          ["30 days", "Private founder cockpit with clean proof loops, one product launch lane, and GitHub source parity."],
+          ["90 days", "Client-ready VCOS pilot package with auth/support/legal/payment readiness or explicit managed-service fallback."],
+          ["1 year", "Governed AI company OS with configurable departments, provider connectors, audit retention, and paid deployments."],
+        ])}
+      </section>
+      <section class="objective-panel wide">
+        <div class="panel-title">${icon("lock")}<span>Current claim ceiling</span></div>
+        <p>${esc(control.claimCeiling || "Local Command Centre evidence only. Live provider/payment/auth/schema/deploy states remain UNKNOWN.")}</p>
+      </section>
+    </div>`);
 }
 
 function renderToday() {
@@ -5379,6 +5562,7 @@ function render() {
   if (state.view === "search") renderSearch();
   if (state.view === "queue") renderQueue();
   if (state.view === "boards") renderBoards();
+  if (state.view === "launch") renderLaunchOs();
   if (state.view === "runtime") renderRuntime();
   if (state.view === "vcos") renderVcosView();
   if (state.view === "files") renderFilesView();

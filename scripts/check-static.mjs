@@ -79,6 +79,9 @@ const requiredSystemNavLabels = ["VCOS", "Files", "Git Truth", "Sources", "Capab
 if (requiredSystemNavLabels.some((label) => !js.includes(`"${label}"`))) {
   throw new Error("F5-MV-18 VCOS/Files/Git/Sources/Capabilities/Providers/Models navigation missing.");
 }
+if (!js.includes('"Launch OS"') || !js.includes("renderLaunchOs") || !js.includes("Founder VCOS operating cockpit")) {
+  throw new Error("Launch OS strategy/readiness lane is missing.");
+}
 if (!js.includes("commandReadinessBand") || !js.includes("Adapter spine")) {
   throw new Error("Command Centre top readiness band is missing.");
 }
