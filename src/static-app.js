@@ -59,6 +59,32 @@ const storageResearchKey = "mds-command-centre:research:v1";
 const storageDeltaKey = "mds-command-centre:delta-reviews:v1";
 const storageSearchViewsKey = "mds-command-centre:search-views:v1";
 const targets = ["Codex", "Claude Code", "Antigravity", "NotebookLM", "GLM/Ollama", "Human"];
+const validViews = new Set([
+  "today",
+  "search",
+  "queue",
+  "boards",
+  "operator",
+  "vcos",
+  "files",
+  "git",
+  "sources",
+  "capabilities",
+  "providers",
+  "models",
+  "runtime",
+  "runs",
+  "tickets",
+  "dispatch",
+  "proof",
+  "closeout",
+  "review",
+  "promote",
+  "activity",
+  "decisions",
+  "benchmark",
+  "health",
+]);
 
 function icon(name, size = 18) {
   const paths = {
@@ -84,6 +110,8 @@ function icon(name, size = 18) {
     git: '<circle cx="6" cy="6" r="2.5"/><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="12" r="2.5"/><path d="M6 8.5v7"/><path d="M8 7.4C12 8 15.4 9.7 15.8 12"/>',
     sources: '<path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18Z"/><path d="M3 12h18"/><path d="M12 3c2.5 2.5 3.8 5.6 3.8 9S14.5 18.5 12 21c-2.5-2.5-3.8-5.6-3.8-9S9.5 5.5 12 3Z"/>',
     capabilities: '<path d="m14 3-1 6h6L10 21l1-7H5L14 3Z"/>',
+    providers: '<path d="M4 6h16v12H4z"/><path d="M8 10h8"/><path d="M8 14h5"/><path d="M6 6V4h12v2"/><path d="M9 18v2h6v-2"/>',
+    models: '<path d="M8 4h8v3h3v8h-3v5H8v-5H5V7h3V4Z"/><path d="M9 10h.01"/><path d="M15 10h.01"/><path d="M9 15h6"/><path d="M12 4V2"/><path d="M12 22v-2"/>',
     health: '<path d="M22 12h-4l-3 7-6-14-3 7H2"/>',
     lock: '<rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/>',
     plus: '<path d="M12 5v14"/><path d="M5 12h14"/>',
@@ -2842,29 +2870,10 @@ function renderShell(content) {
           <div><strong>MDS Command Centre</strong><span>Local-first Sprint 001</span></div>
         </div>
         <nav>
-          ${navButton("today", "Today")}
-          ${navButton("search", "Search")}
-          ${navButton("queue", "Queue")}
-          ${navButton("boards", "Boards")}
-          ${navButton("runtime", "Runtime")}
-          ${navButton("vcos", "VCOS")}
-          ${navButton("files", "Files")}
-          ${navButton("git", "Git Truth")}
-          ${navButton("sources", "Sources")}
-          ${navButton("capabilities", "Capabilities")}
-          ${navButton("proof", "Proof")}
-          ${navButton("operator", "Operator OS")}
-          ${navButton("research", "Research")}
-          ${navButton("runs", "Runs")}
-          ${navButton("tickets", "Tickets")}
-          ${navButton("dispatch", "Dispatch")}
-          ${navButton("closeout", "Closeout")}
-          ${navButton("review", "Review")}
-          ${navButton("promote", "Promote")}
-          ${navButton("activity", "Activity")}
-          ${navButton("decisions", "Decisions")}
-          ${navButton("benchmark", "Benchmark")}
-          ${navButton("health", "Health")}
+          ${navGroup("Operate", ["today", "search", "queue", "boards", "operator"])}
+          ${navGroup("System", ["vcos", "files", "git", "sources", "capabilities", "providers", "models"])}
+          ${navGroup("Execution", ["runtime", "runs", "tickets", "dispatch", "proof"])}
+          ${navGroup("Govern", ["closeout", "review", "promote", "activity", "decisions", "benchmark", "health"])}
         </nav>
         <div class="authority-box">${icon("lock", 16)}<p>D root local shell. Providers remain live-state authority.</p></div>
       </aside>
@@ -2880,9 +2889,41 @@ function renderShell(content) {
           ${guard("Deploy", "FORBIDDEN", "blocked")}
           ${guard("Secrets", "FAIL-CLOSED", "blocked")}
         </section>
+        ${commandReadinessBand()}
         ${content}
       </main>
     </div>`;
+}
+
+const navLabels = {
+  today: "Today",
+  search: "Search",
+  queue: "Queue",
+  boards: "Boards",
+  operator: "Operator OS",
+  vcos: "VCOS",
+  files: "Files",
+  git: "Git Truth",
+  sources: "Sources",
+  capabilities: "Capabilities",
+  providers: "Providers",
+  models: "Models",
+  runtime: "Runtime",
+  runs: "Runs",
+  tickets: "Tickets",
+  dispatch: "Dispatch",
+  proof: "Proof",
+  closeout: "Closeout",
+  review: "Review",
+  promote: "Promote",
+  activity: "Activity",
+  decisions: "Decisions",
+  benchmark: "Benchmark",
+  health: "Health",
+};
+
+function navGroup(label, views) {
+  return `<div class="nav-group"><span>${esc(label)}</span>${views.map((view) => navButton(view, navLabels[view] || titleCase(view))).join("")}</div>`;
 }
 
 function navButton(view, label) {
@@ -2895,6 +2936,28 @@ function guard(label, value, tone = "") {
 
 function titleCase(value) {
   return value.charAt(0).toUpperCase() + value.slice(1);
+}
+
+function commandReadinessBand() {
+  const adapters = state.adapterHealth?.adapters || [];
+  const ok = adapters.filter((adapter) => adapter.status === "ok").length;
+  const degraded = adapters.filter((adapter) => adapter.status && adapter.status !== "ok").length;
+  const sourceStamp = state.sourceTruth?.generatedAt || state.localCaps?.generatedAt || state.adapterHealth?.generatedAt || "UNKNOWN";
+  const providerClis = state.localCaps?.providerClis?.clis || [];
+  const modelRuntimes = state.localCaps?.modelProviders?.runtimes || [];
+  const presentCliCount = providerClis.filter((cli) => cli.present).length;
+  const presentModelCount = modelRuntimes.filter((runtime) => runtime.present).length;
+  return `<section class="os-readiness-band" aria-label="Command Centre readiness">
+    ${readinessItem("Adapter spine", adapters.length ? `${ok}/${adapters.length} ok` : "UNKNOWN", degraded ? "blocked" : "ready")}
+    ${readinessItem("Local roots", state.sourceTruth?.allowlistedRoots?.roots?.length || "UNKNOWN", "active")}
+    ${readinessItem("Provider CLIs", `${presentCliCount}/${providerClis.length || "UNKNOWN"} present`, "unknown")}
+    ${readinessItem("Model runtimes", `${presentModelCount}/${modelRuntimes.length || "UNKNOWN"} present`, "unknown")}
+    ${readinessItem("Snapshot", sourceStamp, sourceStamp === "UNKNOWN" ? "blocked" : "ready")}
+  </section>`;
+}
+
+function readinessItem(label, value, tone) {
+  return `<div class="readiness-item ${esc(tone || "active")}"><span>${esc(label)}</span><strong>${esc(value)}</strong></div>`;
 }
 
 function metric(name, value, iconName) {
@@ -5077,7 +5140,7 @@ function renderCapabilitiesView() {
         <div class="form-grid three">
           ${select("Request kind", "requestKind", "capability", ["capability", "file-action", "app-action", "provider-metadata-read", "model-run", "web-fetch"])}
           ${input("Target", "target", "", "provider/path/app/model")}
-          ${select("Risk class", "riskClass", "green_readonly", ["green_readonly", "yellow_local_write", "yellow_metadata", "red_provider_action"])}
+          ${select("Risk class", "riskClass", "green_readonly", ["green_readonly", "yellow_local_write", "yellow_local_app", "red_provider_mutation", "red_secret_or_payment"])}
         </div>
         ${input("Action requested", "action", "", "one concrete action")}
         ${textarea("Evidence required", "evidenceRequired", "")}
@@ -5104,6 +5167,126 @@ function renderCapabilitiesView() {
         <div class="panel-title">${icon("health")}<span>Adapter health</span></div>
         <div class="stack-list">${adapterStatusCards()}</div>
       </section>
+    </div>`);
+}
+
+function renderProvidersView() {
+  const clis = state.localCaps?.providerClis?.clis || [];
+  const github = state.sourceTruth?.github || null;
+  const providers = [
+    {
+      id: "github",
+      status: github?.authState || "UNKNOWN",
+      authority: "GitHub committed/versioned code authority. This surface reads metadata only.",
+      allowed: "safe CLI/account metadata, local request packets",
+      forbidden: "push, PR, branch rule, secret, token, repo setting, billing",
+    },
+    ...clis.map((cli) => ({
+      id: cli.provider,
+      status: cli.present ? "metadata tool present" : "UNKNOWN",
+      authority: `${cli.command} CLI presence only; provider dashboard remains live-state authority.`,
+      allowed: "command presence/version evidence, request packets",
+      forbidden: (cli.forbiddenActions || []).join(", ") || "provider mutation, deploy, env read",
+    })),
+  ];
+  renderShell(`
+    <div class="health-grid">
+      ${snapshotBanner(state.localCaps, "Providers")}
+      <section class="objective-panel wide">
+        <div class="panel-title">${icon("providers")}<span>Provider control plane</span></div>
+        <h2>Cloud providers are visible, typed, and request-only until approved provider evidence exists.</h2>
+        <p>Vercel, Supabase, Cloudflare, Railway, GitHub, and related CLIs remain metadata-only here. This lane never deploys, reads env values, changes billing/auth/schema, or logs into dashboards.</p>
+        <div class="dispatch-actions"><button class="primary" data-action="refresh-adapters">${icon("health", 16)} Refresh adapters</button>${state.adapterRefreshState ? `<span class="status unknown">${esc(state.adapterRefreshState)}</span>` : ""}</div>
+      </section>
+      <section class="table-panel wide">
+        <div class="panel-title">${icon("boards")}<span>Provider records</span></div>
+        <div class="health-table provider-table">
+          <div class="health-head"><span>Provider</span><span>Status</span><span>Authority</span><span>Allowed</span><span>Forbidden</span></div>
+          ${providers
+            .map(
+              (provider) => `<div class="health-row">
+                <strong>${esc(provider.id)}</strong>
+                <em class="${statusClass(provider.status)}">${esc(provider.status)}</em>
+                <span>${esc(provider.authority)}</span>
+                <span>${esc(provider.allowed)}</span>
+                <span>${esc(provider.forbidden)}</span>
+              </div>`,
+            )
+            .join("") || `<div class="health-row"><strong>No provider records loaded.</strong><em class="status unknown">UNKNOWN</em><span></span><span></span><span></span></div>`}
+        </div>
+      </section>
+      <form class="research-form" id="capability-request-form">
+        <div class="panel-title">${icon("plus")}<span>Provider metadata request packet</span></div>
+        <div class="form-grid three">
+          ${select("Request kind", "requestKind", "provider-metadata-read", ["provider-metadata-read", "capability", "web-fetch"])}
+          ${input("Target provider", "target", "", "github/vercel/supabase/cloudflare/railway")}
+          ${select("Risk class", "riskClass", "green_readonly", ["green_readonly", "red_provider_mutation", "red_secret_or_payment"])}
+        </div>
+        ${input("Action requested", "action", "", "read safe metadata only")}
+        ${textarea("Evidence required", "evidenceRequired", "Provider-owned live claims require provider evidence. Metadata-only requests must not reveal secrets.")}
+        ${textarea("Stop condition", "stopCondition", "Stop before deploy, env read, schema/auth/billing/payment mutation, external send, or dashboard mutation.")}
+        ${textarea("Validation commands", "validationCommands", "")}
+        <div class="dispatch-actions"><button class="primary" type="submit">${icon("save", 16)} Create provider request</button></div>
+      </form>
+    </div>`);
+}
+
+function renderModelsView() {
+  const models = state.localCaps?.modelProviders || {};
+  const runtimes = models.runtimes || [];
+  const paid = models.paidApiAdapters || [];
+  renderShell(`
+    <div class="health-grid">
+      ${snapshotBanner(state.localCaps, "Models")}
+      <section class="objective-panel wide">
+        <div class="panel-title">${icon("models")}<span>Model provider contract</span></div>
+        <h2>Model choices are adapter records until safe local availability proves otherwise.</h2>
+        <p>Local OSS runtimes are detected only by cheap command metadata. Paid API providers stay disabled/unconfigured unless explicit safe evidence exists. No model server starts, downloads, paid API calls, or env-value reads happen here.</p>
+      </section>
+      <section class="table-panel wide">
+        <div class="panel-title">${icon("runtime")}<span>Local OSS runtime metadata</span></div>
+        <div class="health-table model-table">
+          <div class="health-head"><span>Runtime</span><span>Presence</span><span>Kind</span><span>Evidence</span><span>Boundary</span></div>
+          ${runtimes
+            .map(
+              (runtime) => `<div class="health-row">
+                <strong>${esc(runtime.id)}</strong>
+                <em class="${statusClass(runtime.present ? "READY" : "UNKNOWN")}">${esc(runtime.present ? "present" : "absent/UNKNOWN")}</em>
+                <span>${esc(runtime.kind)}</span>
+                <span>${esc(runtime.version || runtime.notes || "UNKNOWN")}</span>
+                <span>no server start, no downloads, no API calls</span>
+              </div>`,
+            )
+            .join("") || `<div class="health-row"><strong>No local model runtime records.</strong><em class="status unknown">UNKNOWN</em><span></span><span></span><span></span></div>`}
+        </div>
+      </section>
+      <section class="table-panel wide">
+        <div class="panel-title">${icon("lock")}<span>Paid API adapters</span></div>
+        <div class="stack-list">
+          ${paid
+            .map(
+              (adapter) => `<article>
+                <strong>${esc(adapter.id)}</strong>
+                <p>${esc(adapter.note)}</p>
+                <span class="status blocked">${esc(adapter.riskClass)} | ${esc(adapter.status)} | ${esc(adapter.liveState)}</span>
+              </article>`,
+            )
+            .join("") || `<article class="empty-card"><strong>Paid API provider state UNKNOWN.</strong><p>No env values or provider secrets were read.</p></article>`}
+        </div>
+      </section>
+      <form class="research-form" id="capability-request-form">
+        <div class="panel-title">${icon("plus")}<span>Model adapter request packet</span></div>
+        <div class="form-grid three">
+          ${select("Request kind", "requestKind", "model-run", ["model-run", "capability"])}
+          ${input("Target model/provider", "target", "", "ollama/local-runtime/provider-record")}
+          ${select("Risk class", "riskClass", "green_readonly", ["green_readonly", "red_secret_or_payment"])}
+        </div>
+        ${input("Action requested", "action", "", "verify command metadata only")}
+        ${textarea("Evidence required", "evidenceRequired", "Command existence/version evidence only unless a future approval expands scope.")}
+        ${textarea("Stop condition", "stopCondition", "Stop before starting a model server, downloading models, calling paid APIs, or reading env values.")}
+        ${textarea("Validation commands", "validationCommands", "")}
+        <div class="dispatch-actions"><button class="primary" type="submit">${icon("save", 16)} Create model request</button></div>
+      </form>
     </div>`);
 }
 
@@ -5164,7 +5347,23 @@ function wireMv18Events() {
       return;
     }
     if (formElement.id === "capability-request-form") {
-      const record = { ...values, id: `CAPREQ-${Date.now().toString(36).toUpperCase()}`, status: "REQUESTED", owner: "shrish", createdAt: nowIso() };
+      if (CLIENT_SECRET_PATH_PATTERN.test(String(values.target || ""))) {
+        state.browseNotice = "Refused: secret-shaped target. Capability requests cannot point at env/keys/tokens/cookies/auth-store paths.";
+        render();
+        return;
+      }
+      if (values.riskClass === "red_secret_or_payment") {
+        state.browseNotice = "Blocked: red_secret_or_payment is always blocked in Slice 1. No request packet was created.";
+        render();
+        return;
+      }
+      const record = {
+        ...values,
+        id: `CAPREQ-${Date.now().toString(36).toUpperCase()}`,
+        status: values.riskClass === "red_provider_mutation" ? "APPROVAL_REQUIRED" : "REQUESTED",
+        owner: "shrish",
+        createdAt: nowIso(),
+      };
       state.capabilityRequests = [record, ...state.capabilityRequests];
       await saveCapabilityRequests();
       await recordActivity("capability_request_created", selectedTicket(), {
@@ -5186,6 +5385,8 @@ function render() {
   if (state.view === "git") renderGitTruthView();
   if (state.view === "sources") renderSourcesView();
   if (state.view === "capabilities") renderCapabilitiesView();
+  if (state.view === "providers") renderProvidersView();
+  if (state.view === "models") renderModelsView();
   if (state.view === "proof") renderProof();
   if (state.view === "operator") renderOperator();
   if (state.view === "research") renderResearch();
@@ -5278,6 +5479,11 @@ function wireEvents() {
     if (button.dataset.action) event.preventDefault();
     if (button.dataset.view) {
       state.view = button.dataset.view;
+      if (validViews.has(state.view)) {
+        const url = new URL(window.location.href);
+        url.searchParams.set("view", state.view);
+        window.history.replaceState({}, "", url);
+      }
       render();
     }
     if (button.dataset.board) {
@@ -6262,6 +6468,8 @@ async function boot() {
   state.selectedResearchId = state.research[0]?.id || "";
   state.selectedDeltaReviewId = state.deltaReviews[0]?.id || "";
   state.selectedBoardId = state.snapshot.sources[0]?.id || "";
+  const initialView = new URLSearchParams(window.location.search).get("view");
+  if (initialView && validViews.has(initialView)) state.view = initialView;
   wireEvents();
   render();
 }

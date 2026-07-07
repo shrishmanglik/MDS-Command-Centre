@@ -80,19 +80,29 @@ Local API routes:
 New lanes (left nav): **VCOS** (department roster, MIDAS path conflict, runtime
 surface counts, studio/capability validator states), **Files** (allowlisted
 D-root explorer with secret-path refusal; drives D active / E backup-only),
-**Git Truth** (local branch/HEAD/dirty/remote metadata for D-root + product
-repos; GitHub auth shown as account-name-or-UNKNOWN; no push/PR ever),
-**Sources** (evidence intake for URL / D-path / GitHub ref / NotebookLM note /
-session extract; records only, no fetching, no login scraping), **Capabilities**
-(capability broker records + request-only provider states + provider CLI and
-model runtime presence + local request packet creation + adapter health).
+**Git Truth** (local branch/HEAD/remote metadata for D-root + product repos;
+dirty state is preserved as `UNKNOWN` inside the adapter because full `git
+status` can hang on large D-root worktrees; no push/PR ever), **Sources**
+(evidence intake for URL / D-path / GitHub ref / NotebookLM note / session
+extract; records only, no fetching, no login scraping), **Capabilities**
+(capability broker records + local request packet creation + adapter health),
+**Providers** (cloud/provider portals and CLIs as metadata-only/request-only
+records), and **Models** (local OSS model runtime metadata plus paid API
+adapter contracts; no model server starts, downloads, API calls, or env reads).
 
-Adapter snapshots: `npm run refresh-data` still builds the war-room snapshot;
-`node scripts/refresh-local-adapters.mjs` (or the "Refresh adapters" button,
-`POST /api/refresh-adapters`) builds `localCapabilitySnapshot.json`,
-`localSourceTruthSnapshot.json`, `localAdapterHealth.json` and seeds the
-`localSourceEvidence.json` / `localCapabilityRequests.json` stores. Degraded or
-failed adapters stay visible - timeouts are never hidden.
+The app shell groups lanes by operating mode and shows a top readiness band for
+adapter spine, local roots, provider CLI metadata, model runtime metadata, and
+snapshot freshness. Lanes can be deep-linked with `?view=providers` and
+`?view=models` for handoff/screenshot proof.
+
+Adapter snapshots: `npm run refresh-data` builds both the war-room snapshot and
+the local adapter snapshots. `node scripts/refresh-local-adapters.mjs` (or the
+"Refresh adapters" button, `POST /api/refresh-adapters`) builds
+`localCapabilitySnapshot.json`, `localSourceTruthSnapshot.json`,
+`localAdapterHealth.json` and seeds the `localSourceEvidence.json` /
+`localCapabilityRequests.json` stores. Degraded or failed adapters stay visible
+- timeouts are never hidden. The static build now includes the adapter snapshots
+and request/evidence stores.
 
 Schemas: `scripts/schemas/local-adapters.md`. Hard boundaries unchanged: no
 secrets/env reads, no provider mutation, no deploy/push/PR, no external sends,

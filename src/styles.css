@@ -85,7 +85,21 @@ button {
 
 .side-nav nav {
   display: grid;
-  gap: 6px;
+  gap: 12px;
+}
+
+.nav-group {
+  display: grid;
+  gap: 5px;
+}
+
+.nav-group > span {
+  padding: 0 12px;
+  color: #697586;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: uppercase;
 }
 
 .side-nav nav button,
@@ -221,6 +235,49 @@ h2 {
   grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 10px;
   margin-bottom: 18px;
+}
+
+.os-readiness-band {
+  display: grid;
+  grid-template-columns: 1.1fr repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 18px;
+  padding: 10px;
+  border: 1px solid #d8dee8;
+  border-left: 4px solid #174ea6;
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 8px 22px rgba(31, 42, 55, 0.04);
+}
+
+.readiness-item {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+  padding: 10px 12px;
+  border-radius: 7px;
+  background: #f8fafc;
+}
+
+.readiness-item span {
+  color: #697586;
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.readiness-item strong {
+  color: #26323f;
+  font-size: 13px;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.readiness-item.ready {
+  background: #ecfdf3;
+}
+
+.readiness-item.blocked {
+  background: #fff7ed;
 }
 
 .guard,
@@ -2244,6 +2301,13 @@ button:disabled {
   grid-template-columns: minmax(120px, 0.55fr) minmax(110px, 0.35fr) minmax(70px, 0.25fr) minmax(90px, 0.3fr) minmax(260px, 1.3fr);
 }
 
+.provider-table .health-head,
+.provider-table .health-row,
+.model-table .health-head,
+.model-table .health-row {
+  grid-template-columns: minmax(130px, 0.45fr) minmax(120px, 0.35fr) minmax(260px, 1fr) minmax(210px, 0.75fr) minmax(260px, 1fr);
+}
+
 .module-row span,
 .comparison-row span,
 .health-row span {
@@ -2273,13 +2337,30 @@ pre {
     position: static;
     height: auto;
     padding: 14px;
+    gap: 12px;
   }
 
   .side-nav nav {
-    grid-template-columns: repeat(auto-fit, minmax(118px, 1fr));
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    scrollbar-width: thin;
+  }
+
+  .nav-group {
+    display: flex;
+    flex: 0 0 auto;
+    gap: 8px;
+  }
+
+  .nav-group > span {
+    display: none;
   }
 
   .side-nav nav button {
+    width: auto;
+    min-width: max-content;
     justify-content: center;
   }
 
@@ -2293,7 +2374,18 @@ pre {
     flex-direction: column;
   }
 
+  .workspace {
+    padding: 14px;
+  }
+
+  .guard {
+    align-items: flex-start;
+    flex-direction: column;
+    min-height: 66px;
+  }
+
   .guardrail-strip,
+  .os-readiness-band,
   .today-grid,
   .control-grid,
   .gate-grid,
@@ -2328,6 +2420,10 @@ pre {
   .comparison-row,
   .health-head,
   .health-row,
+  .provider-table .health-head,
+  .provider-table .health-row,
+  .model-table .health-head,
+  .model-table .health-row,
   .operator-product-head,
   .operator-product-row,
   .review-checklist article,

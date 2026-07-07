@@ -312,18 +312,58 @@ export function capabilityBrokerAdapter() {
 
 // 6. git-local-adapter -------------------------------------------------------
 
+function resolveGitDir(repoAbsPath) {
+  const dotGit = path.join(repoAbsPath, ".git");
+  if (!fs.existsSync(dotGit)) return null;
+  const stat = fs.statSync(dotGit);
+  if (stat.isDirectory()) return dotGit;
+  const content = fs.readFileSync(dotGit, "utf8").trim();
+  const match = content.match(/^gitdir:\s*(.+)$/i);
+  if (!match) return null;
+  const gitDir = match[1].trim();
+  return path.isAbsolute(gitDir) ? gitDir : path.resolve(repoAbsPath, gitDir);
+}
+
+function readPackedRef(gitDir, refPath) {
+  const packedRefs = path.join(gitDir, "packed-refs");
+  if (!fs.existsSync(packedRefs)) return "UNKNOWN";
+  const lines = fs.readFileSync(packedRefs, "utf8").split(/\r?\n/);
+  const line = lines.find((candidate) => candidate.endsWith(` ${refPath}`));
+  return line ? line.split(" ")[0].slice(0, 7) : "UNKNOWN";
+}
+
+function readRemoteFromConfig(gitDir) {
+  const configPath = path.join(gitDir, "config");
+  if (!fs.existsSync(configPath)) return "UNKNOWN";
+  const config = fs.readFileSync(configPath, "utf8");
+  const originMatch = config.match(/\[remote "origin"\][\s\S]*?url\s*=\s*([^\r\n]+)/);
+  if (!originMatch) return "UNKNOWN";
+  return redactSecretShapes(originMatch[1].trim().replace(/(https?:\/\/)[^@/]+@/, "$1***@"));
+}
+
 function gitProbe(repoAbsPath) {
   const probe = { relativePath: path.relative(D_ROOT, repoAbsPath) || ".", branch: "UNKNOWN", head: "UNKNOWN", remote: "UNKNOWN", dirty: "UNKNOWN", status: "ok" };
-  const branch = runCommand("git", ["-C", repoAbsPath, "rev-parse", "--abbrev-ref", "HEAD"], 8000);
-  probe.branch = branch.ok ? branch.stdout : "UNKNOWN";
-  const head = runCommand("git", ["-C", repoAbsPath, "rev-parse", "--short", "HEAD"], 8000);
-  probe.head = head.ok ? head.stdout : "UNKNOWN";
-  const remote = runCommand("git", ["-C", repoAbsPath, "remote", "get-url", "origin"], 8000);
-  probe.remote = remote.ok ? remote.stdout.replace(/(https?:\/\/)[^@/]+@/, "$1***@") : "UNKNOWN";
-  const dirty = runCommand("git", ["-C", repoAbsPath, "status", "--porcelain", "-uno"], 12000);
-  if (dirty.ok) probe.dirty = dirty.stdout ? `${dirty.stdout.split(/\r?\n/).length} tracked file(s) modified` : "clean (tracked)";
-  else probe.status = "degraded";
-  if (!branch.ok && !head.ok) probe.status = "degraded";
+  try {
+    const gitDir = resolveGitDir(repoAbsPath);
+    if (!gitDir) throw new Error(".git metadata missing");
+    const headText = fs.readFileSync(path.join(gitDir, "HEAD"), "utf8").trim();
+    if (headText.startsWith("ref:")) {
+      const refPath = headText.replace(/^ref:\s*/, "");
+      probe.branch = refPath.replace(/^refs\/heads\//, "");
+      const refFile = path.join(gitDir, ...refPath.split("/"));
+      probe.head = fs.existsSync(refFile) ? fs.readFileSync(refFile, "utf8").trim().slice(0, 7) : readPackedRef(gitDir, refPath);
+    } else {
+      probe.branch = "DETACHED";
+      probe.head = headText.slice(0, 7);
+    }
+    probe.remote = readRemoteFromConfig(gitDir);
+    probe.dirty = "UNKNOWN (dirty probe skipped; no git subprocesses in adapter)";
+    probe.status = "degraded";
+  } catch (error) {
+    probe.status = "degraded";
+    probe.dirty = "UNKNOWN";
+    probe.remote = "UNKNOWN";
+  }
   return probe;
 }
 
@@ -333,8 +373,8 @@ export function gitLocalAdapter() {
       adapter_id: "git-local-adapter",
       authority: "Local git metadata only; GitHub remains committed-code authority. No stage/commit/push/checkout.",
       risk_class: "green_readonly",
-      read_scope: "D-root .git metadata; Products/*/.git metadata (max 12 repos)",
-      unknowns: ["dirty state may be UNKNOWN when concurrent git activity times a probe out"],
+      read_scope: "D-root .git branch/HEAD/remote metadata; Products/*/.git branch/HEAD/remote metadata (max 12 repos)",
+      unknowns: ["dirty state intentionally remains UNKNOWN in the adapter because git status can hang on large D-root worktrees"],
     },
     (envelope) => {
       const repos = [];

@@ -1,6 +1,6 @@
 {
   "schemaVersion": "mds.command-centre.local-capability-snapshot.v1",
-  "generatedAt": "2026-07-06T23:45:36.254Z",
+  "generatedAt": "2026-07-07T14:10:19.274Z",
   "authority": "D-local capability records and validator summaries only. Live provider/deploy/db/auth/billing/payment states remain UNKNOWN until provider evidence is collected through an approved safe path.",
   "capabilityBroker": {
     "providers": [
@@ -593,8 +593,117 @@
         }
       },
       "studioReadiness": {
-        "status": "degraded (timeout)",
-        "note": "timeout"
+        "status": "PASS",
+        "ok": true,
+        "summary": {
+          "blockers": [
+            {
+              "code": "STUDIO-MIDAS-CONFLICT",
+              "message": "source map preserves MIDAS harness path conflict",
+              "path": "vcos/mds-kernel/architecture-map/source-map.yaml",
+              "severity": "blocker",
+              "studio": "development-studio"
+            }
+          ],
+          "ok": true,
+          "ready": false,
+          "studios": [
+            {
+              "canonical_root": "vcos/design-studio",
+              "counts": {
+                "anti_patterns": 6,
+                "checklists": 6,
+                "knowledge": 6,
+                "personas": 5,
+                "runtime_prompt_files": 4,
+                "runtime_task_files": 8,
+                "skills": 0,
+                "templates": 5,
+                "workflows": 6
+              },
+              "exists": true,
+              "governed_provider_or_secret_backed_tools": [
+                "google_stitch",
+                "nano_banana_pro",
+                "imagen_4",
+                "figma_spec_export",
+                "notebook_lm",
+                "veo_3_1"
+              ],
+              "id": "design-studio",
+              "legacy_root_policy": {
+                "reason": "Title-case root exists from earlier scaffold; lowercase root is readiness-local canonical until founder cleanup approval.",
+                "status": "quarantined_read_only_reference"
+              },
+              "legacy_roots_existing": [
+                "vcos/Design Studio (Mira)"
+              ],
+              "status": "ready",
+              "tools": [
+                "google_stitch",
+                "nano_banana_pro",
+                "imagen_4",
+                "figma_spec_export",
+                "claude_code",
+                "notebook_lm",
+                "veo_3_1"
+              ],
+              "unverified_provider_or_secret_backed_tools": [
+                "google_stitch",
+                "nano_banana_pro",
+                "imagen_4",
+                "figma_spec_export",
+                "notebook_lm",
+                "veo_3_1"
+              ]
+            },
+            {
+              "canonical_root": "vcos/development-studio",
+              "counts": {
+                "anti_patterns": 5,
+                "checklists": 7,
+                "knowledge": 9,
+                "personas": 7,
+                "runtime_prompt_files": 4,
+                "runtime_task_files": 8,
+                "skills": 292,
+                "templates": 5,
+                "workflows": 6
+              },
+              "exists": true,
+              "governed_provider_or_secret_backed_tools": [
+                "supabase_cli",
+                "vercel_cli",
+                "railway_cli"
+              ],
+              "id": "development-studio",
+              "legacy_root_policy": {
+                "reason": "Title-case root mirrors MIDAS skill corpus; lowercase root is readiness-local canonical until founder cleanup approval.",
+                "status": "quarantined_read_only_reference"
+              },
+              "legacy_roots_existing": [
+                "vcos/Development Studio"
+              ],
+              "skills_index": "vcos/development-studio/frameworks/midas/skills-index.json",
+              "status": "not_ready",
+              "tools": [
+                "claude_code",
+                "codex",
+                "antigravity",
+                "supabase_cli",
+                "vercel_cli",
+                "railway_cli",
+                "git"
+              ],
+              "unverified_provider_or_secret_backed_tools": [
+                "supabase_cli",
+                "vercel_cli",
+                "railway_cli"
+              ]
+            }
+          ],
+          "warnings": []
+        }
       }
     }
   },

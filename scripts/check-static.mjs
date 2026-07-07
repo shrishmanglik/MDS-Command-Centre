@@ -15,6 +15,11 @@ const required = [
   "src/data/localResearchBriefs.json",
   "src/data/localDeltaReviews.json",
   "src/data/localAgentRuns.json",
+  "src/data/localCapabilitySnapshot.json",
+  "src/data/localSourceTruthSnapshot.json",
+  "src/data/localAdapterHealth.json",
+  "src/data/localSourceEvidence.json",
+  "src/data/localCapabilityRequests.json",
   "desktop/launch-command-centre.ps1",
 ];
 
@@ -50,33 +55,32 @@ if (
 ) {
   throw new Error("structured control-surface Today dashboard or CEO work-order wiring is missing.");
 }
-if (
-  !js.includes('navButton("queue", "Queue")') ||
-  !js.includes('navButton("search", "Search")') ||
-  !js.includes('navButton("runtime", "Runtime")') ||
-  !js.includes('navButton("proof", "Proof")') ||
-  !js.includes('navButton("operator", "Operator OS")') ||
-  !js.includes('navButton("research", "Research")') ||
-  !js.includes('navButton("runs", "Runs")') ||
-  !js.includes('navButton("closeout", "Closeout")') ||
-  !js.includes('navButton("review", "Review")') ||
-  !js.includes('navButton("promote", "Promote")') ||
-  !js.includes('navButton("activity", "Activity")') ||
-  !js.includes('navButton("decisions", "Decisions")')
-) {
+const requiredNavLabels = [
+  "Queue",
+  "Search",
+  "Runtime",
+  "Proof",
+  "Operator OS",
+  "Research",
+  "Runs",
+  "Closeout",
+  "Review",
+  "Promote",
+  "Activity",
+  "Decisions",
+];
+if (requiredNavLabels.some((label) => !js.includes(`"${label}"`))) {
   throw new Error("queue/runtime/proof/operator/research/runs/closeout/review/promote/activity/decisions navigation missing.");
 }
 if (!js.includes("buildOperatorSpinePacket") || !js.includes("Operator OS spine") || !js.includes("create-spine-ticket") || !js.includes("operator_spine_ticket_created")) {
   throw new Error("Operator OS spine and local ticket wiring is missing.");
 }
-if (
-  !js.includes('navButton("vcos", "VCOS")') ||
-  !js.includes('navButton("files", "Files")') ||
-  !js.includes('navButton("git", "Git Truth")') ||
-  !js.includes('navButton("sources", "Sources")') ||
-  !js.includes('navButton("capabilities", "Capabilities")')
-) {
-  throw new Error("F5-MV-18 VCOS/Files/Git/Sources/Capabilities navigation missing.");
+const requiredSystemNavLabels = ["VCOS", "Files", "Git Truth", "Sources", "Capabilities", "Providers", "Models"];
+if (requiredSystemNavLabels.some((label) => !js.includes(`"${label}"`))) {
+  throw new Error("F5-MV-18 VCOS/Files/Git/Sources/Capabilities/Providers/Models navigation missing.");
+}
+if (!js.includes("commandReadinessBand") || !js.includes("Adapter spine")) {
+  throw new Error("Command Centre top readiness band is missing.");
 }
 if (!js.includes("source_evidence_recorded") || !js.includes("/api/source-evidence") || !js.includes("capability_request_created") || !js.includes("/api/capability-requests")) {
   throw new Error("F5-MV-18 source-evidence and capability-request wiring is missing.");

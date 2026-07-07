@@ -5,7 +5,7 @@
   "type": "module",
   "description": "Local-first MDS Command Centre shell reading D-root War Room boards.",
   "scripts": {
-    "refresh-data": "node scripts/refresh-war-room-data.mjs",
+    "refresh-data": "node scripts/refresh-war-room-data.mjs && node scripts/refresh-local-adapters.mjs",
     "dev": "npm run refresh-data && node scripts/serve.mjs --root . --port 5178",
     "build": "npm run refresh-data && node scripts/build-static.mjs",
     "lint": "node scripts/check-static.mjs",

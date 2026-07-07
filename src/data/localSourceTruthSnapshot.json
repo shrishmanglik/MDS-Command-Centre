@@ -1,6 +1,6 @@
 {
   "schemaVersion": "mds.command-centre.local-source-truth-snapshot.v1",
-  "generatedAt": "2026-07-06T23:45:36.254Z",
+  "generatedAt": "2026-07-07T14:10:19.274Z",
   "authority": "D-local filesystem/git metadata only. GitHub remains committed-code authority; drive roles per source-authority doctrine; secret-shaped paths refused at scan time.",
   "drives": {
     "drives": [
@@ -26,9 +26,9 @@
         "label": "D root (active operating root)",
         "exists": true,
         "listing": {
-          "total": 52,
-          "dirs": 44,
-          "files": 8,
+          "total": 55,
+          "dirs": 46,
+          "files": 9,
           "refusedSecretShaped": 0,
           "entries": [
             {
@@ -41,7 +41,7 @@
               "name": ".claude",
               "kind": "dir",
               "sizeBytes": 0,
-              "modifiedAt": "2026-07-06T20:03:56.528Z"
+              "modifiedAt": "2026-07-07T08:14:34.472Z"
             },
             {
               "name": ".codex",
@@ -65,7 +65,7 @@
               "name": ".git",
               "kind": "dir",
               "sizeBytes": 0,
-              "modifiedAt": "2026-07-06T23:41:03.189Z"
+              "modifiedAt": "2026-07-07T13:56:28.959Z"
             },
             {
               "name": ".github",
@@ -83,7 +83,7 @@
               "name": ".playwright-cli",
               "kind": "dir",
               "sizeBytes": 0,
-              "modifiedAt": "2026-07-06T17:04:38.674Z"
+              "modifiedAt": "2026-07-07T13:51:11.212Z"
             },
             {
               "name": ".pytest_cache",
@@ -114,6 +114,12 @@
               "kind": "dir",
               "sizeBytes": 0,
               "modifiedAt": "2026-07-04T15:04:57.057Z"
+            },
+            {
+              "name": "AGENTS.md",
+              "kind": "file",
+              "sizeBytes": 19208,
+              "modifiedAt": "2026-07-07T03:56:08.038Z"
             },
             {
               "name": "BUILD-REPORT-2026-04-19.md",
@@ -148,8 +154,8 @@
             {
               "name": "CLAUDE.md",
               "kind": "file",
-              "sizeBytes": 19244,
-              "modifiedAt": "2026-07-06T19:27:18.460Z"
+              "sizeBytes": 19633,
+              "modifiedAt": "2026-07-07T06:38:40.125Z"
             },
             {
               "name": "command-centre",
@@ -167,7 +173,7 @@
               "name": "distill",
               "kind": "dir",
               "sizeBytes": 0,
-              "modifiedAt": "2026-07-06T23:05:20.726Z"
+              "modifiedAt": "2026-07-07T03:07:46.240Z"
             },
             {
               "name": "Job Applications",
@@ -179,7 +185,7 @@
               "name": "Knowledge",
               "kind": "dir",
               "sizeBytes": 0,
-              "modifiedAt": "2026-07-06T20:04:09.134Z"
+              "modifiedAt": "2026-07-07T01:32:00.535Z"
             },
             {
               "name": "MDS CEO",
@@ -204,12 +210,6 @@
               "kind": "dir",
               "sizeBytes": 0,
               "modifiedAt": "2026-07-06T07:19:15.574Z"
-            },
-            {
-              "name": "personal",
-              "kind": "dir",
-              "sizeBytes": 0,
-              "modifiedAt": "2026-06-17T14:36:59.367Z"
             }
           ]
         }
@@ -220,8 +220,8 @@
         "label": "Products",
         "exists": true,
         "listing": {
-          "total": 17,
-          "dirs": 16,
+          "total": 18,
+          "dirs": 17,
           "files": 1,
           "refusedSecretShaped": 0,
           "entries": [
@@ -265,19 +265,19 @@
               "name": "Jobflow AI Studio",
               "kind": "dir",
               "sizeBytes": 0,
-              "modifiedAt": "2026-07-06T20:01:19.408Z"
+              "modifiedAt": "2026-07-07T04:34:06.565Z"
             },
             {
               "name": "Legal AI Studio",
               "kind": "dir",
               "sizeBytes": 0,
-              "modifiedAt": "2026-07-06T19:45:10.218Z"
+              "modifiedAt": "2026-07-07T06:35:21.061Z"
             },
             {
               "name": "MDS-Command-Centre",
               "kind": "dir",
               "sizeBytes": 0,
-              "modifiedAt": "2026-07-02T04:03:46.799Z"
+              "modifiedAt": "2026-07-07T14:08:03.615Z"
             },
             {
               "name": "MIDAS Local Coding Studio",
@@ -289,7 +289,7 @@
               "name": "MIDAS-Website",
               "kind": "dir",
               "sizeBytes": 0,
-              "modifiedAt": "2026-07-06T02:39:36.073Z"
+              "modifiedAt": "2026-07-07T09:32:40.788Z"
             },
             {
               "name": "NestIQ AI Studio",
@@ -301,7 +301,7 @@
               "name": "Pathway AI Studio",
               "kind": "dir",
               "sizeBytes": 0,
-              "modifiedAt": "2026-06-16T20:27:49.017Z"
+              "modifiedAt": "2026-07-07T13:39:51.656Z"
             },
             {
               "name": "Personal Website",
@@ -313,7 +313,13 @@
               "name": "Prep AI Studio",
               "kind": "dir",
               "sizeBytes": 0,
-              "modifiedAt": "2026-07-04T17:17:59.812Z"
+              "modifiedAt": "2026-07-07T14:02:19.363Z"
+            },
+            {
+              "name": "Prototypes",
+              "kind": "dir",
+              "sizeBytes": 0,
+              "modifiedAt": "2026-07-07T03:55:47.051Z"
             },
             {
               "name": "README.md",
@@ -539,7 +545,7 @@
               "name": "war-room",
               "kind": "dir",
               "sizeBytes": 0,
-              "modifiedAt": "2026-07-06T20:50:37.900Z"
+              "modifiedAt": "2026-07-07T00:30:54.057Z"
             }
           ]
         }
@@ -738,31 +744,31 @@
         "id": "work-orders",
         "relativePath": "vcos/mds-kernel/midas-runtime/work-orders",
         "exists": true,
-        "artifactCount": 6
+        "artifactCount": 9
       },
       {
         "id": "approvals",
         "relativePath": "vcos/mds-kernel/midas-runtime/approvals",
         "exists": true,
-        "artifactCount": 0
+        "artifactCount": 2
       },
       {
         "id": "packets",
         "relativePath": "vcos/mds-kernel/midas-runtime/packets",
         "exists": true,
-        "artifactCount": 1
+        "artifactCount": 2
       },
       {
         "id": "proof",
         "relativePath": "vcos/mds-kernel/midas-runtime/proof",
         "exists": true,
-        "artifactCount": 1
+        "artifactCount": 2
       },
       {
         "id": "loop",
         "relativePath": "vcos/mds-kernel/midas-runtime/loop",
         "exists": true,
-        "artifactCount": 5
+        "artifactCount": 6
       },
       {
         "id": "learning",
@@ -801,89 +807,89 @@
       {
         "relativePath": ".",
         "branch": "feat/vcos-runtime-provenance-2026-07-06",
-        "head": "bfc3490f",
+        "head": "fb78bad",
         "remote": "https://github.com/shrishmanglik/Million-Dollar-AI-Studio.git",
-        "dirty": "462 tracked file(s) modified",
-        "status": "ok"
+        "dirty": "UNKNOWN (dirty probe skipped; no git subprocesses in adapter)",
+        "status": "degraded"
       },
       {
         "relativePath": "Products\\Astro AI Studio",
         "branch": "main",
-        "head": "1c6e674",
+        "head": "360e093",
         "remote": "https://github.com/shrishmanglik/Astro-AI-Studio.git",
-        "dirty": "UNKNOWN",
+        "dirty": "UNKNOWN (dirty probe skipped; no git subprocesses in adapter)",
         "status": "degraded"
       },
       {
         "relativePath": "Products\\Atlas AI Studio",
-        "branch": "UNKNOWN",
-        "head": "f649196",
+        "branch": "feat/safety-gate-preservation-2026-07-02",
+        "head": "0abe4a4",
         "remote": "https://github.com/shrishmanglik/atlas.git",
-        "dirty": "11 tracked file(s) modified",
-        "status": "ok"
+        "dirty": "UNKNOWN (dirty probe skipped; no git subprocesses in adapter)",
+        "status": "degraded"
       },
       {
         "relativePath": "Products\\Catering Command Centre",
         "branch": "main",
         "head": "5dfb1a8",
         "remote": "UNKNOWN",
-        "dirty": "UNKNOWN",
+        "dirty": "UNKNOWN (dirty probe skipped; no git subprocesses in adapter)",
         "status": "degraded"
       },
       {
         "relativePath": "Products\\Jobflow AI Studio",
         "branch": "main",
-        "head": "17409e5",
+        "head": "c4ecf7a",
         "remote": "https://github.com/shrishmanglik/JobFlow.git",
-        "dirty": "clean (tracked)",
-        "status": "ok"
+        "dirty": "UNKNOWN (dirty probe skipped; no git subprocesses in adapter)",
+        "status": "degraded"
       },
       {
         "relativePath": "Products\\Legal AI Studio",
-        "branch": "transform/full-product-2026-07-06",
-        "head": "4bfc32e",
+        "branch": "main",
+        "head": "6a315b7",
         "remote": "https://github.com/shrishmanglik/Legal-AI-Studio.git",
-        "dirty": "UNKNOWN",
+        "dirty": "UNKNOWN (dirty probe skipped; no git subprocesses in adapter)",
         "status": "degraded"
       },
       {
         "relativePath": "Products\\MDS-Command-Centre",
         "branch": "main",
-        "head": "69c0c23",
+        "head": "861b661",
         "remote": "UNKNOWN",
-        "dirty": "1 tracked file(s) modified",
-        "status": "ok"
+        "dirty": "UNKNOWN (dirty probe skipped; no git subprocesses in adapter)",
+        "status": "degraded"
       },
       {
         "relativePath": "Products\\MIDAS-Website",
         "branch": "main",
-        "head": "996fc35",
+        "head": "cf52374",
         "remote": "https://github.com/shrishmanglik/MIDAS-Website.git",
-        "dirty": "clean (tracked)",
-        "status": "ok"
+        "dirty": "UNKNOWN (dirty probe skipped; no git subprocesses in adapter)",
+        "status": "degraded"
       },
       {
         "relativePath": "Products\\NestIQ AI Studio",
         "branch": "main",
         "head": "76d44f4",
         "remote": "https://github.com/shrishmanglik/NestIQ-AI-Studio.git",
-        "dirty": "UNKNOWN",
+        "dirty": "UNKNOWN (dirty probe skipped; no git subprocesses in adapter)",
         "status": "degraded"
       },
       {
         "relativePath": "Products\\Prep AI Studio",
-        "branch": "codex/prep-uiux-psychology-layout-20260705",
-        "head": "65c9b4a",
+        "branch": "codex/prep-public-section-transformation-20260707",
+        "head": "e50d9c7",
         "remote": "https://github.com/shrishmanglik/Prep-AI-Studio.git",
-        "dirty": "UNKNOWN",
+        "dirty": "UNKNOWN (dirty probe skipped; no git subprocesses in adapter)",
         "status": "degraded"
       },
       {
         "relativePath": "Products\\Thread Intelligence",
-        "branch": "UNKNOWN",
-        "head": "UNKNOWN",
-        "remote": "UNKNOWN",
-        "dirty": "UNKNOWN",
+        "branch": "main",
+        "head": "7a3b7c7",
+        "remote": "https://github.com/shrishmanglik/thread-intelligence.git",
+        "dirty": "UNKNOWN (dirty probe skipped; no git subprocesses in adapter)",
         "status": "degraded"
       }
     ]
