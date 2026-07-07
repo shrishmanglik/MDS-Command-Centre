@@ -3352,6 +3352,24 @@ function renderLaunchOs() {
     </div>`);
 }
 
+function renderDashboardProofStrip({ control, queueCount, activeTickets, openRuns, directorBundles, unknownCount }) {
+  const nextAction = control.nextAction?.title || state.snapshot.today.nextSafeAction || "UNKNOWN";
+  const revenueMode = control.revenue?.status || "UNKNOWN";
+  return `<section class="dashboard-proof-strip wide" aria-label="Dashboard proof handoff">
+    <div>
+      <span class="eyebrow">Dashboard proof handoff</span>
+      <h2>Local operating proof before agent or live claims.</h2>
+      <p>Today can stage tickets, runs, decisions, and evidence packets. It cannot prove provider, payment, deploy, auth, schema, revenue, or live state.</p>
+    </div>
+    <div class="dashboard-proof-grid">
+      <span><strong>Next</strong>${esc(nextAction)}</span>
+      <span><strong>Work</strong>${esc(queueCount)} orders / ${esc(activeTickets)} tickets / ${esc(openRuns)} runs</span>
+      <span><strong>Review</strong>${esc(directorBundles.length)} director packets</span>
+      <span><strong>Unknowns</strong>${esc(unknownCount)} rows / ${esc(revenueMode)}</span>
+    </div>
+  </section>`;
+}
+
 function renderToday() {
   const control = controlSurface();
   const rows = state.snapshot.productReadiness.slice(0, 7);
@@ -3374,6 +3392,7 @@ function renderToday() {
         <div class="next-action"><span>Next safe action</span><strong>${esc(control.nextAction?.title || state.snapshot.today.nextSafeAction)}</strong></div>
         <p class="claim-ceiling">${icon("lock", 16)} ${esc(control.claimCeiling)}</p>
       </section>
+      ${renderDashboardProofStrip({ control, queueCount, activeTickets, openRuns, directorBundles, unknownCount })}
       <section class="metrics-panel control-metrics">
         ${metric("Revenue claim", control.revenue?.mrr || "$0/UNKNOWN", "warning")}
         ${metric("Product VCOS", productVcos.length, "boards")}
