@@ -367,6 +367,12 @@ const teamSignaling = fs.readFileSync(path.join(appRoot, "scripts", "lib", "team
 if (!teamSignaling.includes("stageTeamSignal") || !teamSignaling.includes("sendStarted: false") || !teamSignaling.includes("endpointResolved: false")) {
   throw new Error("team signal outbox, no-send boundary, or unresolved endpoint boundary is missing.");
 }
+const taskRestructurer = fs.readFileSync(path.join(appRoot, "scripts", "lib", "task-restructurer.mjs"), "utf8");
+const gameDevAdapter = fs.readFileSync(path.join(appRoot, "scripts", "lib", "game-dev-adapter.mjs"), "utf8");
+const helpCompanion = fs.readFileSync(path.join(appRoot, "scripts", "lib", "help-companion.mjs"), "utf8");
+if (!taskRestructurer.includes("administrativeRelayRemoved") || !gameDevAdapter.includes("assetsRead: false") || !helpCompanion.includes("DETERMINISTIC_LOCAL_GUIDANCE")) {
+  throw new Error("direct task routing, no-asset-read game adapter, or deterministic help guidance is missing.");
+}
 if (!fs.readFileSync(path.join(appRoot, "package.json"), "utf8").includes('"predev": "npm run doctor"')) {
   throw new Error("doctor startup guard is not wired before workflows.");
 }

@@ -1,0 +1,7 @@
+import assert from "node:assert/strict"; import fs from "node:fs"; import os from "node:os"; import path from "node:path";
+import { restructureTaskAssignments } from "./lib/task-restructurer.mjs"; import { inspectGameProject } from "./lib/game-dev-adapter.mjs"; import { suggestWorkspaceNextStep } from "./lib/help-companion.mjs";
+const routed = restructureTaskAssignments({ tasks: [{ id: "T1", title: "Build parser", assigneeRole: "Scrum Master", acceptanceCheck: "tests pass" }, { id: "T2", title: "Review API", assigneeRole: "Architect" }] });
+assert.equal(routed.tasks[0].assigneeRole, "Developer"); assert.equal(routed.relayCountRemoved, 1); assert.equal(routed.sourceModified, false);
+const root = fs.mkdtempSync(path.join(os.tmpdir(), "mds-game-")); fs.writeFileSync(path.join(root, "project.godot"), "[application]"); const game = inspectGameProject(root); assert.equal(game.engine, "GODOT"); assert.equal(game.executionStarted, false); assert.equal(game.assetsRead, false);
+const help = suggestWorkspaceNextStep({ repoPath: root, openFiles: ["project.godot", ".env"], gitRunner: () => " M project.godot\n" }); assert.equal(help.changedFileCount, 1); assert.equal(help.secretPathsExcluded, 1); assert.match(help.nextStep, /unstaged changes/); assert.equal(help.fileBodiesRead, false);
+fs.rmSync(root, { recursive: true, force: true }); console.log("Task wizard, game adapter, and help companion checks passed.");
