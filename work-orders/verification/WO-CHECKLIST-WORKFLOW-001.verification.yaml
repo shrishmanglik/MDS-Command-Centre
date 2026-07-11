@@ -1,0 +1,9 @@
+schemaVersion: mds.work-order-verification.v1
+workOrderId: WO-CHECKLIST-WORKFLOW-001
+specification: Parse strict Read fully and follow checklist blocks into sequential verification plans without executing them.
+requiredSymbols:
+  - file: scripts/lib/checklist-workflow.mjs
+    language: JavaScript
+    kind: function
+    name: parseChecklistWorkflow
+    exported: true

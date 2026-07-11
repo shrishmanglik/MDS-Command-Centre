@@ -72,6 +72,7 @@ npm run docs:frontmatter
 npm run verify:gaps
 npm run harness:export
 npm run harness:check
+npm run workflow:parse
 npm run refresh-data
 npm run dev
 npm run build
@@ -98,6 +99,8 @@ npm run test:a2ui
 `npm run verify:gaps` is the mandatory third-tier AST review gate. Machine-readable `work-orders/verification/*.verification.yaml` contracts name required JavaScript/TypeScript symbols by file, kind, name, and export requirement. `@ast-grep/napi` parses changed protected source files; missing contract coverage, missing functions/classes/methods, wrong kinds, absent exports, parse failures, and unsafe paths block commit and CI integration. Passing proves requested symbol presence only, not behavior or test adequacy.
 
 `npm run harness:export` compiles `harness-sources/local-proof-review.md` into deterministic native project assets for Claude (`.claude/agents`), Cursor (`.cursor/rules`), Gemini CLI (`.gemini/commands`), and GitHub Copilot (`.github/prompts`). The governed source allowlists read-only tools, rejects secret-shaped paths and execution/file-injection directives, and emits a SHA-256 manifest. `npm run harness:check` is read-only and fails on missing or changed generated output. Exporting configuration does not install an editor integration, access credentials, call a provider, or grant execution authority.
+
+`npm run workflow:parse` parses a governed `Read fully and follow:` Markdown checklist into a deterministic JSON plan. Every step must be unchecked, sequentially numbered, and include `Action`, `Verify`, and `Stop if` fields. Generic `execute` instructions, missing verification, pre-checked steps, sequence gaps, malformed metadata, and secret-shaped input paths fail closed. The receipt makes only the first step eligible and records `executionStarted=false`; parsing never runs a command or workflow.
 
 The governed outbound HTTP path is `POST /api/http-proxy`. It accepts only HTTP(S) GET/HEAD requests, blocks userinfo and custom ports, resolves and validates every DNS answer, rejects private/link-local/loopback/reserved/metadata targets, pins the approved address during connection, and revalidates every redirect. It strips caller credentials and proxy environment behavior and bounds redirects, time, and response size. Docker sandboxes remain `--network none`; direct subagent egress is not enabled. This is a loopback governed egress path, not transparent host-wide interception.
 

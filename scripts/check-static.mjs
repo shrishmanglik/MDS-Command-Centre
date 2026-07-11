@@ -327,6 +327,10 @@ const harnessAdapter = fs.readFileSync(path.join(appRoot, "scripts", "lib", "har
 if (!harnessAdapter.includes("exportHarnessAdapters") || !harnessAdapter.includes("EXECUTION_DIRECTIVE_FORBIDDEN") || !harnessAdapter.includes("mds.harness-export.v1")) {
   throw new Error("multi-harness exporter, execution-directive refusal, or manifest contract is missing.");
 }
+const checklistWorkflow = fs.readFileSync(path.join(appRoot, "scripts", "lib", "checklist-workflow.mjs"), "utf8");
+if (!checklistWorkflow.includes("parseChecklistWorkflow") || !checklistWorkflow.includes("CHECKLIST_HEADING_REQUIRED") || !checklistWorkflow.includes("executionStarted: false")) {
+  throw new Error("structured checklist parser, required heading, or no-execution boundary is missing.");
+}
 if (!fs.readFileSync(path.join(appRoot, "package.json"), "utf8").includes('"predev": "npm run doctor"')) {
   throw new Error("doctor startup guard is not wired before workflows.");
 }
