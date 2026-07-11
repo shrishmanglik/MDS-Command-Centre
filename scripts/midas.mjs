@@ -7,6 +7,7 @@ import { validateSkillPack } from "./lib/skill-validator.mjs";
 import { evaluateWorkflow } from "./lib/plugin-eval.mjs";
 import { validateFrontmatterCollections } from "./lib/frontmatter-order.mjs";
 import { exportHarnessAdapters } from "./lib/harness-adapter.mjs";
+import { parseChecklistWorkflow } from "./lib/checklist-workflow.mjs";
 
 const appRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const storePath = path.join(appRoot, "src", "data", "localPairings.json");
@@ -51,8 +52,14 @@ if (domain === "harness" && action === "export") {
   process.exit(result.status === "DRIFT" ? 1 : 0);
 }
 
+if (domain === "workflow" && action === "parse") {
+  if (!value) { console.error("Usage: midas workflow parse <checklist-path>"); process.exit(2); }
+  console.log(JSON.stringify(parseChecklistWorkflow(path.resolve(process.cwd(), value)), null, 2));
+  process.exit(0);
+}
+
 if (domain !== "pairing" || !["list", "approve"].includes(action || "")) {
-  console.error("Usage: midas doctor | midas skills validate <pack-path> | midas eval <workflow-path> | midas docs validate [root] | midas harness export <source-path> [--check] | midas pairing list | midas pairing approve <pairing-key>");
+  console.error("Usage: midas doctor | midas skills validate <pack-path> | midas eval <workflow-path> | midas docs validate [root] | midas harness export <source-path> [--check] | midas workflow parse <checklist-path> | midas pairing list | midas pairing approve <pairing-key>");
   process.exit(2);
 }
 
