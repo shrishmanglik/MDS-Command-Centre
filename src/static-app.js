@@ -5360,7 +5360,7 @@ const CLIENT_SECRET_PATH_PATTERN =
 
 async function fetchLocalJson(fileName) {
   try {
-    const response = await fetch(`/src/data/${fileName}?ts=${Date.now()}`, { cache: "no-store" });
+    const response = await fetch(`./src/data/${fileName}?ts=${Date.now()}`, { cache: "no-store" });
     if (!response.ok) return null;
     return await response.json();
   } catch {
@@ -6090,7 +6090,7 @@ async function stageDeltaWork(kind) {
 }
 
 async function loadSnapshot() {
-  const response = await fetch(`/src/data/warRoomSnapshot.json?ts=${Date.now()}`, { cache: "no-store" });
+  const response = await fetch(`./src/data/warRoomSnapshot.json?ts=${Date.now()}`, { cache: "no-store" });
   state.snapshot = await response.json();
 }
 

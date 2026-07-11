@@ -26,6 +26,7 @@ const required = [
   "src/data/localVoiceCommands.json",
   "src/data/localModelRouter.json",
   "src/data/localCanvasDocuments.json",
+  "src/data/localSandboxReceipts.json",
   "desktop/launch-command-centre.ps1",
 ];
 
@@ -36,6 +37,9 @@ if (missing.length) {
 
 const html = fs.readFileSync(path.join(appRoot, "index.html"), "utf8");
 const js = fs.readFileSync(path.join(appRoot, "src/static-app.js"), "utf8");
+if (html.includes('href="/src/') || html.includes('src="/src/') || js.includes("fetch(`/src/")) {
+  throw new Error("Static asset and snapshot paths must remain deployment-relative.");
+}
 const snapshot = JSON.parse(fs.readFileSync(path.join(appRoot, "src/data/warRoomSnapshot.json"), "utf8"));
 const tickets = JSON.parse(fs.readFileSync(path.join(appRoot, "src/data/localTickets.json"), "utf8"));
 const activity = JSON.parse(fs.readFileSync(path.join(appRoot, "src/data/localActivityLog.json"), "utf8"));
