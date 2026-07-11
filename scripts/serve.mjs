@@ -33,6 +33,7 @@ const pairingStore = path.join(appRoot, "src", "data", "localPairings.json");
 const workspaceStore = path.join(appRoot, "src", "data", "localWorkspaces.json");
 const workspaceRoot = path.join(appRoot, "output", "workspaces");
 const voiceCommandStore = path.join(appRoot, "src", "data", "localVoiceCommands.json");
+const voiceEngine = path.join(appRoot, "voice", "bin", process.platform === "win32" ? "whisper-cli.exe" : "whisper-cli");
 const voiceModel = path.join(appRoot, "voice", "models", "ggml-base.en.bin");
 const modelRouterStore = path.join(appRoot, "src", "data", "localModelRouter.json");
 const canvasStore = path.join(appRoot, "src", "data", "localCanvasDocuments.json");
@@ -54,7 +55,7 @@ function findExecutable(names) {
 }
 
 function voiceStatus() {
-  const engine = findExecutable(["whisper-cli"]);
+  const engine = fs.existsSync(voiceEngine) && fs.statSync(voiceEngine).isFile() ? voiceEngine : findExecutable(["whisper-cli"]);
   const ffmpeg = findExecutable(["ffmpeg"]);
   const modelPresent = fs.existsSync(voiceModel) && fs.statSync(voiceModel).isFile();
   return {
@@ -212,7 +213,8 @@ async function transcribeLocalAudio(parsed) {
   const outputPrefix = path.join(jobDir, "transcript");
   fs.writeFileSync(source, bytes, { mode: 0o600 });
   await execFilePromise(findExecutable(["ffmpeg"]), ["-nostdin", "-hide_banner", "-loglevel", "error", "-y", "-i", source, "-ar", "16000", "-ac", "1", wav], { cwd: jobDir });
-  await execFilePromise(findExecutable(["whisper-cli"]), ["-m", voiceModel, "-f", wav, "-otxt", "-of", outputPrefix, "-nt"], { cwd: jobDir });
+  const engine = fs.existsSync(voiceEngine) && fs.statSync(voiceEngine).isFile() ? voiceEngine : findExecutable(["whisper-cli"]);
+  await execFilePromise(engine, ["-m", voiceModel, "-f", wav, "-otxt", "-of", outputPrefix, "-nt"], { cwd: jobDir });
   const transcriptFile = `${outputPrefix}.txt`;
   if (!fs.existsSync(transcriptFile)) throw new Error("Offline STT completed without a transcript artifact.");
   const transcript = fs.readFileSync(transcriptFile, "utf8").trim().slice(0, 2000);

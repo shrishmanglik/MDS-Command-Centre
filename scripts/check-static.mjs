@@ -263,7 +263,7 @@ if (!js.includes("renderWorkspaces") || !js.includes("route-inbox-workspace") ||
   throw new Error("workspace router operator surface is missing.");
 }
 const voiceGate = fs.readFileSync(path.join(appRoot, "scripts", "lib", "voice-gate.mjs"), "utf8");
-if (!server.includes("/api/voice/audio") || !server.includes("whisper-cli") || !server.includes("transcribeLocalAudio") || !voiceGate.includes("BLOCKED_FORBIDDEN_VOICE_ACTION")) {
+if (!server.includes("/api/voice/audio") || !server.includes("voiceEngine") || !server.includes("whisper-cli.exe") || !server.includes("transcribeLocalAudio") || !voiceGate.includes("BLOCKED_FORBIDDEN_VOICE_ACTION")) {
   throw new Error("local offline voice adapter or deterministic wake gate is missing.");
 }
 if (!js.includes("renderVoice") || !js.includes("startVoiceCapture") || !js.includes("voice-transcript-form") || !js.includes("executionAllowed=false")) {
