@@ -20,6 +20,7 @@ import { restructureTaskAssignments } from "./lib/task-restructurer.mjs";
 import { inspectGameProject } from "./lib/game-dev-adapter.mjs";
 import { suggestWorkspaceNextStep } from "./lib/help-companion.mjs";
 import { readDialecticProfile, recordProfileObservation } from "./lib/user-profile-modeler.mjs";
+import { compileExperienceSkill } from "./lib/experience-skill-compiler.mjs";
 
 const appRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const storePath = path.join(appRoot, "src", "data", "localPairings.json");
@@ -155,6 +156,12 @@ if (domain === "profile") {
     console.log(JSON.stringify(recordProfileObservation(userProfileStorePath,JSON.parse(fs.readFileSync(absolute,"utf8"))),null,2)); process.exit(0);
   }
   console.error("Usage: midas profile show | record <observation.json>"); process.exit(2);
+}
+
+if (domain === "experience" && action === "compile") {
+  const absolute=path.resolve(process.cwd(),value||""); if (/(^|[\\/])\.env|\.(pem|p12|pfx|key)$/i.test(absolute)) throw new Error("EXPERIENCE_SECRET_SHAPED_PATH");
+  const outputIndex=process.argv.indexOf("--out"); const outputRoot=outputIndex>=0?path.resolve(process.cwd(),process.argv[outputIndex+1]):path.join(appRoot,"output","generated-skill-packs");
+  console.log(JSON.stringify(compileExperienceSkill(JSON.parse(fs.readFileSync(absolute,"utf8")),outputRoot),null,2)); process.exit(0);
 }
 
 if (domain !== "pairing" || !["list", "approve"].includes(action || "")) {

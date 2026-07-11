@@ -1,0 +1,14 @@
+schemaVersion: mds.work-order-verification.v1
+workOrderId: WO-EXPERIENCE-SKILL-001
+specification: Compile explicitly approved successful terminal trajectories into draft Skill Packs with strict command screening and offline validation, without installation or execution.
+requiredSymbols:
+  - file: scripts/lib/experience-skill-compiler.mjs
+    language: JavaScript
+    kind: function
+    name: validateExperienceTrajectory
+    exported: true
+  - file: scripts/lib/experience-skill-compiler.mjs
+    language: JavaScript
+    kind: function
+    name: compileExperienceSkill
+    exported: true

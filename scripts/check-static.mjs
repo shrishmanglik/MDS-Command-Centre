@@ -378,6 +378,10 @@ const userProfileModeler = fs.readFileSync(path.join(appRoot, "scripts", "lib", 
 if (!userProfileModeler.includes("buildDialecticProfile") || !userProfileModeler.includes("sensitiveAttributesModeled: false") || !userProfileModeler.includes("autoApplied: false")) {
   throw new Error("dialectic profile model, sensitive-trait exclusion, or no-auto-apply boundary is missing.");
 }
+const experienceSkillCompiler = fs.readFileSync(path.join(appRoot, "scripts", "lib", "experience-skill-compiler.mjs"), "utf8");
+if (!experienceSkillCompiler.includes("compileExperienceSkill") || !experienceSkillCompiler.includes("executionApproved: false") || !experienceSkillCompiler.includes("SAFE_COMMAND")) {
+  throw new Error("experience compiler, no-execution boundary, or strict terminal command allowlist is missing.");
+}
 if (!fs.readFileSync(path.join(appRoot, "package.json"), "utf8").includes('"predev": "npm run doctor"')) {
   throw new Error("doctor startup guard is not wired before workflows.");
 }
