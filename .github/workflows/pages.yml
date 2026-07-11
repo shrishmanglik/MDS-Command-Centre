@@ -54,6 +54,8 @@ jobs:
       - run: npm run release:audit
       - run: npm run test:party-room
       - run: npm run party:list
+      - run: npm run test:persona-memory
+      - run: npm run test:midas-loop
       - run: node scripts/build-static.mjs
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3

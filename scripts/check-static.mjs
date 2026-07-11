@@ -28,6 +28,7 @@ const required = [
   "src/data/localCanvasDocuments.json",
   "src/data/localSandboxReceipts.json",
   "src/data/localPartyRooms.json",
+  "src/data/localPersonaMemory.json",
   "desktop/launch-command-centre.ps1",
   "desktop/command-centre-tray.ps1",
 ];
@@ -339,6 +340,11 @@ if (!gitReleaseAudit.includes("compileGitReleaseAudit") || !gitReleaseAudit.incl
 const partyRoom = fs.readFileSync(path.join(appRoot, "scripts", "lib", "party-room.mjs"), "utf8");
 if (!partyRoom.includes("partyRoomReadiness") || !partyRoom.includes("PARTY_REQUIRED_ROLES_MISSING") || !partyRoom.includes("spawnAuthorityGranted: false")) {
   throw new Error("Party Mode readiness, required-role gate, or no-spawn boundary is missing.");
+}
+const personaMemory = fs.readFileSync(path.join(appRoot, "scripts", "lib", "persona-memory.mjs"), "utf8");
+const midasLoop = fs.readFileSync(path.join(appRoot, "scripts", "lib", "midas-loop.mjs"), "utf8");
+if (!personaMemory.includes("isolatedFromRoles") || !personaMemory.includes("MAX_ROLE_CHARS") || !midasLoop.includes("MIDAS_LOOP_APPROVED_HANDOFF_REQUIRED") || !midasLoop.includes("deployStarted: false")) {
+  throw new Error("isolated persona memory or bounded MIDAS loop authority controls are missing.");
 }
 if (!fs.readFileSync(path.join(appRoot, "package.json"), "utf8").includes('"predev": "npm run doctor"')) {
   throw new Error("doctor startup guard is not wired before workflows.");

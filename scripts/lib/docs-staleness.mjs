@@ -2,7 +2,7 @@ export const DOC_RULES = Object.freeze([
   { id: "loopback-api", source: /^scripts\/serve\.mjs$/, docs: ["README.md"] },
   { id: "daemon-api", source: /^scripts\/daemon\.mjs$/, docs: ["README.md"] },
   { id: "cli-api", source: /^scripts\/midas\.mjs$/, docs: ["README.md"] },
-  { id: "runtime-contracts", source: /^scripts\/lib\/(a2ui-store|checklist-workflow|doctor|docs-staleness|frontmatter-order|git-release-audit|harness-adapter|mobile-node-intake|model-router|pairing-store|party-room|plugin-eval|sandbox-runner|skill-validator|ssrf-guard|verification-gap|voice-gate|workspace-store)\.mjs$/, docs: ["README.md"] },
+  { id: "runtime-contracts", source: /^scripts\/lib\/(a2ui-store|checklist-workflow|doctor|docs-staleness|frontmatter-order|git-release-audit|harness-adapter|midas-loop|mobile-node-intake|model-router|pairing-store|party-room|persona-memory|plugin-eval|sandbox-runner|skill-validator|ssrf-guard|verification-gap|voice-gate|workspace-store)\.mjs$/, docs: ["README.md"] },
   { id: "windows-desktop", source: /^desktop\/.*\.ps1$/, docs: ["desktop/README.md"] },
   { id: "android-companion", source: /^mobile\/android\/.*\.(java|xml|gradle)$/, docs: ["mobile/android/README.md"] },
 ]);
