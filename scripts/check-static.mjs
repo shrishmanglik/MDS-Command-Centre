@@ -311,6 +311,10 @@ if (!docsStaleness.includes("BLOCKED_DOCS_STALE") || !docsStaleness.includes("fi
   throw new Error("documentation staleness mapping or no-content-read boundary is missing.");
 }
 if (!preCommit.includes("docs-staleness.mjs --staged")) throw new Error("pre-commit documentation guard is missing.");
+const frontmatterOrder = fs.readFileSync(path.join(appRoot, "scripts", "lib", "frontmatter-order.mjs"), "utf8");
+if (!frontmatterOrder.includes("FRONTMATTER_KEYS") || !frontmatterOrder.includes("NAV_SEQUENCE") || !frontmatterOrder.includes("FILENAME_ALIGNMENT") || !preCommit.includes("docs validate")) {
+  throw new Error("frontmatter order/index validator or pre-commit wiring is missing.");
+}
 if (!fs.readFileSync(path.join(appRoot, "package.json"), "utf8").includes('"predev": "npm run doctor"')) {
   throw new Error("doctor startup guard is not wired before workflows.");
 }

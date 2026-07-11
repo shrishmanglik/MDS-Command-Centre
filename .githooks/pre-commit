@@ -1,3 +1,4 @@
 #!/bin/sh
 set -eu
 node scripts/docs-staleness.mjs --staged
+node scripts/midas.mjs docs validate
