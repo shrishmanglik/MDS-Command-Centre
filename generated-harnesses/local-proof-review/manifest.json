@@ -1,0 +1,24 @@
+{
+  "schemaVersion": "mds.harness-export.v1",
+  "source": "local-proof-review.md",
+  "sourceSha256": "6496cff11b6947a70a216a53d06bb059b312ece2c2d2f3de5e7848dc562075d0",
+  "authority": "Generated configuration only. No editor installation, provider call, credential access, or execution authority.",
+  "outputs": [
+    {
+      "relativePath": ".claude/agents/local-proof-review.md",
+      "sha256": "c7c317f90a40ede154db2a0404c0ee18bc4cab9154ed60615e91268878a38b1d"
+    },
+    {
+      "relativePath": ".cursor/rules/local-proof-review.mdc",
+      "sha256": "2aec761437a08ec4eb78ffc0cb99abdd8736030a62f90a0414674050e46c04dd"
+    },
+    {
+      "relativePath": ".gemini/commands/local-proof-review.toml",
+      "sha256": "d7526082db9e61a57447c9bec8a828d3483d86753736553af5f5e502b4d1d13b"
+    },
+    {
+      "relativePath": ".github/prompts/local-proof-review.prompt.md",
+      "sha256": "d88a5a91cec85990a555801aa079b44ea4fb72c23d89ea2c65ac714cdaf64d68"
+    }
+  ]
+}

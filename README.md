@@ -70,6 +70,8 @@ npm run hooks:install
 npm run docs:check
 npm run docs:frontmatter
 npm run verify:gaps
+npm run harness:export
+npm run harness:check
 npm run refresh-data
 npm run dev
 npm run build
@@ -94,6 +96,8 @@ npm run test:a2ui
 `midas docs validate [root]` (or `npm run docs:frontmatter`) validates generated product briefs and user journeys under `generated-docs/`. It enforces exact frontmatter key order, collection-specific document types, contiguous unique `navIndex` values, `NN-slug.md` filename alignment, ISO dates, bounded statuses, and `LOCAL_DRAFT_ONLY` authority. The pre-commit hook runs it after the staleness guard. Validation aligns metadata only; it does not approve document content or public claims.
 
 `npm run verify:gaps` is the mandatory third-tier AST review gate. Machine-readable `work-orders/verification/*.verification.yaml` contracts name required JavaScript/TypeScript symbols by file, kind, name, and export requirement. `@ast-grep/napi` parses changed protected source files; missing contract coverage, missing functions/classes/methods, wrong kinds, absent exports, parse failures, and unsafe paths block commit and CI integration. Passing proves requested symbol presence only, not behavior or test adequacy.
+
+`npm run harness:export` compiles `harness-sources/local-proof-review.md` into deterministic native project assets for Claude (`.claude/agents`), Cursor (`.cursor/rules`), Gemini CLI (`.gemini/commands`), and GitHub Copilot (`.github/prompts`). The governed source allowlists read-only tools, rejects secret-shaped paths and execution/file-injection directives, and emits a SHA-256 manifest. `npm run harness:check` is read-only and fails on missing or changed generated output. Exporting configuration does not install an editor integration, access credentials, call a provider, or grant execution authority.
 
 The governed outbound HTTP path is `POST /api/http-proxy`. It accepts only HTTP(S) GET/HEAD requests, blocks userinfo and custom ports, resolves and validates every DNS answer, rejects private/link-local/loopback/reserved/metadata targets, pins the approved address during connection, and revalidates every redirect. It strips caller credentials and proxy environment behavior and bounds redirects, time, and response size. Docker sandboxes remain `--network none`; direct subagent egress is not enabled. This is a loopback governed egress path, not transparent host-wide interception.
 

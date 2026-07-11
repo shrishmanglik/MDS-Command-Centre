@@ -323,6 +323,10 @@ const ssrfGuard = fs.readFileSync(path.join(appRoot, "scripts", "lib", "ssrf-gua
 if (!server.includes("/api/http-proxy") || !ssrfGuard.includes("BLOCKED_PRIVATE_OR_RESERVED_ADDRESS") || !ssrfGuard.includes("pinnedLookup") || !ssrfGuard.includes("proxyEnvironmentUsed: false")) {
   throw new Error("SSRF policy, DNS pinning, proxy bypass, or loopback API wiring is missing.");
 }
+const harnessAdapter = fs.readFileSync(path.join(appRoot, "scripts", "lib", "harness-adapter.mjs"), "utf8");
+if (!harnessAdapter.includes("exportHarnessAdapters") || !harnessAdapter.includes("EXECUTION_DIRECTIVE_FORBIDDEN") || !harnessAdapter.includes("mds.harness-export.v1")) {
+  throw new Error("multi-harness exporter, execution-directive refusal, or manifest contract is missing.");
+}
 if (!fs.readFileSync(path.join(appRoot, "package.json"), "utf8").includes('"predev": "npm run doctor"')) {
   throw new Error("doctor startup guard is not wired before workflows.");
 }
