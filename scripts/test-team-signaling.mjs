@@ -1,0 +1,14 @@
+import assert from "node:assert/strict";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import { normalizeTeamSignal, readTeamSignals, renderPlatformSignal, stageTeamSignal } from "./lib/team-signaling.mjs";
+const root = fs.mkdtempSync(path.join(os.tmpdir(), "mds-signal-")); const store = path.join(root, "outbox.json");
+const input = { platform: "feishu", type: "HEARTBEAT", destinationRef: "engineering-room", taskId: "TASK-25", summary: "Worker queue healthy" };
+const first = stageTeamSignal(store, input); const second = stageTeamSignal(store, input);
+assert.equal(first.signal.sendStarted, false); assert.equal(second.duplicate, true); assert.equal(readTeamSignals(store).length, 1);
+assert.equal(renderPlatformSignal(first.signal).payload.msg_type, "text");
+assert.equal(renderPlatformSignal(normalizeTeamSignal({ ...input, platform: "slack" })).payload.unfurl_links, false);
+assert.throws(() => normalizeTeamSignal({ ...input, summary: "token=do-not-store" }), /SUMMARY_INVALID/);
+assert.throws(() => normalizeTeamSignal({ ...input, destinationRef: "https://example.com/hook" }), /DESTINATION_REF_INVALID/);
+fs.rmSync(root, { recursive: true, force: true }); console.log("Team signaling gateway checks passed.");

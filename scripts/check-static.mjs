@@ -32,6 +32,7 @@ const required = [
   "src/data/localSandboxReceipts.json",
   "src/data/localPartyRooms.json",
   "src/data/localPersonaMemory.json",
+  "src/data/localTeamSignals.json",
   "desktop/launch-command-centre.ps1",
   "desktop/command-centre-tray.ps1",
 ];
@@ -361,6 +362,10 @@ if (!subagentEngine.includes("spawnParallelSubagents") || !subagentEngine.includ
 const declarativeCustomizer = fs.readFileSync(path.join(appRoot, "scripts", "lib", "declarative-customizer.mjs"), "utf8");
 if (!declarativeCustomizer.includes("validateCustomizerConfig") || !declarativeCustomizer.includes("CUSTOMIZER_SAFETY_RULE_CANNOT_BE_DISABLED") || !declarativeCustomizer.includes("applied: false")) {
   throw new Error("TOML customizer validation, immutable safety rule, or unapplied boundary is missing.");
+}
+const teamSignaling = fs.readFileSync(path.join(appRoot, "scripts", "lib", "team-signaling.mjs"), "utf8");
+if (!teamSignaling.includes("stageTeamSignal") || !teamSignaling.includes("sendStarted: false") || !teamSignaling.includes("endpointResolved: false")) {
+  throw new Error("team signal outbox, no-send boundary, or unresolved endpoint boundary is missing.");
 }
 if (!fs.readFileSync(path.join(appRoot, "package.json"), "utf8").includes('"predev": "npm run doctor"')) {
   throw new Error("doctor startup guard is not wired before workflows.");

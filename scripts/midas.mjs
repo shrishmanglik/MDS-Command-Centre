@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import path from "node:path";
+import fs from "node:fs";
 import { fileURLToPath } from "node:url";
 import { approvePairing, readPairings } from "./lib/pairing-store.mjs";
 import { runDoctor } from "./lib/doctor.mjs";
@@ -14,11 +15,13 @@ import { appendPersonaMemory, readPersonaMemory } from "./lib/persona-memory.mjs
 import { runMidasLoop } from "./lib/midas-loop.mjs";
 import { runSubagentTaskFile } from "./lib/subagent-engine.mjs";
 import { parseCustomizerFile } from "./lib/declarative-customizer.mjs";
+import { readTeamSignals, stageTeamSignal } from "./lib/team-signaling.mjs";
 
 const appRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const storePath = path.join(appRoot, "src", "data", "localPairings.json");
 const partyStorePath = path.join(appRoot, "src", "data", "localPartyRooms.json");
 const personaMemoryStorePath = path.join(appRoot, "src", "data", "localPersonaMemory.json");
+const teamSignalStorePath = path.join(appRoot, "src", "data", "localTeamSignals.json");
 const [domain, action, value] = process.argv.slice(2);
 
 if (domain === "doctor") {
@@ -113,6 +116,17 @@ if (domain === "customizer" && action === "validate") {
   if (!value) { console.error("Usage: midas customizer validate <config.toml>"); process.exit(2); }
   console.log(JSON.stringify(parseCustomizerFile(path.resolve(process.cwd(), value)), null, 2));
   process.exit(0);
+}
+
+if (domain === "signals") {
+  if (action === "list") { console.log(JSON.stringify({ signals: readTeamSignals(teamSignalStorePath), sendStarted: false }, null, 2)); process.exit(0); }
+  if (action === "stage" && value) {
+    const absolute = path.resolve(process.cwd(), value);
+    if (/(^|[\\/])\.env|\.(pem|p12|pfx|key)$/i.test(absolute)) throw new Error("SIGNAL_SECRET_SHAPED_PATH");
+    const stat = fs.statSync(absolute); if (!stat.isFile() || stat.size > 64 * 1024) throw new Error("SIGNAL_FILE_INVALID");
+    console.log(JSON.stringify(stageTeamSignal(teamSignalStorePath, JSON.parse(fs.readFileSync(absolute, "utf8"))), null, 2)); process.exit(0);
+  }
+  console.error("Usage: midas signals list | stage <signal.json>"); process.exit(2);
 }
 
 if (domain !== "pairing" || !["list", "approve"].includes(action || "")) {

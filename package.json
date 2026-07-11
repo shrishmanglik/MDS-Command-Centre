@@ -37,6 +37,8 @@
     "test:subagent-engine": "node scripts/test-subagent-engine.mjs",
     "customizer:validate": "node scripts/midas.mjs customizer validate config/agents/developer.toml",
     "test:customizer": "node scripts/test-declarative-customizer.mjs",
+    "signals:list": "node scripts/midas.mjs signals list",
+    "test:team-signaling": "node scripts/test-team-signaling.mjs",
     "hooks:install": "git config --local core.hooksPath .githooks",
     "predev": "npm run doctor",
     "predaemon": "npm run doctor",

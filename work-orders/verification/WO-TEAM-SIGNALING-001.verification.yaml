@@ -1,0 +1,19 @@
+schemaVersion: mds.work-order-verification.v1
+workOrderId: WO-TEAM-SIGNALING-001
+specification: Normalize and stage deduplicated Feishu, Slack, Teams, and generic task signals without sending externally or reading credentials.
+requiredSymbols:
+  - file: scripts/lib/team-signaling.mjs
+    language: JavaScript
+    kind: function
+    name: normalizeTeamSignal
+    exported: true
+  - file: scripts/lib/team-signaling.mjs
+    language: JavaScript
+    kind: function
+    name: renderPlatformSignal
+    exported: true
+  - file: scripts/lib/team-signaling.mjs
+    language: JavaScript
+    kind: function
+    name: stageTeamSignal
+    exported: true
