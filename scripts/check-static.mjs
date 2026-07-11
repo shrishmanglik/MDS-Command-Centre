@@ -293,6 +293,13 @@ const androidManifest = fs.readFileSync(path.join(appRoot, "mobile", "android", 
 if (!server.includes("/api/mobile-node/intake") || !server.includes("persistMobileNodeInput") || !mobileNodeIntake.includes("executionAllowed: false")) {
   throw new Error("pairing-gated mobile node intake is missing.");
 }
+const doctor = fs.readFileSync(path.join(appRoot, "scripts", "lib", "doctor.mjs"), "utf8");
+if (!doctor.includes("credentialValuesRead: false") || !doctor.includes("secretFilesRead: false") || !doctor.includes("git:sensitive-paths") || !doctor.includes("api:loopback-binding")) {
+  throw new Error("doctor secret-read ceiling or required security checks are missing.");
+}
+if (!fs.readFileSync(path.join(appRoot, "package.json"), "utf8").includes('"predev": "npm run doctor"')) {
+  throw new Error("doctor startup guard is not wired before workflows.");
+}
 if (androidManifest.includes("CAMERA") || androidManifest.includes("MEDIA_PROJECTION") || androidManifest.includes("FOREGROUND_SERVICE")) {
   throw new Error("Android companion requested an unapproved capture or background permission.");
 }

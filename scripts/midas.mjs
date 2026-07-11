@@ -2,13 +2,20 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { approvePairing, readPairings } from "./lib/pairing-store.mjs";
+import { runDoctor } from "./lib/doctor.mjs";
 
 const appRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const storePath = path.join(appRoot, "src", "data", "localPairings.json");
 const [domain, action, value] = process.argv.slice(2);
 
+if (domain === "doctor") {
+  const result = runDoctor({ appRoot });
+  console.log(JSON.stringify(result, null, 2));
+  process.exit(result.blockers ? 1 : 0);
+}
+
 if (domain !== "pairing" || !["list", "approve"].includes(action || "")) {
-  console.error("Usage: midas pairing list | midas pairing approve <pairing-key>");
+  console.error("Usage: midas doctor | midas pairing list | midas pairing approve <pairing-key>");
   process.exit(2);
 }
 

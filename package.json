@@ -8,6 +8,12 @@
     "midas": "scripts/midas.mjs"
   },
   "scripts": {
+    "doctor": "node scripts/midas.mjs doctor",
+    "test:doctor": "node scripts/test-doctor.mjs",
+    "predev": "npm run doctor",
+    "predaemon": "npm run doctor",
+    "pretray": "npm run doctor",
+    "predesktop": "npm run doctor",
     "refresh-data": "node scripts/refresh-war-room-data.mjs && node scripts/refresh-local-adapters.mjs",
     "dev": "npm run refresh-data && node scripts/serve.mjs --root . --port 5178",
     "build": "npm run refresh-data && node scripts/build-static.mjs",
