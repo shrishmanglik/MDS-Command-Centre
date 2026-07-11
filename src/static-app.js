@@ -49,7 +49,33 @@ const state = {
   evidencePersistence: "localStorage fallback",
   capabilityRequestPersistence: "localStorage fallback",
   adapterRefreshState: "",
+  inboxEvents: [],
+  selectedInboxEventId: "",
+  inboxFilter: "all",
+  inboxPersistence: "localStorage fallback",
+  inboxPairingNotice: "",
+  workspaces: [],
+  selectedWorkspaceId: "",
+  workspacePersistence: "local API unavailable",
+  workspaceNotice: "",
+  voiceRuntime: null,
+  voiceCommands: [],
+  voiceNotice: "",
+  voiceListening: false,
+  modelRouter: null,
+  modelRouterNotice: "",
+  canvasDocuments: [],
+  selectedCanvasId: "",
+  selectedCanvasComponentId: "",
+  canvasPersistence: "local API unavailable",
+  canvasNotice: "",
+  sandboxRuntime: null,
+  sandboxReceipts: [],
+  sandboxNotice: "",
+  sandboxRunning: false,
 };
+let voiceMediaRecorder = null;
+let voiceMediaStream = null;
 
 const storageKey = "mds-command-centre:tickets:v1";
 const storageActivityKey = "mds-command-centre:activity:v1";
@@ -58,6 +84,7 @@ const storageRunKey = "mds-command-centre:runs:v1";
 const storageResearchKey = "mds-command-centre:research:v1";
 const storageDeltaKey = "mds-command-centre:delta-reviews:v1";
 const storageSearchViewsKey = "mds-command-centre:search-views:v1";
+const storageInboxKey = "mds-command-centre:inbox:v1";
 const targets = ["Codex", "Claude Code", "Antigravity", "NotebookLM", "GLM/Ollama", "Human"];
 const validViews = new Set([
   "today",
@@ -66,6 +93,10 @@ const validViews = new Set([
   "boards",
   "launch",
   "operator",
+  "inbox",
+  "workspaces",
+  "voice",
+  "canvas",
   "vcos",
   "files",
   "git",
@@ -74,6 +105,7 @@ const validViews = new Set([
   "providers",
   "models",
   "runtime",
+  "sandbox",
   "runs",
   "tickets",
   "dispatch",
@@ -103,8 +135,13 @@ function icon(name, size = 18) {
     activity: '<path d="M4 5h16"/><path d="M8 5v14"/><path d="M4 12h16"/><path d="M4 19h16"/><circle cx="8" cy="5" r="2"/><circle cx="8" cy="12" r="2"/><circle cx="8" cy="19" r="2"/>',
     decisions: '<path d="M6 4h12v16H6z"/><path d="M9 8h6"/><path d="M9 12h6"/><path d="m8 17 2 2 4-5"/>',
     runtime: '<path d="M4 5h16v5H4z"/><path d="M4 14h7v5H4z"/><path d="M15 14h5v5h-5z"/><path d="M8 10v4"/><path d="M17 10v4"/><path d="M11 16h4"/>',
+    sandbox: '<path d="M12 3 4 7v10l8 4 8-4V7l-8-4Z"/><path d="m4 7 8 4 8-4"/><path d="M12 11v10"/><path d="m8 9 8-4"/>',
     proof: '<path d="M12 3 5 6v6c0 4 3 7 7 9 4-2 7-5 7-9V6l-7-3Z"/><path d="m9 12 2 2 4-5"/>',
     operator: '<path d="M4 5h7v7H4z"/><path d="M13 5h7v4h-7z"/><path d="M13 11h7v8h-7z"/><path d="M4 14h7v5H4z"/><path d="M11 8h2"/><path d="M8 12v2"/><path d="M16 9v2"/>',
+    inbox: '<path d="M4 5h16v14H4z"/><path d="m4 13 4-4 4 4 4-4 4 4"/><path d="M8 17h8"/>',
+    workspaces: '<path d="M3 5h8v6H3z"/><path d="M13 5h8v6h-8z"/><path d="M3 13h8v6H3z"/><path d="M13 13h8v6h-8z"/><path d="M11 8h2"/><path d="M7 11v2"/><path d="M17 11v2"/>',
+    voice: '<path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3Z"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v3"/><path d="M9 21h6"/>',
+    canvas: '<path d="M3 4h18v16H3z"/><path d="M7 8h5v4H7z"/><path d="M14 8h3"/><path d="M14 12h3"/><path d="M7 16h10"/>',
     benchmark: '<path d="M4 19V5"/><path d="M4 19h16"/><path d="M8 16V9"/><path d="M12 16V7"/><path d="M16 16v-4"/>',
     search: '<circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/>',
     vcos: '<path d="M12 3v4"/><path d="M5 21v-4"/><path d="M19 21v-4"/><path d="M12 21v-6"/><rect x="9" y="7" width="6" height="4" rx="1"/><rect x="2" y="13" width="6" height="4" rx="1"/><rect x="16" y="13" width="6" height="4" rx="1"/><path d="M12 11v2"/><path d="M5 13v-1h14v1"/>',
@@ -138,7 +175,7 @@ function esc(value) {
 function statusClass(value) {
   const normalized = String(value).toUpperCase();
   if (normalized.includes("READY") || normalized.includes("PASS") || normalized.includes("GREEN")) return "status ready";
-  if (normalized.includes("BLOCK") || normalized.includes("NO_GO") || normalized.includes("FORBIDDEN") || normalized.includes("GAP")) return "status blocked";
+  if (normalized.includes("BLOCK") || normalized.includes("NO_GO") || normalized.includes("FORBIDDEN") || normalized.includes("GAP") || normalized.includes("QUARANTINED")) return "status blocked";
   if (normalized.includes("PARK")) return "status parked";
   if (normalized.includes("FIX") || normalized.includes("REVIEW") || normalized.includes("PARTIAL")) return "status fix";
   if (normalized.includes("UNKNOWN")) return "status unknown";
@@ -2873,9 +2910,9 @@ function renderShell(content) {
           <div><strong>MDS Command Centre</strong><span>Local-first Sprint 001</span></div>
         </div>
         <nav>
-          ${navGroup("Operate", ["today", "launch", "search", "queue", "boards", "operator"])}
+          ${navGroup("Operate", ["today", "inbox", "workspaces", "voice", "canvas", "launch", "search", "queue", "boards", "operator"])}
           ${navGroup("System", ["vcos", "files", "git", "sources", "capabilities", "providers", "models"])}
-          ${navGroup("Execution", ["runtime", "runs", "tickets", "dispatch", "proof"])}
+          ${navGroup("Execution", ["runtime", "sandbox", "runs", "tickets", "dispatch", "proof"])}
           ${navGroup("Govern", ["closeout", "review", "promote", "activity", "decisions", "benchmark", "health"])}
         </nav>
         <div class="authority-box">${icon("lock", 16)}<p>D root local shell. Providers remain live-state authority.</p></div>
@@ -2900,6 +2937,10 @@ function renderShell(content) {
 
 const navLabels = {
   today: "Today",
+  inbox: "Inbox",
+  workspaces: "Workspaces",
+  voice: "Voice",
+  canvas: "Live Canvas",
   search: "Search",
   queue: "Queue",
   boards: "Boards",
@@ -2913,6 +2954,7 @@ const navLabels = {
   providers: "Providers",
   models: "Models",
   runtime: "Runtime",
+  sandbox: "Sandbox",
   runs: "Runs",
   tickets: "Tickets",
   dispatch: "Dispatch",
@@ -3352,6 +3394,354 @@ function renderLaunchOs() {
     </div>`);
 }
 
+function renderDashboardProofStrip({ control, queueCount, activeTickets, openRuns, directorBundles, unknownCount }) {
+  const nextAction = control.nextAction?.title || state.snapshot.today.nextSafeAction || "UNKNOWN";
+  const revenueMode = control.revenue?.status || "UNKNOWN";
+  return `<section class="dashboard-proof-strip wide" aria-label="Dashboard proof handoff">
+    <div>
+      <span class="eyebrow">Dashboard proof handoff</span>
+      <h2>Local operating proof before agent or live claims.</h2>
+      <p>Today can stage tickets, runs, decisions, and evidence packets. It cannot prove provider, payment, deploy, auth, schema, revenue, or live state.</p>
+    </div>
+    <div class="dashboard-proof-grid">
+      <span><strong>Next</strong>${esc(nextAction)}</span>
+      <span><strong>Work</strong>${esc(queueCount)} orders / ${esc(activeTickets)} tickets / ${esc(openRuns)} runs</span>
+      <span><strong>Review</strong>${esc(directorBundles.length)} director packets</span>
+      <span><strong>Unknowns</strong>${esc(unknownCount)} rows / ${esc(revenueMode)}</span>
+    </div>
+  </section>`;
+}
+
+async function loadInboxEvents() {
+  try {
+    const payload = await apiJson("/api/inbox");
+    if (Array.isArray(payload.events)) {
+      state.inboxPersistence = `file-backed: ${payload.store || "src/data/localInboxEvents.json"}`;
+      localStorage.setItem(storageInboxKey, JSON.stringify(payload.events));
+      return payload.events;
+    }
+  } catch {
+    state.inboxPersistence = "localStorage fallback";
+  }
+  try {
+    const stored = JSON.parse(localStorage.getItem(storageInboxKey) || "[]");
+    return Array.isArray(stored) ? stored : [];
+  } catch {
+    return [];
+  }
+}
+
+async function loadWorkspaces() {
+  try {
+    const payload = await apiJson("/api/workspaces");
+    state.workspacePersistence = `file-backed: ${payload.store || "src/data/localWorkspaces.json"}`;
+    return Array.isArray(payload.records) ? payload.records : [];
+  } catch {
+    state.workspacePersistence = "local API unavailable";
+    return [];
+  }
+}
+
+async function loadVoiceState() {
+  try {
+    const [runtime, commands] = await Promise.all([apiJson("/api/voice/status"), apiJson("/api/voice/commands")]);
+    state.voiceRuntime = runtime;
+    state.voiceCommands = Array.isArray(commands.records) ? commands.records : [];
+  } catch {
+    state.voiceRuntime = { status: "BLOCKED_LOCAL_API_OFFLINE", continuousCaptureAllowed: false, engine: "UNKNOWN", model: "UNKNOWN", wakeWord: "Midas" };
+    state.voiceCommands = [];
+  }
+}
+
+async function loadModelRouter() {
+  try {
+    state.modelRouter = await apiJson("/api/model-router/status");
+  } catch {
+    state.modelRouter = { state: { authProfiles: [], failures: [], receipts: [] }, inventory: [], chains: {}, credentialValuesRead: false, status: "LOCAL_API_OFFLINE" };
+  }
+}
+
+function blankCanvasDocument() {
+  const now = nowIso();
+  return {
+    id: `CANVAS-${Date.now().toString(36).toUpperCase()}`,
+    title: "Operator canvas",
+    workspaceId: "UNASSIGNED",
+    status: "DRAFT_LOCAL",
+    authority: "LOCAL_A2UI_DRAFT_ONLY",
+    executionAllowed: false,
+    createdAt: now,
+    updatedAt: now,
+    components: [
+      { id: `CMP-${Date.now().toString(36).toUpperCase()}-H`, type: "heading", label: "Heading", text: "Workspace command brief", value: "", tone: "neutral", width: "full", rows: [] },
+      { id: `CMP-${Date.now().toString(36).toUpperCase()}-N`, type: "notice", label: "Authority", text: "Local draft only. Operator review required.", value: "", tone: "info", width: "full", rows: [] },
+    ],
+  };
+}
+
+async function loadCanvasDocuments() {
+  try {
+    const payload = await apiJson("/api/canvas");
+    state.canvasPersistence = `file-backed: ${payload.store || "src/data/localCanvasDocuments.json"}`;
+    return Array.isArray(payload.records) && payload.records.length ? payload.records : [blankCanvasDocument()];
+  } catch {
+    state.canvasPersistence = "browser session draft";
+    return [blankCanvasDocument()];
+  }
+}
+
+async function saveCanvasDocuments() {
+  const payload = await apiJson("/api/canvas", { method: "PUT", body: JSON.stringify({ records: state.canvasDocuments }) });
+  if (Array.isArray(payload.records)) state.canvasDocuments = payload.records;
+  state.canvasPersistence = `file-backed: ${payload.updatedAt || "saved"}`;
+}
+
+function selectedCanvasDocument() {
+  return state.canvasDocuments.find((document) => document.id === state.selectedCanvasId) || state.canvasDocuments[0] || blankCanvasDocument();
+}
+
+function selectedCanvasComponent() {
+  const document = selectedCanvasDocument();
+  return document.components.find((component) => component.id === state.selectedCanvasComponentId) || document.components[0] || null;
+}
+
+function canvasComponent(type) {
+  const id = `CMP-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).slice(2, 5).toUpperCase()}`;
+  const defaults = {
+    heading: ["Section heading", "Untitled section", "", "full"],
+    text: ["Text", "Add operator context.", "", "half"],
+    metric: ["Metric", "", "UNKNOWN", "third"],
+    button: ["Command", "Review draft", "", "third"],
+    input: ["Input", "Operator supplied value", "", "half"],
+    notice: ["Notice", "Local draft only.", "", "full"],
+    divider: ["Divider", "", "", "full"],
+    table: ["Table", "", "", "full"],
+  }[type] || ["Text", "", "", "half"];
+  return { id, type, label: defaults[0], text: defaults[1], value: defaults[2], tone: type === "notice" ? "info" : "neutral", width: defaults[3], rows: type === "table" ? [["Field", "Value"], ["Status", "UNKNOWN"]] : [] };
+}
+
+function renderCanvasComponent(component, selected) {
+  let content = "";
+  if (component.type === "heading") content = `<h2>${esc(component.text || component.label)}</h2>`;
+  if (component.type === "text") content = `<p>${esc(component.text)}</p>`;
+  if (component.type === "metric") content = `<span>${esc(component.label)}</span><strong>${esc(component.value)}</strong>`;
+  if (component.type === "button") content = `<button type="button" disabled>${esc(component.text || component.label)}</button>`;
+  if (component.type === "input") content = `<label>${esc(component.label)}<input type="text" value="${esc(component.value)}" placeholder="${esc(component.text)}" disabled></label>`;
+  if (component.type === "notice") content = `<strong>${esc(component.label)}</strong><p>${esc(component.text)}</p>`;
+  if (component.type === "divider") content = `<hr>`;
+  if (component.type === "table") content = `<strong>${esc(component.label)}</strong><div class="canvas-mini-table">${(component.rows || []).map((row) => `<div>${row.map((cell) => `<span>${esc(cell)}</span>`).join("")}</div>`).join("")}</div>`;
+  return `<article draggable="true" class="canvas-node ${esc(component.type)} ${esc(component.tone)} width-${esc(component.width)} ${selected ? "selected" : ""}" data-canvas-component="${esc(component.id)}"><div class="canvas-node-chrome"><span>${icon("canvas", 14)} ${esc(component.type)}</span><div><button type="button" title="Move up" data-canvas-move="up" data-component-id="${esc(component.id)}">↑</button><button type="button" title="Move down" data-canvas-move="down" data-component-id="${esc(component.id)}">↓</button></div></div><div class="canvas-node-body">${content}</div></article>`;
+}
+
+function renderCanvas() {
+  const document = selectedCanvasDocument();
+  const selected = selectedCanvasComponent();
+  const workspaceOptions = ["UNASSIGNED", ...state.workspaces.map((workspace) => workspace.id)];
+  renderShell(`
+    <div class="a2ui-shell">
+      <aside class="canvas-palette">
+        <div class="panel-title">${icon("plus")}<span>Components</span></div>
+        <div class="canvas-palette-grid">${["heading", "text", "metric", "button", "input", "notice", "divider", "table"].map((type) => `<button type="button" data-canvas-add="${type}">${icon(type === "button" ? "check" : type === "notice" ? "warning" : "canvas", 16)} ${esc(type)}</button>`).join("")}</div>
+        <div class="canvas-document-list"><div class="panel-title">${icon("file")}<span>Documents</span></div>${state.canvasDocuments.map((item) => `<button type="button" class="${item.id === document.id ? "active" : ""}" data-canvas-document="${esc(item.id)}"><strong>${esc(item.title)}</strong><span>${esc(item.status)}</span></button>`).join("")}</div>
+        <div class="dispatch-actions"><button type="button" data-action="new-canvas">${icon("plus", 16)} New</button><button type="button" class="primary" data-action="save-canvas">${icon("save", 16)} Save</button></div>
+        <p class="unknown-note">${esc(state.canvasPersistence)}</p>
+      </aside>
+      <main class="canvas-stage-panel">
+        <header class="canvas-toolbar"><div><span class="eyebrow">${esc(document.workspaceId)}</span><h2>${esc(document.title)}</h2></div><div><em class="${statusClass(document.status)}">${esc(document.status)}</em><span>${esc(document.components.length)} components</span></div></header>
+        ${state.canvasNotice ? `<div class="pairing-notice" role="status"><strong>Canvas status</strong><code>${esc(state.canvasNotice)}</code></div>` : ""}
+        <section class="canvas-stage" aria-label="A2UI canvas">${document.components.length ? document.components.map((component) => renderCanvasComponent(component, selected?.id === component.id)).join("") : `<div class="canvas-empty"><strong>Empty canvas</strong><p>Add an allowlisted component from the palette.</p></div>`}</section>
+        <footer class="canvas-statusbar"><span>authority: LOCAL_A2UI_DRAFT_ONLY</span><span>executionAllowed=false</span><span>agent imports require sanitization</span></footer>
+      </main>
+      <aside class="canvas-inspector">
+        <form id="canvas-document-form" class="canvas-inspector-form"><div class="panel-title">${icon("canvas")}<span>Document</span></div>${input("Title", "title", document.title)}${select("Workspace", "workspaceId", document.workspaceId, workspaceOptions)}<button type="submit">${icon("save", 16)} Apply document</button></form>
+        ${selected ? `<form id="canvas-component-form" class="canvas-inspector-form"><div class="panel-title">${icon("review")}<span>Selected component</span></div><input type="hidden" name="id" value="${esc(selected.id)}">${input("Label", "label", selected.label)}${textarea("Text", "text", selected.text)}${input("Value", "value", selected.value)}${select("Tone", "tone", selected.tone, ["neutral", "info", "success", "warning", "danger"])}${select("Width", "width", selected.width, ["third", "half", "full"])}<div class="dispatch-actions"><button type="submit">${icon("check", 16)} Apply</button><button type="button" data-action="delete-canvas-component">${icon("warning", 16)} Delete</button></div></form>` : `<section class="empty-card"><strong>No component selected.</strong><p>Select a canvas component to edit it.</p></section>`}
+        <form id="canvas-import-form" class="canvas-inspector-form"><div class="panel-title">${icon("upload")}<span>Agent A2UI import</span></div><p>Allowlisted JSON only. Server sanitization runs before preview.</p>${textarea("A2UI JSON", "payload", '{"title":"Agent draft","components":[{"type":"heading","text":"Review queue"}]}')}<button type="submit">${icon("upload", 16)} Sanitize and import</button></form>
+      </aside>
+    </div>`);
+}
+
+function blobToBase64(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || "").split(",")[1] || "");
+    reader.onerror = () => reject(reader.error || new Error("Audio encoding failed."));
+    reader.readAsDataURL(blob);
+  });
+}
+
+async function submitVoiceChunk(blob) {
+  if (!blob.size) return;
+  try {
+    const payload = await apiJson("/api/voice/audio", { method: "POST", body: JSON.stringify({ mimeType: blob.type.split(";")[0], audioBase64: await blobToBase64(blob) }) });
+    state.voiceCommands = Array.isArray(payload.records) ? payload.records : state.voiceCommands;
+    state.voiceNotice = `${payload.record?.status || "DRAFT_RECORDED"}: ${payload.record?.command || "wake audio processed"}`;
+  } catch (error) {
+    state.voiceNotice = `Voice chunk blocked: ${error.message}`;
+    stopVoiceCapture();
+  }
+  render();
+}
+
+async function startVoiceCapture() {
+  if (!state.voiceRuntime?.continuousCaptureAllowed || !navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined") {
+    state.voiceNotice = "Continuous capture is blocked until the local offline engine, model, browser microphone API, and loopback service are ready.";
+    render();
+    return;
+  }
+  voiceMediaStream = await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true }, video: false });
+  voiceMediaRecorder = new MediaRecorder(voiceMediaStream, { mimeType: "audio/webm" });
+  voiceMediaRecorder.addEventListener("dataavailable", (event) => submitVoiceChunk(event.data));
+  voiceMediaRecorder.start(5000);
+  state.voiceListening = true;
+  state.voiceNotice = `Listening locally for “${state.voiceRuntime.wakeWord || "Midas"}”. Five-second chunks are sent only to this loopback service.`;
+  render();
+}
+
+function stopVoiceCapture() {
+  if (voiceMediaRecorder && voiceMediaRecorder.state !== "inactive") voiceMediaRecorder.stop();
+  if (voiceMediaStream) voiceMediaStream.getTracks().forEach((track) => track.stop());
+  voiceMediaRecorder = null;
+  voiceMediaStream = null;
+  state.voiceListening = false;
+}
+
+async function saveInboxEvents() {
+  state.inboxEvents = state.inboxEvents.slice(0, 300);
+  localStorage.setItem(storageInboxKey, JSON.stringify(state.inboxEvents));
+  try {
+    const payload = await apiJson("/api/inbox", { method: "PUT", body: JSON.stringify({ events: state.inboxEvents }) });
+    if (Array.isArray(payload.events)) state.inboxEvents = payload.events;
+    state.inboxPersistence = `file-backed: ${payload.updatedAt || "saved"}`;
+  } catch {
+    state.inboxPersistence = "localStorage fallback";
+  }
+}
+
+async function intakeInboxEvent(event) {
+  const payload = await apiJson("/api/inbox/intake", { method: "POST", body: JSON.stringify({ event }) });
+  if (Array.isArray(payload.events)) state.inboxEvents = payload.events;
+  state.selectedInboxEventId = payload.event?.id || state.inboxEvents[0]?.id || "";
+  state.inboxPersistence = `file-backed: ${payload.updatedAt || "saved"}`;
+  state.inboxPairingNotice = payload.pairingKey
+    ? `Pairing key ${payload.pairingKey} issued once for ${payload.event.streamId}. Approve locally with: midas pairing approve ${payload.pairingKey}`
+    : `${payload.event?.streamId || "Stream"} remains ${payload.event?.pairingStatus || "QUARANTINED"}.`;
+  localStorage.setItem(storageInboxKey, JSON.stringify(state.inboxEvents));
+  return payload.event;
+}
+
+function selectedInboxEvent() {
+  return state.inboxEvents.find((event) => event.id === state.selectedInboxEventId) || state.inboxEvents[0] || null;
+}
+
+function inboxRoutingPacket(event) {
+  if (!event) return "No inbox event selected.";
+  return [
+    "# MDS Local Inbox Routing Preview",
+    "status: LOCAL_PACKET_ONLY",
+    `event_id: ${event.id}`,
+    `channel: ${event.channel}`,
+    `sender_label: ${event.senderLabel}`,
+    `subject: ${event.subject}`,
+    `triage_status: ${event.status}`,
+    `risk: ${event.risk}`,
+    `route_target: ${event.routeTarget || "UNASSIGNED"}`,
+    `provenance: ${event.provenance}`,
+    `stream_id: ${event.streamId || "UNKNOWN"}`,
+    `pairing_status: ${event.pairingStatus || "QUARANTINED"}`,
+    `code_execution_allowed: ${event.executionAllowed === true ? "PAIRED_STREAM_ONLY" : "NO"}`,
+    "external_channel_state: UNKNOWN",
+    "stop_condition: Do not run a code-execution model unless pairing_status is PAIRED and a separate governed run authorizes execution. Never send, reply, connect a provider, read credentials, or treat sender identity as verified.",
+  ].join("\n");
+}
+
+function renderInbox() {
+  const counts = Object.fromEntries(["NEW", "TRIAGED", "ROUTED", "CLOSED"].map((status) => [status, state.inboxEvents.filter((event) => event.status === status).length]));
+  const visible = state.inboxFilter === "all" ? state.inboxEvents : state.inboxEvents.filter((event) => event.status === state.inboxFilter);
+  const selected = selectedInboxEvent();
+  renderShell(`
+    <div class="inbox-grid">
+      <section class="objective-panel wide inbox-brief">
+        <div class="panel-title">${icon("inbox")}<span>Local intake boundary</span></div>
+        <h2>One queue for customer inquiries, system notifications, and operator signals.</h2>
+        <p>Manual and synthetic records only. WhatsApp, Telegram, iMessage, and Feishu connectivity, sender identity, delivery, and live provider state remain UNKNOWN.</p>
+        ${state.inboxPairingNotice ? `<div class="pairing-notice" role="status"><strong>Pairing gate</strong><code>${esc(state.inboxPairingNotice)}</code></div>` : ""}
+        <div class="inbox-counts">${["NEW", "TRIAGED", "ROUTED", "CLOSED"].map((status) => `<span><strong>${counts[status]}</strong>${status}</span>`).join("")}</div>
+      </section>
+      <form class="research-form inbox-compose" id="inbox-intake-form">
+        <div class="panel-title">${icon("plus")}<span>Record local signal</span></div>
+        <div class="form-grid two">
+          ${select("Source", "channel", "manual", ["manual", "synthetic", "system"])}
+          ${select("Risk", "risk", "UNKNOWN", ["UNKNOWN", "LOW", "MEDIUM", "HIGH"])}
+        </div>
+        ${input("Sender label", "senderLabel", "", "Operator, customer label, or system")}
+        ${input("Subject", "subject", "", "What needs attention?")}
+        ${textarea("Signal", "body", "")}
+        ${select("Route target", "routeTarget", "UNASSIGNED", ["UNASSIGNED", "Customer Care", "Product Ops", "DevOps", "Sales", "Founder Review"])}
+        <div class="dispatch-actions"><button class="primary" type="submit">${icon("save", 16)} Add to inbox</button><button type="button" data-action="seed-inbox-event">${icon("plus", 16)} Add synthetic sample</button></div>
+      </form>
+      <section class="list-panel inbox-list">
+        <div class="panel-title">${icon("inbox")}<span>Intake queue</span><em>${esc(state.inboxPersistence)}</em></div>
+        <div class="review-filter-bar">${["all", "NEW", "TRIAGED", "ROUTED", "CLOSED"].map((filter) => `<button type="button" class="${state.inboxFilter === filter ? "active" : ""}" data-inbox-filter="${filter}">${esc(filter)}</button>`).join("")}</div>
+        <div class="inbox-event-list">${visible.length ? visible.map((event) => `<button type="button" class="inbox-event ${selected?.id === event.id ? "selected" : ""}" data-inbox-event="${esc(event.id)}"><span class="inbox-event-top"><em class="${statusClass(event.status)}">${esc(event.status)}</em><time>${esc(new Date(event.receivedAt).toLocaleString())}</time></span><strong>${esc(event.subject)}</strong><span>${esc(event.senderLabel)} · ${esc(event.channel)} · ${esc(event.risk)}</span></button>`).join("") : `<article class="empty-card"><strong>No ${esc(state.inboxFilter === "all" ? "local" : state.inboxFilter)} signals.</strong><p>Record a manual event or add a synthetic sample.</p></article>`}</div>
+      </section>
+      <section class="table-panel inbox-detail">
+        <div class="panel-title">${icon("dispatch")}<span>Routing preview</span></div>
+        ${selected ? `<header><div><em class="${statusClass(selected.status)}">${esc(selected.status)}</em><h2>${esc(selected.subject)}</h2><p>${esc(selected.body || "No signal body supplied.")}</p></div></header><dl class="launch-definition-list"><dt>Sender</dt><dd>${esc(selected.senderLabel)}</dd><dt>Source</dt><dd>${esc(selected.channel)} / ${esc(selected.provenance)}</dd><dt>Risk</dt><dd>${esc(selected.risk)}</dd><dt>Route</dt><dd>${esc(selected.routeTarget || "UNASSIGNED")}</dd><dt>Pairing</dt><dd><em class="${statusClass(selected.pairingStatus)}">${esc(selected.pairingStatus || "QUARANTINED")}</em></dd><dt>Workspace</dt><dd>${esc(state.workspaces.find((workspace) => workspace.streamId === selected.streamId)?.id || "UNASSIGNED")}</dd><dt>Code execution</dt><dd>${selected.executionAllowed === true ? "Pairing gate passed; separate run approval still required" : "BLOCKED"}</dd><dt>External state</dt><dd>UNKNOWN</dd></dl><div class="inbox-state-actions">${["NEW", "TRIAGED", "ROUTED", "CLOSED"].map((status) => `<button type="button" data-inbox-status="${status}" ${selected.status === status ? "disabled" : ""}>${esc(status)}</button>`).join("")}</div><pre class="inbox-packet">${esc(inboxRoutingPacket(selected))}</pre><div class="dispatch-actions"><button type="button" data-action="route-inbox-workspace" ${selected.pairingStatus === "PAIRED" ? "" : "disabled"}>${icon("workspaces", 16)} Route to workspace</button><button type="button" data-action="copy-inbox-packet">${icon("file", 16)} Copy routing preview</button></div>` : `<article class="empty-card"><strong>No event selected.</strong><p>Add or select a local signal to review its routing packet.</p></article>`}
+      </section>
+    </div>`);
+}
+
+function renderWorkspaces() {
+  const selected = state.workspaces.find((workspace) => workspace.id === state.selectedWorkspaceId) || state.workspaces[0] || null;
+  renderShell(`
+    <div class="workspace-router-grid">
+      <section class="objective-panel wide">
+        <div class="panel-title">${icon("workspaces")}<span>Isolated local workspace router</span></div>
+        <h2>One paired stream, one contained workspace.</h2>
+        <p>Workspace paths are generated under <code>output/workspaces/</code>. Routing cannot select arbitrary paths, grant execution authority, connect provider accounts, or prove external identity.</p>
+        ${state.workspaceNotice ? `<div class="pairing-notice" role="status"><strong>Router status</strong><code>${esc(state.workspaceNotice)}</code></div>` : ""}
+      </section>
+      <section class="list-panel workspace-list">
+        <div class="panel-title">${icon("workspaces")}<span>Workspace registry</span><em>${esc(state.workspacePersistence)}</em></div>
+        <div class="inbox-event-list">${state.workspaces.length ? state.workspaces.map((workspace) => `<button type="button" class="inbox-event ${selected?.id === workspace.id ? "selected" : ""}" data-workspace="${esc(workspace.id)}"><span class="inbox-event-top"><em class="${statusClass(workspace.status)}">${esc(workspace.status)}</em><time>${esc(new Date(workspace.updatedAt).toLocaleString())}</time></span><strong>${esc(workspace.label)}</strong><span>${esc(workspace.id)} · ${esc(workspace.agents.join(", "))}</span></button>`).join("") : `<article class="empty-card"><strong>No isolated workspaces.</strong><p>Pair an Inbox stream, then route it from the Inbox detail panel.</p></article>`}</div>
+      </section>
+      <section class="table-panel workspace-detail">
+        <div class="panel-title">${icon("proof")}<span>Workspace boundary</span></div>
+        ${selected ? `<h2>${esc(selected.label)}</h2><dl class="launch-definition-list"><dt>Workspace ID</dt><dd>${esc(selected.id)}</dd><dt>Stream ID</dt><dd>${esc(selected.streamId)}</dd><dt>Runtime path</dt><dd>${esc(selected.relativePath)}</dd><dt>Agents</dt><dd>${esc(selected.agents.join(", "))}</dd><dt>Context</dt><dd>${esc(selected.contextNotes)}</dd><dt>Execution authority</dt><dd>${esc(selected.executionAuthority)}</dd><dt>External state</dt><dd>${esc(selected.externalState)}</dd></dl><div class="stack-list"><article><strong>manifest.json</strong><p>Workspace identity, paired stream, allowlisted agents, and authority ceiling.</p></article><article><strong>context.md</strong><p>Bounded local context notes with explicit execution and external-state limits.</p></article><article><strong>inbox-events.json</strong><p>Event references only; no provider payload archive or credential material.</p></article></div>` : `<article class="empty-card"><strong>No workspace selected.</strong><p>Workspace artifacts appear after a paired stream is routed.</p></article>`}
+      </section>
+    </div>`);
+}
+
+function renderVoice() {
+  const runtime = state.voiceRuntime || { status: "UNKNOWN", continuousCaptureAllowed: false };
+  renderShell(`
+    <div class="voice-grid">
+      <section class="objective-panel wide voice-hero">
+        <div class="panel-title">${icon("voice")}<span>Local voice wake service</span></div>
+        <h2>Say “Midas” to prepare a command draft.</h2>
+        <p>Audio and transcripts stay on this loopback service. Voice cannot execute code, approve pairing, mutate providers, deploy, move money, read secrets, or send messages.</p>
+        <div class="voice-runtime-strip">
+          <span><strong>Runtime</strong><em class="${statusClass(runtime.status)}">${esc(runtime.status)}</em></span>
+          <span><strong>STT engine</strong>${esc(runtime.engine || "UNKNOWN")}</span>
+          <span><strong>Model</strong>${esc(runtime.model || "UNKNOWN")}</span>
+          <span><strong>Wake word</strong>${esc(runtime.wakeWord || "Midas")}</span>
+        </div>
+        ${state.voiceNotice ? `<div class="pairing-notice" role="status"><strong>Voice status</strong><code>${esc(state.voiceNotice)}</code></div>` : ""}
+        <div class="dispatch-actions"><button type="button" class="primary" data-action="start-voice" ${runtime.continuousCaptureAllowed && !state.voiceListening ? "" : "disabled"}>${icon("voice", 16)} Start listening</button><button type="button" data-action="stop-voice" ${state.voiceListening ? "" : "disabled"}>${icon("lock", 16)} Stop</button></div>
+      </section>
+      <form class="research-form voice-test-form" id="voice-transcript-form">
+        <div class="panel-title">${icon("file")}<span>Wake-gate test</span></div>
+        <p>Test the deterministic command gate without microphone access or STT execution.</p>
+        ${textarea("Local transcript", "transcript", "Midas open inbox")}
+        <div class="dispatch-actions"><button type="submit">${icon("check", 16)} Evaluate transcript</button></div>
+      </form>
+      <section class="list-panel voice-command-list">
+        <div class="panel-title">${icon("activity")}<span>Command drafts</span><em>${esc(state.voiceCommands.length)} local</em></div>
+        <div class="stack-list">${state.voiceCommands.length ? state.voiceCommands.map((command) => `<article><header><strong>${esc(command.command || command.status)}</strong><em class="${statusClass(command.status)}">${esc(command.status)}</em></header><p>${esc(command.transcript)}</p><span>${esc(command.action)} · executionAllowed=false</span>${command.action === "OPEN_VIEW" ? `<button type="button" data-voice-view="${esc(command.targetView)}">Open ${esc(command.targetView)} manually</button>` : ""}</article>`).join("") : `<article class="empty-card"><strong>No voice drafts.</strong><p>Use the transcript gate or install the supported local engine and model.</p></article>`}</div>
+      </section>
+    </div>`);
+}
+
 function renderToday() {
   const control = controlSurface();
   const rows = state.snapshot.productReadiness.slice(0, 7);
@@ -3374,6 +3764,7 @@ function renderToday() {
         <div class="next-action"><span>Next safe action</span><strong>${esc(control.nextAction?.title || state.snapshot.today.nextSafeAction)}</strong></div>
         <p class="claim-ceiling">${icon("lock", 16)} ${esc(control.claimCeiling)}</p>
       </section>
+      ${renderDashboardProofStrip({ control, queueCount, activeTickets, openRuns, directorBundles, unknownCount })}
       <section class="metrics-panel control-metrics">
         ${metric("Revenue claim", control.revenue?.mrr || "$0/UNKNOWN", "warning")}
         ${metric("Product VCOS", productVcos.length, "boards")}
@@ -5418,6 +5809,8 @@ function renderModelsView() {
   const models = state.localCaps?.modelProviders || {};
   const runtimes = models.runtimes || [];
   const paid = models.paidApiAdapters || [];
+  const router = state.modelRouter || { state: { authProfiles: [], failures: [], receipts: [] }, inventory: [], chains: {} };
+  const latestReceipt = router.state?.receipts?.[0];
   renderShell(`
     <div class="health-grid">
       ${snapshotBanner(state.localCaps, "Models")}
@@ -5442,6 +5835,40 @@ function renderModelsView() {
             )
             .join("") || `<div class="health-row"><strong>No local model runtime records.</strong><em class="status unknown">UNKNOWN</em><span></span><span></span><span></span></div>`}
         </div>
+      </section>
+      <section class="objective-panel wide model-router-panel">
+        <div class="panel-title">${icon("models")}<span>Failover resolver</span></div>
+        <h2>Credential-blind routing across verified profiles, local models, and offline fallback.</h2>
+        <p>Provider auth profiles contain names and verification state only. Circuit breakers react to explicit local failure signals. Every receipt is a routing decision, not proof that a model executed successfully.</p>
+        ${state.modelRouterNotice ? `<div class="pairing-notice" role="status"><strong>Router result</strong><code>${esc(state.modelRouterNotice)}</code></div>` : ""}
+        <div class="voice-runtime-strip">
+          <span><strong>Local models</strong>${esc(router.inventory?.filter((item) => item.local).length || 0)}</span>
+          <span><strong>Auth profiles</strong>${esc(router.state?.authProfiles?.length || 0)} names only</span>
+          <span><strong>Open circuits</strong>${esc(router.state?.failures?.length || 0)}</span>
+          <span><strong>Credentials read</strong>${router.credentialValuesRead === false ? "NO" : "UNKNOWN"}</span>
+        </div>
+        <div class="model-router-layout">
+          <form class="research-form" id="model-route-form">
+            <div class="panel-title">${icon("dispatch")}<span>Resolve route</span></div>
+            ${select("Task class", "taskClass", "general", ["general", "coding", "multimodal"])}
+            <div class="dispatch-actions"><button type="submit" class="primary">${icon("check", 16)} Resolve without execution</button></div>
+          </form>
+          <form class="research-form" id="model-failure-form">
+            <div class="panel-title">${icon("warning")}<span>Record failure signal</span></div>
+            ${input("Target ID", "targetId", latestReceipt?.targetId || "", "profile or model id")}
+            ${select("Reason", "reason", "rate_limit", ["rate_limit", "quota_exhausted", "auth_unavailable", "runtime_unavailable"])}
+            ${select("Task class", "taskClass", latestReceipt?.taskClass || "general", ["general", "coding", "multimodal"])}
+            <div class="dispatch-actions"><button type="submit">${icon("warning", 16)} Open circuit and re-resolve</button></div>
+          </form>
+        </div>
+      </section>
+      <section class="table-panel wide">
+        <div class="panel-title">${icon("runtime")}<span>Verified local inventory</span></div>
+        <div class="stack-list">${router.inventory?.length ? router.inventory.map((item) => `<article><strong>${esc(item.name)}</strong><p>${esc(item.evidence)}</p><em class="${statusClass(item.local ? "READY LOCAL" : "UNKNOWN")}">${item.local ? "LOCAL" : "CLOUD/EXCLUDED"}</em></article>`).join("") : `<article class="empty-card"><strong>No verified local model inventory.</strong><p>Resolver will terminate at manual offline handoff.</p></article>`}</div>
+      </section>
+      <section class="table-panel wide">
+        <div class="panel-title">${icon("proof")}<span>Route receipts</span></div>
+        <div class="stack-list">${router.state?.receipts?.length ? router.state.receipts.map((receipt) => `<article><header><strong>${esc(receipt.targetId)}</strong><em class="${statusClass(receipt.layer === "local" ? "READY" : receipt.layer === "offline" ? "PARTIAL" : "UNKNOWN")}">${esc(receipt.layer)}</em></header><p>${esc(receipt.taskClass)} · ${esc(receipt.reason)}</p><span>executionStarted=false · credentialValuesRead=false</span></article>`).join("") : `<article class="empty-card"><strong>No route receipts.</strong><p>Resolve a task class to create a local decision receipt.</p></article>`}</div>
       </section>
       <section class="table-panel wide">
         <div class="panel-title">${icon("lock")}<span>Paid API adapters</span></div>
@@ -5500,6 +5927,31 @@ function wireMv18Events() {
   });
 
   document.addEventListener("submit", async (event) => {
+    const modelRouteForm = event.target?.closest?.("#model-route-form");
+    if (modelRouteForm) {
+      event.preventDefault();
+      const values = Object.fromEntries(new FormData(modelRouteForm).entries());
+      const payload = await apiJson("/api/model-router/resolve", { method: "POST", body: JSON.stringify(values) });
+      state.modelRouterNotice = `${payload.receipt.layer}: ${payload.receipt.targetId} (${payload.receipt.reason}); executionStarted=false.`;
+      await loadModelRouter();
+      render();
+      return;
+    }
+    const modelFailureForm = event.target?.closest?.("#model-failure-form");
+    if (modelFailureForm) {
+      event.preventDefault();
+      const values = Object.fromEntries(new FormData(modelFailureForm).entries());
+      if (!String(values.targetId || "").trim()) {
+        state.modelRouterNotice = "Failure target ID is required.";
+        render();
+        return;
+      }
+      const payload = await apiJson("/api/model-router/failure", { method: "POST", body: JSON.stringify(values) });
+      state.modelRouterNotice = `Circuit opened for ${values.targetId}; next route ${payload.receipt.layer}: ${payload.receipt.targetId}.`;
+      await loadModelRouter();
+      render();
+      return;
+    }
     const formElement = event.target?.closest?.("#source-evidence-form, #capability-request-form");
     if (!formElement) return;
     event.preventDefault();
@@ -5559,11 +6011,16 @@ function wireMv18Events() {
 
 function render() {
   if (state.view === "today") renderToday();
+  if (state.view === "inbox") renderInbox();
+  if (state.view === "workspaces") renderWorkspaces();
+  if (state.view === "voice") renderVoice();
+  if (state.view === "canvas") renderCanvas();
   if (state.view === "search") renderSearch();
   if (state.view === "queue") renderQueue();
   if (state.view === "boards") renderBoards();
   if (state.view === "launch") renderLaunchOs();
   if (state.view === "runtime") renderRuntime();
+  if (state.view === "sandbox") renderSandbox();
   if (state.view === "vcos") renderVcosView();
   if (state.view === "files") renderFilesView();
   if (state.view === "git") renderGitTruthView();
@@ -5657,6 +6114,12 @@ async function loadHealth() {
 
 function wireEvents() {
   document.addEventListener("click", async (event) => {
+    const canvasNode = event.target.closest?.("[data-canvas-component]");
+    if (canvasNode && !event.target.closest?.("[data-canvas-move]")) {
+      state.selectedCanvasComponentId = canvasNode.dataset.canvasComponent;
+      render();
+      return;
+    }
     const button = event.target.closest("button");
     if (!button) return;
     if (button.dataset.deltaStageSubmit) state.pendingDeltaStage = button.dataset.deltaStageSubmit;
@@ -5668,6 +6131,118 @@ function wireEvents() {
         url.searchParams.set("view", state.view);
         window.history.replaceState({}, "", url);
       }
+      render();
+    }
+    if (button.dataset.inboxFilter) {
+      state.inboxFilter = button.dataset.inboxFilter;
+      render();
+    }
+    if (button.dataset.inboxEvent) {
+      state.selectedInboxEventId = button.dataset.inboxEvent;
+      render();
+    }
+    if (button.dataset.workspace) {
+      state.selectedWorkspaceId = button.dataset.workspace;
+      render();
+    }
+    if (button.dataset.canvasDocument) {
+      state.selectedCanvasId = button.dataset.canvasDocument;
+      state.selectedCanvasComponentId = selectedCanvasDocument().components[0]?.id || "";
+      render();
+    }
+    if (button.dataset.canvasComponent) {
+      state.selectedCanvasComponentId = button.dataset.canvasComponent;
+      render();
+    }
+    if (button.dataset.canvasAdd) {
+      const document = selectedCanvasDocument();
+      const component = canvasComponent(button.dataset.canvasAdd);
+      document.components.push(component);
+      document.status = "DRAFT_LOCAL";
+      state.selectedCanvasComponentId = component.id;
+      render();
+    }
+    if (button.dataset.canvasMove) {
+      const document = selectedCanvasDocument();
+      const index = document.components.findIndex((component) => component.id === button.dataset.componentId);
+      const target = button.dataset.canvasMove === "up" ? index - 1 : index + 1;
+      if (index >= 0 && target >= 0 && target < document.components.length) [document.components[index], document.components[target]] = [document.components[target], document.components[index]];
+      document.status = "DRAFT_LOCAL";
+      render();
+    }
+    if (button.dataset.voiceView) {
+      state.view = validViews.has(button.dataset.voiceView) ? button.dataset.voiceView : "voice";
+      render();
+    }
+    if (button.dataset.inboxStatus) {
+      const item = selectedInboxEvent();
+      if (!item) return;
+      item.status = button.dataset.inboxStatus;
+      item.updatedAt = nowIso();
+      await saveInboxEvents();
+      await recordActivity("inbox_status_changed", selectedTicket(), { details: `${item.id} moved to ${item.status}. Local intake only; no external action.` });
+      render();
+    }
+    if (button.dataset.action === "seed-inbox-event") {
+      const now = nowIso();
+      const item = { id: `INBOX-SYN-${Date.now().toString(36).toUpperCase()}`, receivedAt: now, channel: "synthetic", senderLabel: "Synthetic system monitor", subject: "Review failed local readiness check", body: "Synthetic fixture: one local readiness check requires operator triage.", status: "NEW", risk: "MEDIUM", provenance: "synthetic_fixture", routeTarget: "Product Ops", externalState: "UNKNOWN", updatedAt: now };
+      await intakeInboxEvent(item);
+      render();
+    }
+    if (button.dataset.action === "copy-inbox-packet") await copyTextToClipboard(inboxRoutingPacket(selectedInboxEvent()));
+    if (button.dataset.action === "route-inbox-workspace") {
+      const item = selectedInboxEvent();
+      if (!item) return;
+      try {
+        const payload = await apiJson("/api/workspaces/route", { method: "POST", body: JSON.stringify({ eventId: item.id, label: item.senderLabel, contextNotes: `Local workspace for ${item.senderLabel}. Source channel: ${item.channel}.`, agents: ["Human", "Codex"] }) });
+        state.workspaces = await loadWorkspaces();
+        state.selectedWorkspaceId = payload.workspace?.id || state.workspaces[0]?.id || "";
+        state.workspaceNotice = payload.created ? `Created ${payload.workspace.id} for paired stream ${item.streamId}.` : `${payload.workspace.id} already owns stream ${item.streamId}.`;
+        state.view = "workspaces";
+      } catch (error) {
+        state.workspaceNotice = `Routing blocked: ${error.message}`;
+      }
+      render();
+    }
+    if (button.dataset.action === "start-voice") {
+      try {
+        await startVoiceCapture();
+      } catch (error) {
+        state.voiceNotice = `Microphone start blocked: ${error.message}`;
+        stopVoiceCapture();
+        render();
+      }
+    }
+    if (button.dataset.action === "stop-voice") {
+      stopVoiceCapture();
+      state.voiceNotice = "Listening stopped. No background microphone capture remains.";
+      render();
+    }
+    if (button.dataset.action === "new-canvas") {
+      const document = blankCanvasDocument();
+      state.canvasDocuments = [document, ...state.canvasDocuments];
+      state.selectedCanvasId = document.id;
+      state.selectedCanvasComponentId = document.components[0]?.id || "";
+      state.canvasNotice = "New local canvas draft created.";
+      render();
+    }
+    if (button.dataset.action === "save-canvas") {
+      const document = selectedCanvasDocument();
+      document.status = "SAVED_LOCAL";
+      try {
+        await saveCanvasDocuments();
+        state.canvasNotice = "Canvas saved to the D-local A2UI store. No deployment or execution occurred.";
+      } catch (error) {
+        document.status = "DRAFT_LOCAL";
+        state.canvasNotice = `Save blocked: ${error.message}`;
+      }
+      render();
+    }
+    if (button.dataset.action === "delete-canvas-component") {
+      const document = selectedCanvasDocument();
+      document.components = document.components.filter((component) => component.id !== state.selectedCanvasComponentId);
+      state.selectedCanvasComponentId = document.components[0]?.id || "";
+      document.status = "DRAFT_LOCAL";
       render();
     }
     if (button.dataset.board) {
@@ -6427,6 +7002,90 @@ function wireEvents() {
   });
 
   document.addEventListener("submit", async (event) => {
+    const sandboxForm = event.target?.closest?.("#sandbox-form");
+    if (sandboxForm) {
+      event.preventDefault();
+      state.sandboxRunning = true;
+      state.sandboxNotice = "Starting ephemeral Docker sandbox...";
+      render();
+      try {
+        const values = Object.fromEntries(new FormData(sandboxForm).entries());
+        const payload = await apiJson("/api/sandbox/execute", { method: "POST", body: JSON.stringify({ mode: "docker", ...values, timeoutMs: Number(values.timeoutMs) }) });
+        state.sandboxReceipts = Array.isArray(payload.receipts) ? payload.receipts : state.sandboxReceipts;
+        state.sandboxNotice = `${payload.receipt.status}: container and ephemeral volume cleanup requested.`;
+      } catch (error) {
+        state.sandboxNotice = `Execution blocked: ${error.message}`;
+      } finally {
+        state.sandboxRunning = false;
+        await loadSandboxStatus();
+        render();
+      }
+      return;
+    }
+    const documentForm = event.target?.closest?.("#canvas-document-form");
+    if (documentForm) {
+      event.preventDefault();
+      const values = Object.fromEntries(new FormData(documentForm).entries());
+      const document = selectedCanvasDocument();
+      document.title = String(values.title || "Untitled canvas").slice(0, 160);
+      document.workspaceId = String(values.workspaceId || "UNASSIGNED").slice(0, 64);
+      document.status = "DRAFT_LOCAL";
+      render();
+      return;
+    }
+    const componentForm = event.target?.closest?.("#canvas-component-form");
+    if (componentForm) {
+      event.preventDefault();
+      const values = Object.fromEntries(new FormData(componentForm).entries());
+      const component = selectedCanvasComponent();
+      if (!component || component.id !== values.id) return;
+      component.label = String(values.label || "Label").slice(0, 120);
+      component.text = String(values.text || "").slice(0, 1000);
+      component.value = String(values.value || "").slice(0, 160);
+      component.tone = values.tone;
+      component.width = values.width;
+      selectedCanvasDocument().status = "DRAFT_LOCAL";
+      render();
+      return;
+    }
+    const importForm = event.target?.closest?.("#canvas-import-form");
+    if (importForm) {
+      event.preventDefault();
+      try {
+        const payload = JSON.parse(String(new FormData(importForm).get("payload") || "{}"));
+        const result = await apiJson("/api/canvas/import", { method: "POST", body: JSON.stringify({ document: payload }) });
+        state.canvasDocuments = [result.document, ...state.canvasDocuments.filter((document) => document.id !== result.document.id)];
+        state.selectedCanvasId = result.document.id;
+        state.selectedCanvasComponentId = result.document.components[0]?.id || "";
+        state.canvasNotice = "Agent A2UI draft sanitized. Operator save is still required.";
+      } catch (error) {
+        state.canvasNotice = `Import blocked: ${error.message}`;
+      }
+      render();
+      return;
+    }
+    const voiceForm = event.target?.closest?.("#voice-transcript-form");
+    if (voiceForm) {
+      event.preventDefault();
+      const transcript = String(new FormData(voiceForm).get("transcript") || "");
+      const payload = await apiJson("/api/voice/transcript", { method: "POST", body: JSON.stringify({ transcript }) });
+      state.voiceCommands = Array.isArray(payload.records) ? payload.records : state.voiceCommands;
+      state.voiceNotice = `${payload.record.status}: ${payload.record.command || "No command after wake word."}`;
+      render();
+      return;
+    }
+    const inboxForm = event.target?.closest?.("#inbox-intake-form");
+    if (inboxForm) {
+      event.preventDefault();
+      const values = Object.fromEntries(new FormData(inboxForm).entries());
+      if (!String(values.subject || "").trim()) return;
+      const now = nowIso();
+      const item = { ...values, id: `INBOX-${Date.now().toString(36).toUpperCase()}`, receivedAt: now, status: "NEW", provenance: `${values.channel || "manual"}_local_intake`, externalState: "UNKNOWN", updatedAt: now };
+      await intakeInboxEvent(item);
+      await recordActivity("inbox_event_recorded", selectedTicket(), { details: `Recorded local inbox event ${item.id} from ${item.channel}. No external channel action.` });
+      render();
+      return;
+    }
     const targetFormId = event.target?.getAttribute?.("id");
     const formElement =
       targetFormId === "ticket-form" ||
@@ -6628,6 +7287,72 @@ function wireEvents() {
       inputElement?.setSelectionRange(state.searchQuery.length, state.searchQuery.length);
     }
   });
+
+  document.addEventListener("dragstart", (event) => {
+    const node = event.target.closest?.("[data-canvas-component]");
+    if (node && event.dataTransfer) event.dataTransfer.setData("text/plain", node.dataset.canvasComponent);
+  });
+  document.addEventListener("dragover", (event) => {
+    if (event.target.closest?.("[data-canvas-component]")) event.preventDefault();
+  });
+  document.addEventListener("drop", (event) => {
+    const targetNode = event.target.closest?.("[data-canvas-component]");
+    const sourceId = event.dataTransfer?.getData("text/plain");
+    if (!targetNode || !sourceId || sourceId === targetNode.dataset.canvasComponent) return;
+    event.preventDefault();
+    const document = selectedCanvasDocument();
+    const sourceIndex = document.components.findIndex((component) => component.id === sourceId);
+    const targetIndex = document.components.findIndex((component) => component.id === targetNode.dataset.canvasComponent);
+    if (sourceIndex < 0 || targetIndex < 0) return;
+    const [moved] = document.components.splice(sourceIndex, 1);
+    document.components.splice(targetIndex, 0, moved);
+    document.status = "DRAFT_LOCAL";
+    render();
+  });
+}
+
+async function loadSandboxStatus() {
+  try {
+    const payload = await apiJson("/api/sandbox/status");
+    state.sandboxRuntime = payload;
+    state.sandboxReceipts = Array.isArray(payload.receipts) ? payload.receipts : [];
+  } catch (error) {
+    state.sandboxRuntime = { status: "BLOCKED_RUNTIME_UNAVAILABLE", policy: null };
+    state.sandboxNotice = error.message;
+  }
+}
+
+function renderSandbox() {
+  const runtime = state.sandboxRuntime || { status: "UNKNOWN", policy: {} };
+  const policy = runtime.policy || {};
+  const receipt = state.sandboxReceipts[0];
+  renderShell(`<section class="page-body sandbox-page">
+    <section class="view-heading"><div><span class="eyebrow">Execution / isolated local runtime</span><h2>Run disposable code without trusting the host</h2><p>Docker only. No network, host mounts, secrets, privileged mode, provider actions, or host-shell fallback. SSH remains unsupported.</p></div><span class="${statusClass(runtime.status)}">${esc(runtime.status)}</span></section>
+    <section class="sandbox-policy-strip">
+      ${readinessItem("Network", policy.network || "UNKNOWN", policy.network === "none" ? "ready" : "blocked")}
+      ${readinessItem("Root filesystem", policy.rootFilesystem || "UNKNOWN", "ready")}
+      ${readinessItem("Host mounts", String(policy.hostMounts ?? "UNKNOWN"), policy.hostMounts === false ? "ready" : "blocked")}
+      ${readinessItem("Secrets", String(policy.secrets ?? "UNKNOWN"), policy.secrets === false ? "ready" : "blocked")}
+      ${readinessItem("SSH", policy.ssh || "UNKNOWN", "blocked")}
+    </section>
+    <div class="sandbox-layout">
+      <section class="panel sandbox-compose">
+        <div class="panel-title"><div><span class="eyebrow">Ephemeral job</span><h3>Source runner</h3></div><span class="status active">ALLOWLISTED</span></div>
+        <form id="sandbox-form" class="sandbox-form">
+          <label>Runtime<select name="runtime"><option value="node20">Node.js 20 / Alpine</option><option value="python312">Python 3.12 / Alpine</option></select></label>
+          <label>Timeout<select name="timeoutMs"><option value="5000">5 seconds</option><option value="10000" selected>10 seconds</option><option value="30000">30 seconds</option></select></label>
+          <label class="wide">Source<textarea name="source" rows="16" spellcheck="false" required>${esc("console.log('MDS sandbox ready')")}</textarea></label>
+          <button class="primary wide" type="submit" ${runtime.status !== "READY_LOCAL_DOCKER" || state.sandboxRunning ? "disabled" : ""}>${icon("runtime", 16)} ${state.sandboxRunning ? "Running..." : "Run isolated"}</button>
+        </form>
+        <p class="form-help">Images are fixed by runtime. Source is copied into an ephemeral Docker volume, mounted read-only for execution, then the container and volume are removed.</p>
+        ${state.sandboxNotice ? `<div class="sandbox-notice">${esc(state.sandboxNotice)}</div>` : ""}
+      </section>
+      <section class="panel sandbox-output">
+        <div class="panel-title"><div><span class="eyebrow">Latest receipt</span><h3>${esc(receipt?.id || "No execution receipt")}</h3></div>${receipt ? `<span class="${statusClass(receipt.status)}">${esc(receipt.status)}</span>` : ""}</div>
+        ${receipt ? `<dl class="launch-definition-list"><dt>Runtime</dt><dd>${esc(receipt.runtime)} / ${esc(receipt.image)}</dd><dt>Source SHA-256</dt><dd class="mono-wrap">${esc(receipt.sourceSha256)}</dd><dt>Completed</dt><dd>${esc(receipt.completedAt)}</dd><dt>External state</dt><dd>${esc(receipt.externalState)}</dd></dl><h4>stdout</h4><pre>${esc(receipt.stdout || "(empty)")}</pre><h4>stderr</h4><pre>${esc(receipt.stderr || "(empty)")}</pre>` : `<article class="empty-card"><strong>No sandbox run recorded.</strong><p>Docker readiness is checked locally. Nothing runs until the operator submits this form.</p></article>`}
+      </section>
+    </div>
+  </section>`);
 }
 
 async function boot() {
@@ -6644,6 +7369,12 @@ async function boot() {
   await loadAdapterSnapshots();
   state.sourceEvidence = await loadSourceEvidence();
   state.capabilityRequests = await loadCapabilityRequests();
+  state.inboxEvents = await loadInboxEvents();
+  state.workspaces = await loadWorkspaces();
+  await loadVoiceState();
+  await loadModelRouter();
+  state.canvasDocuments = await loadCanvasDocuments();
+  await loadSandboxStatus();
   wireMv18Events();
   state.selectedTicketId = state.tickets[0]?.id || "";
   state.selectedActivityId = state.activity[0]?.id || "";
@@ -6651,6 +7382,10 @@ async function boot() {
   state.selectedRunId = state.runs[0]?.id || "";
   state.selectedResearchId = state.research[0]?.id || "";
   state.selectedDeltaReviewId = state.deltaReviews[0]?.id || "";
+  state.selectedInboxEventId = state.inboxEvents[0]?.id || "";
+  state.selectedWorkspaceId = state.workspaces[0]?.id || "";
+  state.selectedCanvasId = state.canvasDocuments[0]?.id || "";
+  state.selectedCanvasComponentId = state.canvasDocuments[0]?.components?.[0]?.id || "";
   state.selectedBoardId = state.snapshot.sources[0]?.id || "";
   const initialView = new URLSearchParams(window.location.search).get("view");
   if (initialView && validViews.has(initialView)) state.view = initialView;

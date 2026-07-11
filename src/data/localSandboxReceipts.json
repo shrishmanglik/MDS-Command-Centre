@@ -1,0 +1,6 @@
+{
+  "schemaVersion": "mds.command-centre.sandbox-receipts.v1",
+  "updatedAt": "UNKNOWN",
+  "authority": "Ephemeral local Docker execution only. A receipt is not provider, deployment, security-certification, or production proof.",
+  "receipts": []
+}

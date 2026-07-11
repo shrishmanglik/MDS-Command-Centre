@@ -1,6 +1,6 @@
 {
   "schemaVersion": "mds.command-centre.local-source-truth-snapshot.v1",
-  "generatedAt": "2026-07-07T16:04:56.240Z",
+  "generatedAt": "2026-07-11T04:56:53.615Z",
   "authority": "D-local filesystem/git metadata only. GitHub remains committed-code authority; drive roles per source-authority doctrine; secret-shaped paths refused at scan time.",
   "drives": {
     "drives": [
@@ -26,8 +26,8 @@
         "label": "D root (active operating root)",
         "exists": true,
         "listing": {
-          "total": 55,
-          "dirs": 46,
+          "total": 56,
+          "dirs": 47,
           "files": 9,
           "refusedSecretShaped": 0,
           "entries": [
@@ -41,7 +41,7 @@
               "name": ".claude",
               "kind": "dir",
               "sizeBytes": 0,
-              "modifiedAt": "2026-07-07T08:14:34.472Z"
+              "modifiedAt": "2026-07-10T02:06:43.104Z"
             },
             {
               "name": ".codex",
@@ -59,13 +59,13 @@
               "name": ".codex-remote-attachments",
               "kind": "dir",
               "sizeBytes": 0,
-              "modifiedAt": "2026-07-05T14:43:14.343Z"
+              "modifiedAt": "2026-07-08T21:37:33.258Z"
             },
             {
               "name": ".git",
               "kind": "dir",
               "sizeBytes": 0,
-              "modifiedAt": "2026-07-07T16:02:47.711Z"
+              "modifiedAt": "2026-07-11T04:25:09.363Z"
             },
             {
               "name": ".github",
@@ -83,7 +83,7 @@
               "name": ".playwright-cli",
               "kind": "dir",
               "sizeBytes": 0,
-              "modifiedAt": "2026-07-07T13:51:11.212Z"
+              "modifiedAt": "2026-07-11T03:50:43.292Z"
             },
             {
               "name": ".pytest_cache",
@@ -154,14 +154,14 @@
             {
               "name": "CLAUDE.md",
               "kind": "file",
-              "sizeBytes": 19633,
-              "modifiedAt": "2026-07-07T06:38:40.125Z"
+              "sizeBytes": 20258,
+              "modifiedAt": "2026-07-10T02:32:16.065Z"
             },
             {
               "name": "command-centre",
               "kind": "dir",
               "sizeBytes": 0,
-              "modifiedAt": "2026-06-18T06:35:45.983Z"
+              "modifiedAt": "2026-07-07T20:02:00.421Z"
             },
             {
               "name": "content",
@@ -176,6 +176,12 @@
               "modifiedAt": "2026-07-07T03:07:46.240Z"
             },
             {
+              "name": "frameworks",
+              "kind": "dir",
+              "sizeBytes": 0,
+              "modifiedAt": "2026-07-10T23:31:47.025Z"
+            },
+            {
               "name": "Job Applications",
               "kind": "dir",
               "sizeBytes": 0,
@@ -185,7 +191,7 @@
               "name": "Knowledge",
               "kind": "dir",
               "sizeBytes": 0,
-              "modifiedAt": "2026-07-07T01:32:00.535Z"
+              "modifiedAt": "2026-07-10T02:33:49.663Z"
             },
             {
               "name": "MDS CEO",
@@ -203,13 +209,7 @@
               "name": "ops",
               "kind": "dir",
               "sizeBytes": 0,
-              "modifiedAt": "2026-07-02T21:45:44.268Z"
-            },
-            {
-              "name": "output",
-              "kind": "dir",
-              "sizeBytes": 0,
-              "modifiedAt": "2026-07-06T07:19:15.574Z"
+              "modifiedAt": "2026-07-10T14:41:17.365Z"
             }
           ]
         }
@@ -220,8 +220,8 @@
         "label": "Products",
         "exists": true,
         "listing": {
-          "total": 18,
-          "dirs": 17,
+          "total": 21,
+          "dirs": 20,
           "files": 1,
           "refusedSecretShaped": 0,
           "entries": [
@@ -235,7 +235,7 @@
               "name": ".codex-worktrees",
               "kind": "dir",
               "sizeBytes": 0,
-              "modifiedAt": "2026-07-06T20:00:37.147Z"
+              "modifiedAt": "2026-07-09T18:35:22.441Z"
             },
             {
               "name": "Astro AI Studio",
@@ -248,6 +248,12 @@
               "kind": "dir",
               "sizeBytes": 0,
               "modifiedAt": "2026-07-06T19:29:58.134Z"
+            },
+            {
+              "name": "AUTEUR OS",
+              "kind": "dir",
+              "sizeBytes": 0,
+              "modifiedAt": "2026-07-08T00:28:28.688Z"
             },
             {
               "name": "Catering Command Centre",
@@ -265,7 +271,7 @@
               "name": "Jobflow AI Studio",
               "kind": "dir",
               "sizeBytes": 0,
-              "modifiedAt": "2026-07-07T04:34:06.565Z"
+              "modifiedAt": "2026-07-08T00:38:35.450Z"
             },
             {
               "name": "Legal AI Studio",
@@ -277,7 +283,7 @@
               "name": "MDS-Command-Centre",
               "kind": "dir",
               "sizeBytes": 0,
-              "modifiedAt": "2026-07-07T16:02:04.775Z"
+              "modifiedAt": "2026-07-08T00:46:05.444Z"
             },
             {
               "name": "MIDAS Local Coding Studio",
@@ -289,7 +295,19 @@
               "name": "MIDAS-Website",
               "kind": "dir",
               "sizeBytes": 0,
-              "modifiedAt": "2026-07-07T09:32:40.788Z"
+              "modifiedAt": "2026-07-11T04:48:45.417Z"
+            },
+            {
+              "name": "MIDAS-Website-vercel-fix",
+              "kind": "dir",
+              "sizeBytes": 0,
+              "modifiedAt": "2026-07-11T04:54:51.477Z"
+            },
+            {
+              "name": "nestiq",
+              "kind": "dir",
+              "sizeBytes": 0,
+              "modifiedAt": "2026-07-07T21:24:18.873Z"
             },
             {
               "name": "NestIQ AI Studio",
@@ -313,13 +331,13 @@
               "name": "Prep AI Studio",
               "kind": "dir",
               "sizeBytes": 0,
-              "modifiedAt": "2026-07-07T14:25:56.066Z"
+              "modifiedAt": "2026-07-09T11:52:32.283Z"
             },
             {
               "name": "Prototypes",
               "kind": "dir",
               "sizeBytes": 0,
-              "modifiedAt": "2026-07-07T03:55:47.051Z"
+              "modifiedAt": "2026-07-10T00:30:13.336Z"
             },
             {
               "name": "README.md",
@@ -342,118 +360,70 @@
         "label": "vcos",
         "exists": true,
         "listing": {
-          "total": 31,
-          "dirs": 31,
+          "total": 18,
+          "dirs": 18,
           "files": 0,
           "refusedSecretShaped": 0,
           "entries": [
             {
-              "name": "Content Studio (Myra)",
-              "kind": "dir",
-              "sizeBytes": 0,
-              "modifiedAt": "2026-07-02T13:13:01.764Z"
-            },
-            {
               "name": "content-studio",
               "kind": "dir",
               "sizeBytes": 0,
-              "modifiedAt": "2026-07-02T13:15:43.698Z"
-            },
-            {
-              "name": "Continuos Improvement Studio (Meridian)",
-              "kind": "dir",
-              "sizeBytes": 0,
-              "modifiedAt": "2026-07-02T13:13:02.240Z"
+              "modifiedAt": "2026-07-10T21:06:35.033Z"
             },
             {
               "name": "continuous-improvement-studio",
               "kind": "dir",
               "sizeBytes": 0,
-              "modifiedAt": "2026-07-02T13:15:45.216Z"
-            },
-            {
-              "name": "Customer Success-Care Studio (Isla)",
-              "kind": "dir",
-              "sizeBytes": 0,
-              "modifiedAt": "2026-07-02T13:13:02.266Z"
+              "modifiedAt": "2026-07-11T03:10:08.173Z"
             },
             {
               "name": "customer-care-studio",
               "kind": "dir",
               "sizeBytes": 0,
-              "modifiedAt": "2026-07-02T13:15:45.948Z"
-            },
-            {
-              "name": "Design Studio (Mira)",
-              "kind": "dir",
-              "sizeBytes": 0,
-              "modifiedAt": "2026-07-02T13:15:29.997Z"
+              "modifiedAt": "2026-07-10T22:07:40.853Z"
             },
             {
               "name": "design-studio",
               "kind": "dir",
               "sizeBytes": 0,
-              "modifiedAt": "2026-07-02T13:15:46.353Z"
-            },
-            {
-              "name": "Dev Ops Studio",
-              "kind": "dir",
-              "sizeBytes": 0,
-              "modifiedAt": "2026-07-02T13:13:02.740Z"
-            },
-            {
-              "name": "Development Studio",
-              "kind": "dir",
-              "sizeBytes": 0,
-              "modifiedAt": "2026-07-02T13:13:03.762Z"
+              "modifiedAt": "2026-07-10T20:30:14.097Z"
             },
             {
               "name": "development-studio",
               "kind": "dir",
               "sizeBytes": 0,
-              "modifiedAt": "2026-07-02T13:15:47.062Z"
+              "modifiedAt": "2026-07-10T20:33:04.935Z"
             },
             {
               "name": "devops-studio",
               "kind": "dir",
               "sizeBytes": 0,
-              "modifiedAt": "2026-07-02T13:15:47.449Z"
-            },
-            {
-              "name": "Finance Studio (Aria)",
-              "kind": "dir",
-              "sizeBytes": 0,
-              "modifiedAt": "2026-07-02T13:13:03.791Z"
+              "modifiedAt": "2026-07-11T03:09:18.165Z"
             },
             {
               "name": "finance-studio",
               "kind": "dir",
               "sizeBytes": 0,
-              "modifiedAt": "2026-07-02T13:15:47.673Z"
-            },
-            {
-              "name": "Marketing Studio",
-              "kind": "dir",
-              "sizeBytes": 0,
-              "modifiedAt": "2026-07-02T13:13:04.120Z"
+              "modifiedAt": "2026-07-11T03:09:08.563Z"
             },
             {
               "name": "marketing-growth-studio",
               "kind": "dir",
               "sizeBytes": 0,
-              "modifiedAt": "2026-07-02T13:15:47.858Z"
+              "modifiedAt": "2026-07-10T21:16:26.692Z"
             },
             {
               "name": "mds-kernel",
               "kind": "dir",
               "sizeBytes": 0,
-              "modifiedAt": "2026-07-06T19:35:48.031Z"
+              "modifiedAt": "2026-07-11T03:21:04.281Z"
             },
             {
               "name": "product-ops-studio",
               "kind": "dir",
               "sizeBytes": 0,
-              "modifiedAt": "2026-07-02T13:15:48.171Z"
+              "modifiedAt": "2026-07-10T22:17:01.428Z"
             },
             {
               "name": "products",
@@ -462,22 +432,10 @@
               "modifiedAt": "2026-07-02T13:15:48.176Z"
             },
             {
-              "name": "Products Ops Studio (Orion)",
-              "kind": "dir",
-              "sizeBytes": 0,
-              "modifiedAt": "2026-07-02T13:13:04.176Z"
-            },
-            {
-              "name": "QA Studio (Rook)",
-              "kind": "dir",
-              "sizeBytes": 0,
-              "modifiedAt": "2026-07-02T13:13:04.200Z"
-            },
-            {
               "name": "qa-audit-studio",
               "kind": "dir",
               "sizeBytes": 0,
-              "modifiedAt": "2026-07-02T13:15:48.733Z"
+              "modifiedAt": "2026-07-10T21:15:45.526Z"
             },
             {
               "name": "registry",
@@ -486,46 +444,34 @@
               "modifiedAt": "2026-07-02T13:15:48.847Z"
             },
             {
-              "name": "Research Studio (Atlas)",
-              "kind": "dir",
-              "sizeBytes": 0,
-              "modifiedAt": "2026-07-02T13:13:04.247Z"
-            },
-            {
               "name": "research-studio",
               "kind": "dir",
               "sizeBytes": 0,
-              "modifiedAt": "2026-07-02T13:15:49.014Z"
-            },
-            {
-              "name": "Sales Studio (Priya)",
-              "kind": "dir",
-              "sizeBytes": 0,
-              "modifiedAt": "2026-07-02T13:13:04.280Z"
+              "modifiedAt": "2026-07-11T04:44:18.173Z"
             },
             {
               "name": "sales-studio",
               "kind": "dir",
               "sizeBytes": 0,
-              "modifiedAt": "2026-07-02T13:15:49.339Z"
-            },
-            {
-              "name": "VCOS Builder Studio (Vesper)",
-              "kind": "dir",
-              "sizeBytes": 0,
-              "modifiedAt": "2026-07-02T13:13:04.329Z"
-            },
-            {
-              "name": "vcos-architect-builder-studio",
-              "kind": "dir",
-              "sizeBytes": 0,
-              "modifiedAt": "2026-07-02T13:13:53.546Z"
+              "modifiedAt": "2026-07-10T21:58:49.369Z"
             },
             {
               "name": "vcos-builder-studio",
               "kind": "dir",
               "sizeBytes": 0,
-              "modifiedAt": "2026-07-02T13:15:51.638Z"
+              "modifiedAt": "2026-07-11T03:09:47.937Z"
+            },
+            {
+              "name": "_archive",
+              "kind": "dir",
+              "sizeBytes": 0,
+              "modifiedAt": "2026-07-11T03:08:46.934Z"
+            },
+            {
+              "name": "_shared",
+              "kind": "dir",
+              "sizeBytes": 0,
+              "modifiedAt": "2026-07-02T13:15:39.723Z"
             }
           ]
         }
@@ -536,16 +482,22 @@
         "label": "command-centre",
         "exists": true,
         "listing": {
-          "total": 1,
-          "dirs": 1,
+          "total": 2,
+          "dirs": 2,
           "files": 0,
           "refusedSecretShaped": 0,
           "entries": [
             {
+              "name": "transformation-commands",
+              "kind": "dir",
+              "sizeBytes": 0,
+              "modifiedAt": "2026-07-07T20:42:36.146Z"
+            },
+            {
               "name": "war-room",
               "kind": "dir",
               "sizeBytes": 0,
-              "modifiedAt": "2026-07-07T00:30:54.057Z"
+              "modifiedAt": "2026-07-10T22:13:09.895Z"
             }
           ]
         }
@@ -697,7 +649,7 @@
       },
       {
         "slug": "design-studio",
-        "directorHeading": "Mira — Director of Design Studio"
+        "directorHeading": "Mira - Director of Design Studio"
       },
       {
         "slug": "development-studio",
@@ -806,16 +758,16 @@
     "repos": [
       {
         "relativePath": ".",
-        "branch": "feat/vcos-runtime-provenance-2026-07-06",
-        "head": "7753b9b",
+        "branch": "codex/VCOS",
+        "head": "4fe884f",
         "remote": "https://github.com/shrishmanglik/Million-Dollar-AI-Studio.git",
         "dirty": "UNKNOWN (dirty probe skipped; no git subprocesses in adapter)",
         "status": "degraded"
       },
       {
         "relativePath": "Products\\Astro AI Studio",
-        "branch": "main",
-        "head": "360e093",
+        "branch": "codex/astro-saham-degree-putra-20260709",
+        "head": "f0bcd5d",
         "remote": "https://github.com/shrishmanglik/Astro-AI-Studio.git",
         "dirty": "UNKNOWN (dirty probe skipped; no git subprocesses in adapter)",
         "status": "degraded"
@@ -839,7 +791,7 @@
       {
         "relativePath": "Products\\Jobflow AI Studio",
         "branch": "main",
-        "head": "4e5cf56",
+        "head": "5c037e9",
         "remote": "https://github.com/shrishmanglik/JobFlow.git",
         "dirty": "UNKNOWN (dirty probe skipped; no git subprocesses in adapter)",
         "status": "degraded"
@@ -854,8 +806,8 @@
       },
       {
         "relativePath": "Products\\MDS-Command-Centre",
-        "branch": "main",
-        "head": "72d6c8c",
+        "branch": "codex/mcc-dashboard-proof-handoff-20260707",
+        "head": "59daab1",
         "remote": "https://github.com/shrishmanglik/MDS-Command-Centre.git",
         "dirty": "UNKNOWN (dirty probe skipped; no git subprocesses in adapter)",
         "status": "degraded"
@@ -863,14 +815,22 @@
       {
         "relativePath": "Products\\MIDAS-Website",
         "branch": "main",
-        "head": "cf52374",
+        "head": "5ee0002",
         "remote": "https://github.com/shrishmanglik/MIDAS-Website.git",
         "dirty": "UNKNOWN (dirty probe skipped; no git subprocesses in adapter)",
         "status": "degraded"
       },
       {
+        "relativePath": "Products\\MIDAS-Website-vercel-fix",
+        "branch": "codex/fix-vercel-production-20260711",
+        "head": "UNKNOWN",
+        "remote": "UNKNOWN",
+        "dirty": "UNKNOWN (dirty probe skipped; no git subprocesses in adapter)",
+        "status": "degraded"
+      },
+      {
         "relativePath": "Products\\NestIQ AI Studio",
-        "branch": "main",
+        "branch": "codex/nestiq-live-currentness-20260707",
         "head": "19fb9aa",
         "remote": "https://github.com/shrishmanglik/NestIQ-AI-Studio.git",
         "dirty": "UNKNOWN (dirty probe skipped; no git subprocesses in adapter)",
@@ -878,10 +838,18 @@
       },
       {
         "relativePath": "Products\\Prep AI Studio",
-        "branch": "codex/prep-public-section-transformation-20260707",
-        "head": "7ce398b",
+        "branch": "codex/prep-public-proof-tightening-clean-20260709",
+        "head": "59d379b",
         "remote": "https://github.com/shrishmanglik/Prep-AI-Studio.git",
         "dirty": "UNKNOWN (dirty probe skipped; no git subprocesses in adapter)",
+        "status": "degraded"
+      },
+      {
+        "relativePath": "Products\\Prototypes",
+        "branch": "UNKNOWN",
+        "head": "UNKNOWN",
+        "remote": "UNKNOWN",
+        "dirty": "UNKNOWN",
         "status": "degraded"
       },
       {

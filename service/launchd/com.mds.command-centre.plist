@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.mds.command-centre</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>@@NODE_PATH@@</string>
+    <string>@@APP_ROOT@@/scripts/daemon.mjs</string>
+    <string>--root</string><string>.</string>
+    <string>--port</string><string>5178</string>
+  </array>
+  <key>WorkingDirectory</key>
+  <string>@@APP_ROOT@@</string>
+  <key>RunAtLoad</key><true/>
+  <key>KeepAlive</key>
+  <dict><key>SuccessfulExit</key><false/></dict>
+  <key>ProcessType</key><string>Background</string>
+  <key>StandardOutPath</key><string>@@APP_ROOT@@/output/daemon/launchd.log</string>
+  <key>StandardErrorPath</key><string>@@APP_ROOT@@/output/daemon/launchd-error.log</string>
+</dict>
+</plist>

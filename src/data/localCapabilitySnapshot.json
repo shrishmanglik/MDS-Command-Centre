@@ -1,6 +1,6 @@
 {
   "schemaVersion": "mds.command-centre.local-capability-snapshot.v1",
-  "generatedAt": "2026-07-07T16:04:56.240Z",
+  "generatedAt": "2026-07-11T04:56:53.615Z",
   "authority": "D-local capability records and validator summaries only. Live provider/deploy/db/auth/billing/payment states remain UNKNOWN until provider evidence is collected through an approved safe path.",
   "capabilityBroker": {
     "providers": [
@@ -598,6 +598,20 @@
         "summary": {
           "blockers": [
             {
+              "code": "STUDIO-TOOLS",
+              "message": "provider/auth/secret-backed tools lack governed capability evidence: local_filesystem, image_generation",
+              "path": "vcos/design-studio/tools/tools.yaml",
+              "severity": "blocker",
+              "studio": "design-studio"
+            },
+            {
+              "code": "STUDIO-TOOLS",
+              "message": "provider/auth/secret-backed tools lack governed capability evidence: playwright",
+              "path": "vcos/development-studio/tools/tools.yaml",
+              "severity": "blocker",
+              "studio": "development-studio"
+            },
+            {
               "code": "STUDIO-MIDAS-CONFLICT",
               "message": "source map preserves MIDAS harness path conflict",
               "path": "vcos/mds-kernel/architecture-map/source-map.yaml",
@@ -613,48 +627,37 @@
               "counts": {
                 "anti_patterns": 6,
                 "checklists": 6,
-                "knowledge": 6,
+                "knowledge": 11,
                 "personas": 5,
                 "runtime_prompt_files": 4,
                 "runtime_task_files": 8,
                 "skills": 0,
                 "templates": 5,
-                "workflows": 6
+                "workflows": 7
               },
               "exists": true,
               "governed_provider_or_secret_backed_tools": [
-                "google_stitch",
-                "nano_banana_pro",
-                "imagen_4",
-                "figma_spec_export",
-                "notebook_lm",
-                "veo_3_1"
+                "google_stitch"
               ],
               "id": "design-studio",
-              "legacy_root_policy": {
-                "reason": "Title-case root exists from earlier scaffold; lowercase root is readiness-local canonical until founder cleanup approval.",
-                "status": "quarantined_read_only_reference"
-              },
-              "legacy_roots_existing": [
-                "vcos/Design Studio (Mira)"
-              ],
-              "status": "ready",
+              "legacy_roots_existing": [],
+              "status": "not_ready",
               "tools": [
+                "local_filesystem",
+                "powershell",
+                "markdown_spec",
+                "browser_design_qa",
                 "google_stitch",
-                "nano_banana_pro",
-                "imagen_4",
                 "figma_spec_export",
-                "claude_code",
-                "notebook_lm",
-                "veo_3_1"
+                "notebooklm",
+                "image_generation",
+                "video_generation",
+                "midas_reference"
               ],
               "unverified_provider_or_secret_backed_tools": [
+                "local_filesystem",
                 "google_stitch",
-                "nano_banana_pro",
-                "imagen_4",
-                "figma_spec_export",
-                "notebook_lm",
-                "veo_3_1"
+                "image_generation"
               ]
             },
             {
@@ -662,11 +665,11 @@
               "counts": {
                 "anti_patterns": 5,
                 "checklists": 7,
-                "knowledge": 9,
+                "knowledge": 16,
                 "personas": 7,
                 "runtime_prompt_files": 4,
                 "runtime_task_files": 8,
-                "skills": 292,
+                "skills": 146,
                 "templates": 5,
                 "workflows": 6
               },
@@ -677,25 +680,29 @@
                 "railway_cli"
               ],
               "id": "development-studio",
-              "legacy_root_policy": {
-                "reason": "Title-case root mirrors MIDAS skill corpus; lowercase root is readiness-local canonical until founder cleanup approval.",
-                "status": "quarantined_read_only_reference"
-              },
-              "legacy_roots_existing": [
-                "vcos/Development Studio"
-              ],
+              "legacy_roots_existing": [],
               "skills_index": "vcos/development-studio/frameworks/midas/skills-index.json",
               "status": "not_ready",
               "tools": [
-                "claude_code",
-                "codex",
-                "antigravity",
+                "powershell",
+                "rg",
+                "git",
+                "npm_cmd",
+                "npx_cmd",
+                "python",
+                "pytest",
+                "tauri_cli",
+                "pyinstaller",
+                "playwright",
                 "supabase_cli",
                 "vercel_cli",
                 "railway_cli",
-                "git"
+                "codex",
+                "claude_code",
+                "antigravity"
               ],
               "unverified_provider_or_secret_backed_tools": [
+                "playwright",
                 "supabase_cli",
                 "vercel_cli",
                 "railway_cli"

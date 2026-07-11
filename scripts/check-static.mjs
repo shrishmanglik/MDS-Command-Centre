@@ -20,6 +20,12 @@ const required = [
   "src/data/localAdapterHealth.json",
   "src/data/localSourceEvidence.json",
   "src/data/localCapabilityRequests.json",
+  "src/data/localInboxEvents.json",
+  "src/data/localPairings.json",
+  "src/data/localWorkspaces.json",
+  "src/data/localVoiceCommands.json",
+  "src/data/localModelRouter.json",
+  "src/data/localCanvasDocuments.json",
   "desktop/launch-command-centre.ps1",
 ];
 
@@ -233,6 +239,64 @@ if (!js.includes("buildAuthorityHandoffPacket") || !js.includes("Manual authorit
 }
 if (!js.includes("/api/tickets") || !js.includes("/api/health") || !js.includes("refresh-snapshot")) {
   throw new Error("local API persistence/health wiring is missing.");
+}
+if (!js.includes("renderInbox") || !js.includes("inboxRoutingPacket") || !js.includes("/api/inbox") || !js.includes("LOCAL_PACKET_ONLY")) {
+  throw new Error("local inbox intake, state machine, or routing-preview wiring is missing.");
+}
+const server = fs.readFileSync(path.join(appRoot, "scripts", "serve.mjs"), "utf8");
+const pairingCli = fs.readFileSync(path.join(appRoot, "scripts", "midas.mjs"), "utf8");
+if (!server.includes("/api/inbox/intake") || !server.includes("pairingStatus") || !server.includes("BLOCKED_PAIRING_REQUIRED") || !server.includes("executionAllowed")) {
+  throw new Error("server-side inbox pairing enforcement is missing.");
+}
+if (!pairingCli.includes("pairing approve") || !pairingCli.includes("executionAuthority")) {
+  throw new Error("manual pairing approval CLI is missing or overclaims execution authority.");
+}
+const workspaceStore = fs.readFileSync(path.join(appRoot, "scripts", "lib", "workspace-store.mjs"), "utf8");
+if (!server.includes("/api/workspaces/route") || !server.includes("routeStreamToWorkspace") || !workspaceStore.includes("PAIRING_REQUIRED") || !workspaceStore.includes("Workspace path escaped")) {
+  throw new Error("pairing-gated contained workspace routing is missing.");
+}
+if (!js.includes("renderWorkspaces") || !js.includes("route-inbox-workspace") || !js.includes("One paired stream, one contained workspace")) {
+  throw new Error("workspace router operator surface is missing.");
+}
+const voiceGate = fs.readFileSync(path.join(appRoot, "scripts", "lib", "voice-gate.mjs"), "utf8");
+if (!server.includes("/api/voice/audio") || !server.includes("whisper-cli") || !server.includes("transcribeLocalAudio") || !voiceGate.includes("BLOCKED_FORBIDDEN_VOICE_ACTION")) {
+  throw new Error("local offline voice adapter or deterministic wake gate is missing.");
+}
+if (!js.includes("renderVoice") || !js.includes("startVoiceCapture") || !js.includes("voice-transcript-form") || !js.includes("executionAllowed=false")) {
+  throw new Error("voice operator surface or fail-closed draft copy is missing.");
+}
+const modelRouter = fs.readFileSync(path.join(appRoot, "scripts", "lib", "model-router.mjs"), "utf8");
+if (!server.includes("/api/model-router/resolve") || !server.includes("/api/model-router/failure") || !server.includes("credentialRef: \"PROVIDER_OWNED_NOT_READ\"") || !modelRouter.includes("quota_exhausted")) {
+  throw new Error("credential-blind model failover or circuit-breaker API is missing.");
+}
+if (!js.includes("model-route-form") || !js.includes("model-failure-form") || !js.includes("executionStarted=false")) {
+  throw new Error("model failover operator controls or claim ceiling is missing.");
+}
+const a2uiStore = fs.readFileSync(path.join(appRoot, "scripts", "lib", "a2ui-store.mjs"), "utf8");
+if (!server.includes("/api/canvas/import") || !server.includes("sanitizeA2UIDocument") || !a2uiStore.includes("UNSAFE_CONTENT")) {
+  throw new Error("A2UI server sanitization or import boundary is missing.");
+}
+if (!js.includes("renderCanvas") || !js.includes("canvas-component-form") || !js.includes("data-canvas-add") || !js.includes("executionAllowed=false")) {
+  throw new Error("interactive A2UI canvas editor wiring is missing.");
+}
+const sandboxRunner = fs.readFileSync(path.join(appRoot, "scripts", "lib", "sandbox-runner.mjs"), "utf8");
+if (!server.includes("/api/sandbox/execute") || !server.includes("BLOCKED_RUNTIME_UNAVAILABLE") || !server.includes("BLOCKED_IMAGE_UNAVAILABLE")) {
+  throw new Error("fail-closed Docker sandbox API is missing.");
+}
+if (!sandboxRunner.includes('"--network", "none"') || !sandboxRunner.includes('"--read-only"') || !sandboxRunner.includes('"--cap-drop", "ALL"') || !sandboxRunner.includes("no-new-privileges:true")) {
+  throw new Error("sandbox isolation flags are incomplete.");
+}
+if (!js.includes("renderSandbox") || !js.includes("sandbox-form") || !js.includes("No network, host mounts, secrets")) {
+  throw new Error("sandbox operator surface or claim boundary is missing.");
+}
+const daemon = fs.readFileSync(path.join(appRoot, "scripts", "daemon.mjs"), "utf8");
+const systemd = fs.readFileSync(path.join(appRoot, "service", "systemd", "mds-command-centre.service"), "utf8");
+const launchd = fs.readFileSync(path.join(appRoot, "service", "launchd", "com.mds.command-centre.plist"), "utf8");
+if (!daemon.includes("127.0.0.1") || !daemon.includes("three consecutive health failures") || !daemon.includes("SIGTERM")) {
+  throw new Error("daemon loopback, health-failure, or shutdown contract is missing.");
+}
+if (!systemd.includes("Restart=on-failure") || !launchd.includes("SuccessfulExit")) {
+  throw new Error("systemd/launchd restart contract is missing.");
 }
 if (!Array.isArray(snapshot.sources) || snapshot.sources.length < 6) throw new Error("war-room snapshot is incomplete.");
 if (!snapshot.controlSurface || snapshot.controlSurface.status !== "LOCAL_CONTROL_SURFACE_ONLY") {

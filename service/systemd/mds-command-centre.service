@@ -1,0 +1,16 @@
+[Unit]
+Description=MDS Command Centre local inbox gateway
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory="@@APP_ROOT@@"
+ExecStart="@@NODE_PATH@@" "@@APP_ROOT@@/scripts/daemon.mjs" --root . --port 5178
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+UMask=0077
+
+[Install]
+WantedBy=default.target

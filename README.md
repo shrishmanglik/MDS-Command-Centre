@@ -2,7 +2,21 @@
 
 Status: Sprint 001 local-first shell.
 
-This app reads whitelisted seed files from `D:/Million Dollar AI Studio/command-centre/war-room/` and local MIDAS framework contracts into a local JSON snapshot, then renders an operator cockpit for Today, Launch OS, Search, Queue, Boards, Runtime, Proof, Operator OS, Research, Runs, Tickets, Dispatch, Closeout, Review, Promote, Activity, Decisions, Benchmark, and Health.
+This app reads whitelisted seed files from `D:/Million Dollar AI Studio/command-centre/war-room/` and local MIDAS framework contracts into a local JSON snapshot, then renders an operator cockpit for Today, Inbox, Launch OS, Search, Queue, Boards, Runtime, Proof, Operator OS, Research, Runs, Tickets, Dispatch, Closeout, Review, Promote, Activity, Decisions, Benchmark, and Health.
+
+The Inbox view is the first local-first gateway slice. It normalizes manual, synthetic, and local system signals into one queue, supports `NEW -> TRIAGED -> ROUTED -> CLOSED`, records source/provenance and risk, and generates a copyable routing preview. It does not connect to WhatsApp, Telegram, iMessage, Feishu, or any other external channel; it does not verify sender identity or send replies. Those provider and delivery states remain `UNKNOWN`.
+
+The daemon wrapper keeps the loopback server process observable for an operating-system user service. `scripts/daemon.mjs` starts the server on `127.0.0.1`, probes `/api/health`, writes bounded process status under `output/daemon/`, exits after three consecutive health failures, and handles `SIGINT`/`SIGTERM` cleanly. The OS service manager owns restart behavior. Templates are provided for Linux user `systemd`, macOS `launchd`, and a Windows PowerShell entrypoint. Nothing installs or enables itself.
+
+The zero-trust pairing gate quarantines every previously unseen channel/sender stream. Intake returns a one-time key while `src/data/localPairings.json` stores only its SHA-256 digest. The stream remains `QUARANTINED` with `executionAllowed=false` until an operator runs `midas pairing approve <pairing-key>` (or `node scripts/midas.mjs pairing approve <pairing-key>` from the repo). Pairing changes the stream to `PAIRED`; it does not itself authorize a model run, code execution, provider access, external send, or identity claim. A separate governed run remains mandatory.
+
+The dynamic workspace router maps each paired stream to exactly one generated workspace under `output/workspaces/`. Unpaired streams fail with `PAIRING_REQUIRED`; callers cannot provide filesystem paths or workspace IDs. Each workspace contains a bounded `manifest.json`, `context.md`, and `inbox-events.json`, and agents are restricted to the local allowlist (`Codex`, `Claude Code`, `Antigravity`, `Human`). Workspace routing remains local-only and grants no execution or external authority.
+
+The Voice lane implements an operator-triggered local wake service around the wake word `Midas`. Browser microphone capture never auto-starts and is enabled only when the loopback API verifies local `ffmpeg`, local `whisper-cli`, and the app-owned `voice/models/ggml-base.en.bin` model. Five-second WebM/WAV chunks are bounded, converted and transcribed through fixed executable arguments without a shell, and retained under `output/voice/jobs/` as local evidence. Transcripts become drafts through a deterministic command gate. Voice may draft safe view navigation or workspace notes; code execution, shell commands, pairing approval, provider actions, deployment, payments, secret access, and external sends are blocked. On the current machine the engine/model state remains `BLOCKED_ENGINE_MISSING`.
+
+The Models lane includes a credential-blind failover resolver. Auth profiles store names and verification state only; credential values remain provider-owned and unread. Explicit `rate_limit`, `quota_exhausted`, `auth_unavailable`, and `runtime_unavailable` signals open bounded local circuit breakers, then atomically re-resolve through the next verified profile, a task-aware installed Ollama model chain, or `manual-offline-handoff`. Local inventory comes from bounded `ollama list` metadata and excludes `:cloud` entries. Route receipts always preserve `executionStarted=false` until a separate runtime proves execution.
+
+The Live Canvas lane is a local A2UI editor with a component palette, responsive visual stage, document list, selected-component inspector, drag/reorder controls, workspace binding, local save, and agent JSON import. The server accepts only `heading`, `text`, `metric`, `button`, `input`, `notice`, `divider`, and `table` records with bounded tones and widths. HTML, scripts, URLs, event handlers, templates, embedded media, CSS, and executable actions are rejected. Agent imports remain `DRAFT_LOCAL`; only an operator can save them, and every document preserves `executionAllowed=false`.
 
 The Today view now renders a structured local control surface, not just Markdown board previews. It normalizes revenue truth, Product VCOS rows, frontend/backend/payment/deploy/provider gates, provider readiness blockers, Shrish-only approvals, active CEO work orders, agent assignments, failures, releases, content queue, Board decisions, CEO actions, next action, and nightly closeout evidence from the snapshot. Each row carries source evidence and claim ceilings so local readiness cannot become a live provider/payment/deployment claim.
 
@@ -53,7 +67,16 @@ npm run refresh-data
 npm run dev
 npm run build
 npm run desktop
+npm run daemon:probe
+npm run service:render
+npm run test:pairing
+npm run test:workspace-router
+npm run test:voice-gate
+npm run test:model-router
+npm run test:a2ui
 ```
+
+`npm run service:render` produces path-resolved systemd and launchd definitions under `output/daemon/service-config/`. Installation remains a manual operator action because persistence changes host state. The Windows entrypoint is `service/windows/run-command-centre-daemon.ps1`; registering it with Task Scheduler is intentionally not automatic.
 
 There are no runtime npm dependencies for Sprint 001; the app is plain HTML, CSS, and JavaScript.
 
@@ -64,6 +87,24 @@ Local API routes:
 - `GET /api/health` reports snapshot and source-health state.
 - `GET /api/tickets` reads the D-local ticket file.
 - `PUT /api/tickets` writes sanitized local tickets.
+- `GET /api/inbox` reads normalized manual/synthetic local inbox events.
+- `PUT /api/inbox` writes sanitized local inbox events with unique IDs and bounded fields.
+- `POST /api/inbox/intake` derives stream identity, enforces quarantine/pairing state, and returns a new pairing key once.
+- `GET /api/pairing` returns pairing metadata without key digests or plaintext keys.
+- `GET /api/workspaces` returns the sanitized local workspace registry.
+- `POST /api/workspaces/route` idempotently maps a paired Inbox stream into a contained local workspace.
+- `GET /api/voice/status` reports local offline engine/model readiness without reading credential values.
+- `GET /api/voice/commands` returns local draft history.
+- `POST /api/voice/transcript` evaluates a local transcript through the wake/command gate.
+- `POST /api/voice/audio` accepts bounded local audio only when the offline adapter is ready.
+- `GET /api/model-router/status` reports names-only profiles, local model inventory, circuits, chains, and receipts.
+- `POST /api/model-router/resolve` creates a task-class routing receipt without executing a model.
+- `POST /api/model-router/failure` opens a bounded circuit and returns the next eligible route.
+- `GET /api/canvas` reads sanitized local A2UI documents.
+- `PUT /api/canvas` writes bounded local A2UI documents.
+- `POST /api/canvas/import` sanitizes an agent-supplied A2UI draft without saving or executing it.
+- `GET /api/sandbox/status` reports Docker readiness, fixed images, isolation policy, and bounded local receipts.
+- `POST /api/sandbox/execute` runs allowlisted Node.js or Python source in an ephemeral, networkless Docker container. It never falls back to the host shell or pulls missing images.
 - `GET /api/activity` reads the D-local activity file.
 - `PUT /api/activity` writes sanitized local activity events.
 - `GET /api/decisions` reads D-local director decision exports.

@@ -1,8 +1,15 @@
 import http from "node:http";
+import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
-import { execFile } from "node:child_process";
+import { execFile, execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import { ensurePairing, readPairings, streamIdFor } from "./lib/pairing-store.mjs";
+import { readWorkspaces, routeStreamToWorkspace } from "./lib/workspace-store.mjs";
+import { parseVoiceTranscript, WAKE_WORD } from "./lib/voice-gate.mjs";
+import { recordModelFailure, resolveModelRoute, TASK_CHAINS } from "./lib/model-router.mjs";
+import { readA2UIDocuments, sanitizeA2UIDocument, writeA2UIDocuments } from "./lib/a2ui-store.mjs";
+import { buildDockerArgs, normalizeSandboxRequest, sandboxIds, sandboxPolicy } from "./lib/sandbox-runner.mjs";
 
 const appRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const args = process.argv.slice(2);
@@ -21,10 +28,223 @@ const refreshScript = path.join(appRoot, "scripts", "refresh-war-room-data.mjs")
 const adapterRefreshScript = path.join(appRoot, "scripts", "refresh-local-adapters.mjs");
 const sourceEvidenceStore = path.join(appRoot, "src", "data", "localSourceEvidence.json");
 const capabilityRequestStore = path.join(appRoot, "src", "data", "localCapabilityRequests.json");
+const inboxStore = path.join(appRoot, "src", "data", "localInboxEvents.json");
+const pairingStore = path.join(appRoot, "src", "data", "localPairings.json");
+const workspaceStore = path.join(appRoot, "src", "data", "localWorkspaces.json");
+const workspaceRoot = path.join(appRoot, "output", "workspaces");
+const voiceCommandStore = path.join(appRoot, "src", "data", "localVoiceCommands.json");
+const voiceModel = path.join(appRoot, "voice", "models", "ggml-base.en.bin");
+const modelRouterStore = path.join(appRoot, "src", "data", "localModelRouter.json");
+const canvasStore = path.join(appRoot, "src", "data", "localCanvasDocuments.json");
+const sandboxReceiptStore = path.join(appRoot, "src", "data", "localSandboxReceipts.json");
 const D_ROOT = "D:/Million Dollar AI Studio";
 const BROWSE_ROOTS = ["Products", "vcos", "command-centre", "output/playwright", "."];
 const SECRET_PATH_PATTERN =
   /(^|[\\/])\.env[^\\/]*$|\.pem$|\.p12$|\.pfx$|(^|[\\/])id_rsa[^\\/]*$|\.key$|(^|[\\/])(secrets?|tokens?|credentials?|cookies?)([\\/.]|$)|authinfo|(^|[\\/])hosts\.ya?ml$|\.npmrc$|(^|[\\/])\.aws([\\/]|$)|(^|[\\/])\.ssh([\\/]|$)/i;
+
+function findExecutable(names) {
+  const pathEntries = String(process.env.PATH || "").split(path.delimiter).filter(Boolean);
+  for (const directory of pathEntries) {
+    for (const name of names) {
+      const candidate = path.join(directory, process.platform === "win32" ? `${name}.exe` : name);
+      if (fs.existsSync(candidate) && fs.statSync(candidate).isFile()) return candidate;
+    }
+  }
+  return null;
+}
+
+function voiceStatus() {
+  const engine = findExecutable(["whisper-cli"]);
+  const ffmpeg = findExecutable(["ffmpeg"]);
+  const modelPresent = fs.existsSync(voiceModel) && fs.statSync(voiceModel).isFile();
+  return {
+    status: engine && ffmpeg && modelPresent ? "READY_LOCAL_OFFLINE" : "BLOCKED_ENGINE_MISSING",
+    engine: engine ? "whisper-cli" : "UNKNOWN",
+    audioConverter: ffmpeg ? "ffmpeg" : "UNKNOWN",
+    model: modelPresent ? path.relative(appRoot, voiceModel) : "UNKNOWN",
+    wakeWord: WAKE_WORD,
+    continuousCaptureAllowed: Boolean(engine && ffmpeg && modelPresent),
+    commandMode: "DRAFT_ONLY",
+    authority: "Local offline STT metadata only. No microphone permission, model execution, code execution, provider action, or external send is implied.",
+  };
+}
+
+function localModelInventory() {
+  const ollama = findExecutable(["ollama"]);
+  if (!ollama) return [];
+  try {
+    const output = execFileSync(ollama, ["list"], { cwd: appRoot, encoding: "utf8", timeout: 5000, windowsHide: true });
+    return String(output).split(/\r?\n/).slice(1).map((line) => line.trim().split(/\s{2,}/)[0]).filter(Boolean).map((name) => ({ name, local: !/:cloud$/i.test(name), evidence: "ollama list metadata" }));
+  } catch {
+    return [];
+  }
+}
+
+function readModelRouter() {
+  const fallback = { schemaVersion: "mds.command-centre.model-router.v1", updatedAt: "UNKNOWN", authProfiles: [], failures: [], receipts: [] };
+  if (!fs.existsSync(modelRouterStore)) return fallback;
+  const parsed = JSON.parse(fs.readFileSync(modelRouterStore, "utf8"));
+  return { ...fallback, ...parsed, authProfiles: Array.isArray(parsed.authProfiles) ? parsed.authProfiles.slice(0, 20) : [], failures: Array.isArray(parsed.failures) ? parsed.failures.filter((failure) => new Date(failure.openUntil).getTime() > Date.now()).slice(0, 100) : [], receipts: Array.isArray(parsed.receipts) ? parsed.receipts.slice(0, 100) : [] };
+}
+
+function writeModelRouter(state) {
+  const payload = {
+    schemaVersion: "mds.command-centre.model-router.v1",
+    updatedAt: new Date().toISOString(),
+    authority: "D-local model routing and circuit-breaker state only. No credential values, provider calls, model execution, quota truth, or billing state is stored.",
+    authProfiles: (state.authProfiles || []).map((profile) => ({ id: String(profile.id).slice(0, 80), provider: String(profile.provider || "UNKNOWN").slice(0, 40), status: profile.status === "VERIFIED" ? "VERIFIED" : "UNKNOWN", credentialRef: "PROVIDER_OWNED_NOT_READ" })).slice(0, 20),
+    failures: (state.failures || []).slice(0, 100),
+    receipts: (state.receipts || []).slice(0, 100),
+  };
+  const temp = `${modelRouterStore}.${process.pid}.tmp`;
+  fs.writeFileSync(temp, `${JSON.stringify(payload, null, 2)}\n`, { mode: 0o600 });
+  fs.renameSync(temp, modelRouterStore);
+  return payload;
+}
+
+function resolveAndStoreModelRoute(taskClass) {
+  const state = readModelRouter();
+  const receipt = resolveModelRoute({ taskClass, inventory: localModelInventory(), profiles: state.authProfiles, state });
+  return { receipt, state: writeModelRouter({ ...state, receipts: [receipt, ...state.receipts] }), inventory: localModelInventory(), chains: TASK_CHAINS };
+}
+
+function execFilePromise(executable, args, options = {}) {
+  return new Promise((resolve, reject) => {
+    execFile(executable, args, { windowsHide: true, timeout: 120000, ...options }, (error, stdout, stderr) => {
+      if (error) {
+        error.stderr = String(stderr || "").slice(0, 2000);
+        reject(error);
+        return;
+      }
+      resolve({ stdout: String(stdout || "").slice(0, 2000), stderr: String(stderr || "").slice(0, 2000) });
+    });
+  });
+}
+
+function readSandboxReceipts() {
+  if (!fs.existsSync(sandboxReceiptStore)) return [];
+  const parsed = JSON.parse(fs.readFileSync(sandboxReceiptStore, "utf8"));
+  return Array.isArray(parsed.receipts) ? parsed.receipts.slice(0, 100) : [];
+}
+
+function writeSandboxReceipt(receipt) {
+  const payload = {
+    schemaVersion: "mds.command-centre.sandbox-receipts.v1",
+    updatedAt: new Date().toISOString(),
+    authority: sandboxPolicy().authority,
+    receipts: [receipt, ...readSandboxReceipts()].slice(0, 100),
+  };
+  const temp = `${sandboxReceiptStore}.${process.pid}.tmp`;
+  fs.writeFileSync(temp, `${JSON.stringify(payload, null, 2)}\n`, { mode: 0o600 });
+  fs.renameSync(temp, sandboxReceiptStore);
+  return payload;
+}
+
+async function dockerStatus() {
+  const docker = findExecutable(["docker"]);
+  if (!docker) return { status: "BLOCKED_RUNTIME_UNAVAILABLE", dockerPresent: false, daemonReachable: false, policy: sandboxPolicy() };
+  try {
+    await execFilePromise(docker, ["info", "--format", "{{.ServerVersion}}"], { cwd: appRoot, timeout: 5000 });
+    return { status: "READY_LOCAL_DOCKER", dockerPresent: true, daemonReachable: true, policy: sandboxPolicy() };
+  } catch {
+    return { status: "BLOCKED_RUNTIME_UNAVAILABLE", dockerPresent: true, daemonReachable: false, policy: sandboxPolicy() };
+  }
+}
+
+async function executeSandbox(input) {
+  const docker = findExecutable(["docker"]);
+  const readiness = await dockerStatus();
+  if (!docker || readiness.status !== "READY_LOCAL_DOCKER") throw new Error("BLOCKED_RUNTIME_UNAVAILABLE: Docker daemon is required; host execution fallback is forbidden.");
+  const request = normalizeSandboxRequest(input);
+  try {
+    await execFilePromise(docker, ["image", "inspect", request.profile.image], { cwd: appRoot, timeout: 5000 });
+  } catch {
+    throw new Error(`BLOCKED_IMAGE_UNAVAILABLE: ${request.profile.image} must already exist locally; automatic pulls are forbidden.`);
+  }
+  const ids = sandboxIds();
+  const artifactDir = path.join(appRoot, "output", "sandboxes", ids.receiptId);
+  fs.mkdirSync(artifactDir, { recursive: true, mode: 0o700 });
+  const sourcePath = path.join(artifactDir, request.profile.filename);
+  fs.writeFileSync(sourcePath, request.source, { mode: 0o600 });
+  const initName = `${ids.jobName}-init`;
+  const startedAt = new Date().toISOString();
+  let result = { stdout: "", stderr: "" };
+  let status = "COMPLETED";
+  try {
+    await execFilePromise(docker, ["volume", "create", "--label", "mds.command-centre.ephemeral=true", ids.workVolume], { cwd: appRoot, timeout: 10_000 });
+    await execFilePromise(docker, ["create", "--name", initName, "--mount", `type=volume,src=${ids.workVolume},dst=/workspace`, request.profile.image, "true"], { cwd: appRoot, timeout: 15_000 });
+    await execFilePromise(docker, ["cp", sourcePath, `${initName}:/workspace/${request.profile.filename}`], { cwd: appRoot, timeout: 10_000 });
+    await execFilePromise(docker, ["rm", initName], { cwd: appRoot, timeout: 10_000 });
+    result = await execFilePromise(docker, buildDockerArgs({ profile: request.profile, jobName: ids.jobName, workVolume: ids.workVolume }), { cwd: appRoot, timeout: request.timeoutMs, maxBuffer: 16 * 1024 });
+  } catch (error) {
+    status = error.killed || error.signal ? "TIMED_OUT" : "FAILED";
+    result = { stdout: String(error.stdout || "").slice(0, 16 * 1024), stderr: String(error.stderr || error.message || "").slice(0, 16 * 1024) };
+  } finally {
+    await execFilePromise(docker, ["rm", "-f", initName], { cwd: appRoot, timeout: 5000 }).catch(() => {});
+    await execFilePromise(docker, ["rm", "-f", ids.jobName], { cwd: appRoot, timeout: 5000 }).catch(() => {});
+    await execFilePromise(docker, ["volume", "rm", "-f", ids.workVolume], { cwd: appRoot, timeout: 5000 }).catch(() => {});
+    fs.rmSync(artifactDir, { recursive: true, force: true });
+  }
+  const receipt = {
+    id: ids.receiptId, status, runtime: request.runtime, image: request.profile.image,
+    startedAt, completedAt: new Date().toISOString(), timeoutMs: request.timeoutMs,
+    sourceSha256: crypto.createHash("sha256").update(request.source).digest("hex"),
+    stdout: result.stdout.slice(0, 2000), stderr: result.stderr.slice(0, 2000),
+    policy: sandboxPolicy(), hostExecution: false, externalState: "UNKNOWN",
+  };
+  return { receipt, ...writeSandboxReceipt(receipt) };
+}
+
+async function transcribeLocalAudio(parsed) {
+  const status = voiceStatus();
+  if (!status.continuousCaptureAllowed) throw new Error("BLOCKED_ENGINE_MISSING: local whisper-cli, ffmpeg, and app-owned model are required.");
+  const mimeType = String(parsed.mimeType || "").toLowerCase();
+  if (!new Set(["audio/webm", "audio/wav", "audio/wave", "audio/x-wav"]).has(mimeType)) throw new Error("Only WAV or WebM audio is accepted.");
+  const encoded = String(parsed.audioBase64 || "");
+  if (!encoded || encoded.length > 12 * 1024 * 1024 || !/^[A-Za-z0-9+/=]+$/.test(encoded)) throw new Error("Audio payload is missing, malformed, or exceeds 9 MB decoded.");
+  const bytes = Buffer.from(encoded, "base64");
+  if (!bytes.length || bytes.length > 9 * 1024 * 1024) throw new Error("Decoded audio exceeds the 9 MB limit.");
+  const jobId = `VOICEJOB-${Date.now().toString(36).toUpperCase()}-${crypto.randomBytes(3).toString("hex").toUpperCase()}`;
+  const jobDir = path.join(appRoot, "output", "voice", "jobs", jobId);
+  fs.mkdirSync(jobDir, { recursive: true, mode: 0o700 });
+  const source = path.join(jobDir, mimeType === "audio/webm" ? "capture.webm" : "capture.wav");
+  const wav = path.join(jobDir, "capture-16k.wav");
+  const outputPrefix = path.join(jobDir, "transcript");
+  fs.writeFileSync(source, bytes, { mode: 0o600 });
+  await execFilePromise(findExecutable(["ffmpeg"]), ["-nostdin", "-hide_banner", "-loglevel", "error", "-y", "-i", source, "-ar", "16000", "-ac", "1", wav], { cwd: jobDir });
+  await execFilePromise(findExecutable(["whisper-cli"]), ["-m", voiceModel, "-f", wav, "-otxt", "-of", outputPrefix, "-nt"], { cwd: jobDir });
+  const transcriptFile = `${outputPrefix}.txt`;
+  if (!fs.existsSync(transcriptFile)) throw new Error("Offline STT completed without a transcript artifact.");
+  const transcript = fs.readFileSync(transcriptFile, "utf8").trim().slice(0, 2000);
+  const payload = writeVoiceCommand({ ...parseVoiceTranscript(transcript), jobId, evidencePath: path.relative(appRoot, jobDir).replace(/\\/g, "/") });
+  return { ...payload, jobId, evidencePath: path.relative(appRoot, jobDir).replace(/\\/g, "/") };
+}
+
+function readVoiceCommands() {
+  if (!fs.existsSync(voiceCommandStore)) return [];
+  const parsed = JSON.parse(fs.readFileSync(voiceCommandStore, "utf8"));
+  return Array.isArray(parsed.records) ? parsed.records.slice(0, 200) : [];
+}
+
+function writeVoiceCommand(result) {
+  const record = {
+    id: `VOICE-${Date.now().toString(36).toUpperCase()}`,
+    createdAt: new Date().toISOString(),
+    ...result,
+    transcript: String(result.transcript || "").slice(0, 2000),
+    executionAllowed: false,
+  };
+  const payload = {
+    schemaVersion: "mds.command-centre.local-voice-commands.v1",
+    updatedAt: new Date().toISOString(),
+    authority: "D-local voice command drafts only. Voice never grants code execution, external sends, provider mutation, payment, deploy, secret, pairing approval, or live-state authority.",
+    records: [record, ...readVoiceCommands()].slice(0, 200),
+  };
+  const temp = `${voiceCommandStore}.${process.pid}.tmp`;
+  fs.writeFileSync(temp, `${JSON.stringify(payload, null, 2)}\n`, { mode: 0o600 });
+  fs.renameSync(temp, voiceCommandStore);
+  return { record, ...payload };
+}
 
 const contentTypes = new Map([
   [".html", "text/html; charset=utf-8"],
@@ -102,6 +322,69 @@ function sanitizeTicket(ticket) {
   };
 }
 
+function sanitizeInboxEvent(event) {
+  const now = new Date().toISOString();
+  const allowedChannels = new Set(["manual", "synthetic", "system", "telegram", "whatsapp", "imessage", "feishu"]);
+  const allowedStatuses = new Set(["NEW", "TRIAGED", "ROUTED", "CLOSED"]);
+  const channel = String(event.channel || "manual").toLowerCase();
+  const status = String(event.status || "NEW").toUpperCase();
+  const senderLabel = String(event.senderLabel || "Unknown sender").slice(0, 120);
+  const streamId = streamIdFor(channel, senderLabel);
+  const pairing = readPairings(pairingStore).find((record) => record.streamId === streamId);
+  const pairingStatus = pairing?.status === "PAIRED" ? "PAIRED" : "QUARANTINED";
+  return {
+    id: String(event.id || `INBOX-${Date.now().toString(36).toUpperCase()}`).replace(/[^A-Za-z0-9_-]/g, "-").slice(0, 90),
+    receivedAt: String(event.receivedAt || now).slice(0, 80),
+    channel: allowedChannels.has(channel) ? channel : "manual",
+    senderLabel,
+    subject: String(event.subject || "Untitled signal").slice(0, 240),
+    body: String(event.body || "").slice(0, 4000),
+    status: allowedStatuses.has(status) ? status : "NEW",
+    risk: ["LOW", "MEDIUM", "HIGH", "UNKNOWN"].includes(String(event.risk || "UNKNOWN").toUpperCase())
+      ? String(event.risk || "UNKNOWN").toUpperCase()
+      : "UNKNOWN",
+    provenance: String(event.provenance || "manual_local_intake").slice(0, 240),
+    routeTarget: String(event.routeTarget || "UNASSIGNED").slice(0, 120),
+    externalState: "UNKNOWN",
+    streamId,
+    pairingStatus,
+    executionAllowed: pairingStatus === "PAIRED",
+    updatedAt: String(event.updatedAt || now).slice(0, 80),
+  };
+}
+
+function intakeInboxEvent(event) {
+  const pairing = ensurePairing(pairingStore, event.channel, event.senderLabel);
+  const sanitized = sanitizeInboxEvent({ ...event, status: "NEW" });
+  const current = readInboxEvents();
+  const payload = writeInboxEvents([sanitized, ...current.filter((item) => item.id !== sanitized.id)]);
+  return { ...payload, event: sanitized, pairingKey: pairing.pairingKey, pairingCreated: pairing.created };
+}
+
+function readInboxEvents() {
+  if (!fs.existsSync(inboxStore)) return [];
+  const parsed = JSON.parse(fs.readFileSync(inboxStore, "utf8"));
+  const events = Array.isArray(parsed) ? parsed : parsed.events;
+  return Array.isArray(events) ? events.map(sanitizeInboxEvent) : [];
+}
+
+function writeInboxEvents(events) {
+  if (!Array.isArray(events)) throw new Error("inbox events must be an array.");
+  if (events.length > 300) throw new Error("Refusing to store more than 300 local inbox events.");
+  const sanitized = events.map(sanitizeInboxEvent);
+  if (new Set(sanitized.map((event) => event.id)).size !== sanitized.length) throw new Error("Inbox event IDs must be unique.");
+  const payload = {
+    schemaVersion: "mds.command-centre.local-inbox.v1",
+    updatedAt: new Date().toISOString(),
+    authority: "D-local synthetic/manual intake only. No live channel connection, delivery, identity verification, or provider state is proved.",
+    events: sanitized.slice(0, 300),
+  };
+  const temp = `${inboxStore}.${process.pid}.tmp`;
+  fs.writeFileSync(temp, `${JSON.stringify(payload, null, 2)}\n`);
+  fs.renameSync(temp, inboxStore);
+  return payload;
+}
+
 function sanitizeActivityEvent(event) {
   const now = new Date().toISOString();
   return {
@@ -161,6 +444,9 @@ function sanitizeDecisionExport(decision) {
 
 function sanitizeAgentRun(run) {
   const now = new Date().toISOString();
+  const sourceStreamId = String(run.sourceStreamId || "").slice(0, 32);
+  const sourcePairing = sourceStreamId ? readPairings(pairingStore).find((record) => record.streamId === sourceStreamId) : null;
+  const pairingBlocked = Boolean(sourceStreamId) && sourcePairing?.status !== "PAIRED";
   return {
     id: String(run.id || `RUN-${Date.now().toString(36).toUpperCase()}`).slice(0, 90),
     ticketId: String(run.ticketId || "UNKNOWN").slice(0, 80),
@@ -168,9 +454,12 @@ function sanitizeAgentRun(run) {
     targetAgent: String(run.targetAgent || "Codex").slice(0, 80),
     owner: String(run.owner || "Codex Strategic Board").slice(0, 120),
     lane: String(run.lane || "Command Centre").slice(0, 120),
-    status: String(run.status || "DRAFT").slice(0, 80),
+    status: pairingBlocked ? "BLOCKED_PAIRING_REQUIRED" : String(run.status || "DRAFT").slice(0, 80),
     priority: String(run.priority || "P1").slice(0, 12),
-    approvalClass: String(run.approvalClass || "LOCAL_ONLY").slice(0, 80),
+    approvalClass: pairingBlocked ? "PAIRING_REQUIRED" : String(run.approvalClass || "LOCAL_ONLY").slice(0, 80),
+    sourceStreamId,
+    sourcePairingStatus: sourceStreamId ? sourcePairing?.status || "QUARANTINED" : "NOT_APPLICABLE",
+    executionAllowed: sourceStreamId ? sourcePairing?.status === "PAIRED" : true,
     objective: String(run.objective || "").slice(0, 3000),
     sourceEvidence: String(run.sourceEvidence || "").slice(0, 3000),
     allowedActions: String(run.allowedActions || "").slice(0, 3000),
@@ -593,6 +882,17 @@ function snapshotHealth() {
     deltaReviewStore: path.relative(appRoot, deltaReviewStore),
     deltaReviewStoreExists: fs.existsSync(deltaReviewStore),
     deltaReviews: fs.existsSync(deltaReviewStore) ? readDeltaReviews().length : 0,
+    inboxStore: path.relative(appRoot, inboxStore),
+    inboxStoreExists: fs.existsSync(inboxStore),
+    inboxEvents: fs.existsSync(inboxStore) ? readInboxEvents().length : 0,
+    pairingStore: path.relative(appRoot, pairingStore),
+    pairedStreams: readPairings(pairingStore).filter((record) => record.status === "PAIRED").length,
+    quarantinedStreams: readPairings(pairingStore).filter((record) => record.status === "QUARANTINED").length,
+    workspaces: readWorkspaces(workspaceStore).length,
+    voice: voiceStatus(),
+    modelRouter: { inventory: localModelInventory().length, openCircuits: readModelRouter().failures.length },
+    canvasDocuments: readA2UIDocuments(canvasStore, fs).length,
+    sandboxReceipts: readSandboxReceipts().length,
     sources,
   };
 }
@@ -605,6 +905,112 @@ async function handleApi(request, response, pathname) {
     }
     if (request.method === "GET" && pathname === "/api/tickets") {
       sendJson(response, 200, { tickets: readTickets(), store: path.relative(appRoot, ticketStore) });
+      return true;
+    }
+    if (request.method === "GET" && pathname === "/api/inbox") {
+      sendJson(response, 200, { events: readInboxEvents(), store: path.relative(appRoot, inboxStore) });
+      return true;
+    }
+    if (request.method === "PUT" && pathname === "/api/inbox") {
+      const parsed = JSON.parse(await readBody(request, 512 * 1024));
+      const events = Array.isArray(parsed) ? parsed : parsed.events;
+      sendJson(response, 200, writeInboxEvents(events));
+      return true;
+    }
+    if (request.method === "POST" && pathname === "/api/inbox/intake") {
+      const parsed = JSON.parse(await readBody(request, 64 * 1024));
+      sendJson(response, 201, intakeInboxEvent(parsed.event || parsed));
+      return true;
+    }
+    if (request.method === "GET" && pathname === "/api/pairing") {
+      sendJson(response, 200, { records: readPairings(pairingStore).map(({ keyDigest, ...record }) => record), store: path.relative(appRoot, pairingStore) });
+      return true;
+    }
+    if (request.method === "GET" && pathname === "/api/workspaces") {
+      sendJson(response, 200, { records: readWorkspaces(workspaceStore), store: path.relative(appRoot, workspaceStore), runtimeRoot: path.relative(appRoot, workspaceRoot) });
+      return true;
+    }
+    if (request.method === "POST" && pathname === "/api/workspaces/route") {
+      const parsed = JSON.parse(await readBody(request, 64 * 1024));
+      const event = readInboxEvents().find((item) => item.id === String(parsed.eventId || ""));
+      if (!event) throw new Error("Inbox event not found.");
+      const result = routeStreamToWorkspace({
+        storePath: workspaceStore,
+        workspaceRoot,
+        pairingRecords: readPairings(pairingStore),
+        streamId: event.streamId,
+        label: parsed.label || event.senderLabel,
+        contextNotes: parsed.contextNotes || `Local workspace for ${event.senderLabel}. Source channel: ${event.channel}.`,
+        agents: parsed.agents,
+        event,
+      });
+      sendJson(response, result.created ? 201 : 200, result);
+      return true;
+    }
+    if (request.method === "GET" && pathname === "/api/voice/status") {
+      sendJson(response, 200, { ...voiceStatus(), drafts: readVoiceCommands().length });
+      return true;
+    }
+    if (request.method === "GET" && pathname === "/api/voice/commands") {
+      sendJson(response, 200, { records: readVoiceCommands(), store: path.relative(appRoot, voiceCommandStore) });
+      return true;
+    }
+    if (request.method === "POST" && pathname === "/api/voice/transcript") {
+      const parsed = JSON.parse(await readBody(request, 32 * 1024));
+      const result = parseVoiceTranscript(parsed.transcript);
+      sendJson(response, 201, writeVoiceCommand(result));
+      return true;
+    }
+    if (request.method === "POST" && pathname === "/api/voice/audio") {
+      const status = voiceStatus();
+      if (!status.continuousCaptureAllowed) {
+        sendJson(response, 503, { ok: false, status: status.status, error: "Offline whisper-cli and app-owned model are required before microphone audio is accepted." });
+        return true;
+      }
+      const parsed = JSON.parse(await readBody(request, 12 * 1024 * 1024));
+      sendJson(response, 201, await transcribeLocalAudio(parsed));
+      return true;
+    }
+    if (request.method === "GET" && pathname === "/api/model-router/status") {
+      const state = readModelRouter();
+      sendJson(response, 200, { state, inventory: localModelInventory(), chains: TASK_CHAINS, credentialValuesRead: false });
+      return true;
+    }
+    if (request.method === "POST" && pathname === "/api/model-router/resolve") {
+      const parsed = JSON.parse(await readBody(request, 32 * 1024));
+      sendJson(response, 201, resolveAndStoreModelRoute(String(parsed.taskClass || "general")));
+      return true;
+    }
+    if (request.method === "POST" && pathname === "/api/model-router/failure") {
+      const parsed = JSON.parse(await readBody(request, 32 * 1024));
+      const state = readModelRouter();
+      const failed = recordModelFailure(state, { targetId: parsed.targetId, reason: parsed.reason });
+      writeModelRouter(failed);
+      sendJson(response, 201, resolveAndStoreModelRoute(String(parsed.taskClass || "general")));
+      return true;
+    }
+    if (request.method === "GET" && pathname === "/api/canvas") {
+      sendJson(response, 200, { records: readA2UIDocuments(canvasStore, fs), store: path.relative(appRoot, canvasStore) });
+      return true;
+    }
+    if (request.method === "PUT" && pathname === "/api/canvas") {
+      const parsed = JSON.parse(await readBody(request, 512 * 1024));
+      const records = Array.isArray(parsed) ? parsed : parsed.records;
+      sendJson(response, 200, writeA2UIDocuments(canvasStore, records, fs));
+      return true;
+    }
+    if (request.method === "POST" && pathname === "/api/canvas/import") {
+      const parsed = JSON.parse(await readBody(request, 256 * 1024));
+      sendJson(response, 201, { document: sanitizeA2UIDocument(parsed.document || parsed), imported: true, executionAllowed: false });
+      return true;
+    }
+    if (request.method === "GET" && pathname === "/api/sandbox/status") {
+      sendJson(response, 200, { ...(await dockerStatus()), receipts: readSandboxReceipts() });
+      return true;
+    }
+    if (request.method === "POST" && pathname === "/api/sandbox/execute") {
+      const parsed = JSON.parse(await readBody(request, 96 * 1024));
+      sendJson(response, 201, await executeSandbox(parsed));
       return true;
     }
     if (request.method === "PUT" && pathname === "/api/tickets") {

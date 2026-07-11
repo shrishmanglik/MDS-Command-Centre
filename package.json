@@ -4,6 +4,9 @@
   "version": "0.1.0",
   "type": "module",
   "description": "Local-first MDS Command Centre shell reading D-root War Room boards.",
+  "bin": {
+    "midas": "scripts/midas.mjs"
+  },
   "scripts": {
     "refresh-data": "node scripts/refresh-war-room-data.mjs && node scripts/refresh-local-adapters.mjs",
     "dev": "npm run refresh-data && node scripts/serve.mjs --root . --port 5178",
@@ -11,6 +14,16 @@
     "lint": "node scripts/check-static.mjs",
     "preview": "node scripts/serve.mjs --root dist --port 4178",
     "desktop": "powershell -NoProfile -ExecutionPolicy Bypass -File desktop/launch-command-centre.ps1"
+    ,"daemon": "node scripts/daemon.mjs --root . --port 5178"
+    ,"daemon:probe": "node scripts/daemon.mjs --root . --port 5191 --probe-once"
+    ,"service:render": "node scripts/render-service-config.mjs"
+    ,"pairing:list": "node scripts/midas.mjs pairing list"
+    ,"test:pairing": "node scripts/test-pairing-gate.mjs"
+    ,"test:workspace-router": "node scripts/test-workspace-router.mjs"
+    ,"test:voice-gate": "node scripts/test-voice-gate.mjs"
+    ,"test:model-router": "node scripts/test-model-router.mjs"
+    ,"test:a2ui": "node scripts/test-a2ui-store.mjs"
+    ,"test:sandbox": "node scripts/test-sandbox-runner.mjs"
   },
   "devDependencies": {},
   "main": "index.js",
