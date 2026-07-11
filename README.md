@@ -65,6 +65,7 @@ The Decisions view turns local activity events into director-ready export packet
 ```powershell
 npm run doctor
 npm run skills:validate -- skill-packs/local-review
+npm run eval -- workflows/example-review.workflow.yaml
 npm run refresh-data
 npm run dev
 npm run build
@@ -81,6 +82,8 @@ npm run test:a2ui
 `midas doctor` (or `npm run doctor`) is the fail-closed startup guard for local paths and security defaults. It verifies required directories and bounded writability, explicit loopback binding, tracked secret-shaped filenames, digest-only pairing fields, `.env` ignore rules, and optional voice readiness. Credential-shaped environment variables are counted by name only; names and values are withheld, and `.env`, key, token, cookie, auth, and credential files are never opened. Blocking findings prevent `dev`, `daemon`, tray, and desktop startup through npm pre-hooks. Provider and credential validity remain `UNKNOWN`.
 
 `midas skills validate <pack-path>` validates JSON or YAML Skill Pack manifests offline before loading. The `mds.skill-pack.v1` contract enforces exact fields, semver, allowlisted capabilities, explicit permissions, bounded typed inputs/outputs, a contained Markdown entrypoint, duplicate-key rejection, and secret/executable/network field refusal. A valid receipt means structural eligibility only; it does not install, load, execute, trust, or grant authority to the pack.
+
+`midas eval <workflow-path>` runs the Three-Layer Quality Evaluator. Static and deterministic rubric layers produce a provisional 1–5 grade, then exactly 50 SHA-256-seeded mutation trials measure mean, standard deviation, range, and stability rate. The LLM Judge layer remains `NOT_RUN` unless a hash-bound `mds.llm-judge-receipt.v1` with `VERIFIED_LOCAL_JUDGE` evidence is supplied via `--judge-receipt`; without that evidence, certification is `BLOCKED_LLM_JUDGE_EVIDENCE` even when the provisional grade and stability pass. No provider call or model result is fabricated.
 
 `npm run service:render` produces path-resolved systemd and launchd definitions under `output/daemon/service-config/`. Installation remains a manual operator action because persistence changes host state. The Windows entrypoint is `service/windows/run-command-centre-daemon.ps1`; registering it with Task Scheduler is intentionally not automatic.
 
