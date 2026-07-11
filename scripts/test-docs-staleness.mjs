@@ -1,0 +1,11 @@
+import assert from "node:assert/strict";
+import { evaluateDocsStaleness } from "./lib/docs-staleness.mjs";
+const blocked = evaluateDocsStaleness(["scripts/serve.mjs"]);
+assert.equal(blocked.status, "BLOCKED_DOCS_STALE"); assert.deepEqual(blocked.violations[0].requiredDocs, ["README.md"]);
+const passed = evaluateDocsStaleness(["scripts/serve.mjs", "README.md"]);
+assert.equal(passed.status, "PASS"); assert.equal(passed.integrationAllowed, true);
+const desktop = evaluateDocsStaleness(["desktop/command-centre-tray.ps1", "README.md"]);
+assert.equal(desktop.status, "BLOCKED_DOCS_STALE"); assert.deepEqual(desktop.violations[0].requiredDocs, ["desktop/README.md"]);
+const secret = evaluateDocsStaleness([".env", "README.md"]);
+assert.equal(secret.changedFiles, "WITHHELD_DUE_TO_SECRET_SHAPED_PATH"); assert.equal(secret.fileContentsRead, false);
+console.log("Docs staleness checks passed.");

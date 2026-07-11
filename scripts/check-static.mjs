@@ -305,6 +305,12 @@ const pluginEval = fs.readFileSync(path.join(appRoot, "scripts", "lib", "plugin-
 if (!pluginEval.includes("trials !== 50") || !pluginEval.includes("BLOCKED_LLM_JUDGE_EVIDENCE") || !pluginEval.includes("standardDeviation") || !pluginEval.includes("providerState: \"UNKNOWN\"")) {
   throw new Error("three-layer evaluator trial, judge-evidence, statistics, or provider boundary is missing.");
 }
+const docsStaleness = fs.readFileSync(path.join(appRoot, "scripts", "lib", "docs-staleness.mjs"), "utf8");
+const preCommit = fs.readFileSync(path.join(appRoot, ".githooks", "pre-commit"), "utf8");
+if (!docsStaleness.includes("BLOCKED_DOCS_STALE") || !docsStaleness.includes("fileContentsRead: false") || !docsStaleness.includes("runtime-contracts")) {
+  throw new Error("documentation staleness mapping or no-content-read boundary is missing.");
+}
+if (!preCommit.includes("docs-staleness.mjs --staged")) throw new Error("pre-commit documentation guard is missing.");
 if (!fs.readFileSync(path.join(appRoot, "package.json"), "utf8").includes('"predev": "npm run doctor"')) {
   throw new Error("doctor startup guard is not wired before workflows.");
 }
