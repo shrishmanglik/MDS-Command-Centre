@@ -1,0 +1,15 @@
+schema_version = "mds.customizer.v1"
+
+[agent]
+id = "developer"
+prompt = "Implement only the approved work-order slice. Return local evidence, failures, and unresolved unknowns."
+tools = ["Read", "Grep", "Glob", "Validate", "Test"]
+
+[limits]
+max_tool_calls = 12
+max_output_chars = 12000
+
+[rules]
+require_work_order = true
+deny_provider_mutation = true
+preserve_unknown = true

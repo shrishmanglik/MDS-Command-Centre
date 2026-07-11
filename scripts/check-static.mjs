@@ -358,6 +358,10 @@ const subagentWorker = fs.readFileSync(path.join(appRoot, "scripts", "lib", "sub
 if (!subagentEngine.includes("spawnParallelSubagents") || !subagentEngine.includes("arbitraryCodeAllowed: false") || !subagentEngine.includes("SERIALIZED_TASK_PAYLOAD_ONLY") || !subagentWorker.includes("WORKER_TASK_TYPE_UNSUPPORTED")) {
   throw new Error("RPC worker spawning, arbitrary-code refusal, isolated context, or fixed worker protocol is missing.");
 }
+const declarativeCustomizer = fs.readFileSync(path.join(appRoot, "scripts", "lib", "declarative-customizer.mjs"), "utf8");
+if (!declarativeCustomizer.includes("validateCustomizerConfig") || !declarativeCustomizer.includes("CUSTOMIZER_SAFETY_RULE_CANNOT_BE_DISABLED") || !declarativeCustomizer.includes("applied: false")) {
+  throw new Error("TOML customizer validation, immutable safety rule, or unapplied boundary is missing.");
+}
 if (!fs.readFileSync(path.join(appRoot, "package.json"), "utf8").includes('"predev": "npm run doctor"')) {
   throw new Error("doctor startup guard is not wired before workflows.");
 }
