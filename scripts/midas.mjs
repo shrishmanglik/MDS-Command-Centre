@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 import { approvePairing, readPairings } from "./lib/pairing-store.mjs";
 import { runDoctor } from "./lib/doctor.mjs";
 import { validateSkillPack } from "./lib/skill-validator.mjs";
+import { evaluateWorkflow } from "./lib/plugin-eval.mjs";
 
 const appRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const storePath = path.join(appRoot, "src", "data", "localPairings.json");
@@ -22,8 +23,16 @@ if (domain === "skills" && action === "validate") {
   process.exit(result.valid ? 0 : 1);
 }
 
+if (domain === "eval") {
+  if (!action) { console.error("Usage: midas eval <workflow-path> [--judge-receipt <path>]"); process.exit(2); }
+  const receiptIndex = process.argv.indexOf("--judge-receipt");
+  const result = evaluateWorkflow(path.resolve(process.cwd(), action), { trials: 50, judgeReceiptPath: receiptIndex >= 0 ? process.argv[receiptIndex + 1] : undefined });
+  console.log(JSON.stringify(result, null, 2));
+  process.exit(result.provisionalGrade >= 3 ? 0 : 1);
+}
+
 if (domain !== "pairing" || !["list", "approve"].includes(action || "")) {
-  console.error("Usage: midas doctor | midas skills validate <pack-path> | midas pairing list | midas pairing approve <pairing-key>");
+  console.error("Usage: midas doctor | midas skills validate <pack-path> | midas eval <workflow-path> | midas pairing list | midas pairing approve <pairing-key>");
   process.exit(2);
 }
 

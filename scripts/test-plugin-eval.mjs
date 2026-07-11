@@ -1,0 +1,11 @@
+import assert from "node:assert/strict";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { evaluateWorkflow } from "./lib/plugin-eval.mjs";
+const appRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const file = path.join(appRoot, "workflows", "example-review.workflow.yaml");
+const first = evaluateWorkflow(file); const second = evaluateWorkflow(file);
+assert.equal(first.provisionalGrade, 5); assert.equal(first.layers.monteCarlo.trials, 50); assert.deepEqual(first.layers.monteCarlo, second.layers.monteCarlo);
+assert.equal(first.layers.llmJudge.status, "NOT_RUN"); assert.equal(first.certifiedGrade, null); assert.equal(first.certification, "BLOCKED_LLM_JUDGE_EVIDENCE");
+assert.equal(first.credentialValuesRead, false); assert.throws(() => evaluateWorkflow(file, { trials: 49 }), /exactly 50/);
+console.log("Plugin eval checks passed.");

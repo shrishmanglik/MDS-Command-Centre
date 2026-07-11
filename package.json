@@ -12,6 +12,8 @@
     "test:doctor": "node scripts/test-doctor.mjs",
     "test:skill-validator": "node scripts/test-skill-validator.mjs",
     "skills:validate": "node scripts/midas.mjs skills validate",
+    "eval": "node scripts/midas.mjs eval",
+    "test:plugin-eval": "node scripts/test-plugin-eval.mjs",
     "predev": "npm run doctor",
     "predaemon": "npm run doctor",
     "pretray": "npm run doctor",

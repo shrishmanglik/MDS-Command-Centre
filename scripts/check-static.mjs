@@ -301,6 +301,10 @@ const skillValidator = fs.readFileSync(path.join(appRoot, "scripts", "lib", "ski
 if (!skillValidator.includes("maxAliasCount: 0") || !skillValidator.includes("FORBIDDEN_FIELD") || !skillValidator.includes("loadAllowed: !errors.length") || !skillValidator.includes("secretFilesRead: false")) {
   throw new Error("offline Skill Pack parser or load/security boundary is missing.");
 }
+const pluginEval = fs.readFileSync(path.join(appRoot, "scripts", "lib", "plugin-eval.mjs"), "utf8");
+if (!pluginEval.includes("trials !== 50") || !pluginEval.includes("BLOCKED_LLM_JUDGE_EVIDENCE") || !pluginEval.includes("standardDeviation") || !pluginEval.includes("providerState: \"UNKNOWN\"")) {
+  throw new Error("three-layer evaluator trial, judge-evidence, statistics, or provider boundary is missing.");
+}
 if (!fs.readFileSync(path.join(appRoot, "package.json"), "utf8").includes('"predev": "npm run doctor"')) {
   throw new Error("doctor startup guard is not wired before workflows.");
 }

@@ -1,0 +1,16 @@
+schemaVersion: mds.agent-workflow.v1
+id: example-review
+objective: Review a bounded local artifact against named acceptance evidence.
+evidenceRequirement: Record exact local paths and deterministic check results.
+stopCondition: Stop before external actions, secret reads, provider mutation, or unsupported claims.
+validationPlan: Run the declared local checks and preserve failures and unknowns.
+authority: Local review only; no deployment, payment, provider, or execution authority.
+steps:
+  - id: inspect
+    action: Read the allowlisted artifact and acceptance contract.
+    expectedOutput: A bounded defect list with source pointers.
+    validation: Every finding references local evidence.
+  - id: verify
+    action: Run the declared deterministic checks.
+    expectedOutput: Exact pass and failure results.
+    validation: Exit codes and check names are retained.
