@@ -2532,10 +2532,16 @@ pre {
     height: auto;
     padding: 14px;
     gap: 12px;
+    width: 100%;
+    max-width: 100vw;
+    min-width: 0;
+    overflow: hidden;
   }
 
   .side-nav nav {
     display: flex;
+    width: 100%;
+    min-width: 0;
     gap: 8px;
     overflow-x: auto;
     padding-bottom: 4px;
@@ -2801,4 +2807,141 @@ pre {
   font-size: 12px;
   opacity: 0.75;
   margin-top: 4px;
+}
+
+/* Local multi-channel inbox: manual and synthetic intake only. */
+.inbox-grid {
+  display: grid;
+  grid-template-columns: minmax(300px, 0.8fr) minmax(360px, 1.2fr);
+  gap: 16px;
+}
+
+.inbox-grid .wide {
+  grid-column: 1 / -1;
+}
+
+.inbox-brief {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 16px 32px;
+}
+
+.inbox-brief .panel-title,
+.inbox-brief h2,
+.inbox-brief p {
+  grid-column: 1;
+}
+
+.inbox-counts {
+  grid-column: 2;
+  grid-row: 1 / span 3;
+  display: grid;
+  grid-template-columns: repeat(4, 72px);
+  gap: 8px;
+}
+
+.inbox-counts span {
+  display: grid;
+  gap: 4px;
+  padding: 10px;
+  border: 1px solid #dfe4ea;
+  border-radius: 6px;
+  color: #697586;
+  font-size: 10px;
+  text-align: center;
+}
+
+.inbox-counts strong {
+  color: #17202a;
+  font-size: 20px;
+}
+
+.inbox-event-list {
+  display: grid;
+  gap: 6px;
+  max-height: 560px;
+  overflow-y: auto;
+}
+
+.inbox-event {
+  display: grid;
+  gap: 6px;
+  width: 100%;
+  min-height: 88px;
+  padding: 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  background: #fff;
+  color: #4b5565;
+  text-align: left;
+}
+
+.inbox-event:hover,
+.inbox-event.selected {
+  border-color: #2f6f61;
+  background: #f3f8f6;
+}
+
+.inbox-event strong {
+  color: #17202a;
+}
+
+.inbox-event-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+}
+
+.inbox-event time {
+  color: #7b8492;
+  font-size: 11px;
+}
+
+.inbox-state-actions {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin: 16px 0;
+}
+
+.inbox-state-actions button {
+  min-height: 44px;
+}
+
+.inbox-packet {
+  min-height: 220px;
+  max-height: 300px;
+  padding: 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  background: #f8fafc;
+}
+
+@media (max-width: 980px) {
+  .inbox-grid,
+  .inbox-brief {
+    grid-template-columns: 1fr;
+  }
+
+  .brand-lockup,
+  .brand-lockup > div {
+    min-width: 0;
+  }
+
+  .inbox-brief .panel-title,
+  .inbox-brief h2,
+  .inbox-brief p,
+  .inbox-counts {
+    grid-column: 1;
+    grid-row: auto;
+  }
+}
+
+@media (max-width: 620px) {
+  .inbox-counts,
+  .inbox-state-actions {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }

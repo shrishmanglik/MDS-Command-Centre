@@ -21,6 +21,7 @@ const refreshScript = path.join(appRoot, "scripts", "refresh-war-room-data.mjs")
 const adapterRefreshScript = path.join(appRoot, "scripts", "refresh-local-adapters.mjs");
 const sourceEvidenceStore = path.join(appRoot, "src", "data", "localSourceEvidence.json");
 const capabilityRequestStore = path.join(appRoot, "src", "data", "localCapabilityRequests.json");
+const inboxStore = path.join(appRoot, "src", "data", "localInboxEvents.json");
 const D_ROOT = "D:/Million Dollar AI Studio";
 const BROWSE_ROOTS = ["Products", "vcos", "command-centre", "output/playwright", "."];
 const SECRET_PATH_PATTERN =
@@ -100,6 +101,54 @@ function sanitizeTicket(ticket) {
     createdAt: String(ticket.createdAt || now).slice(0, 80),
     updatedAt: String(ticket.updatedAt || now).slice(0, 80),
   };
+}
+
+function sanitizeInboxEvent(event) {
+  const now = new Date().toISOString();
+  const allowedChannels = new Set(["manual", "synthetic", "system", "telegram", "whatsapp", "imessage", "feishu"]);
+  const allowedStatuses = new Set(["NEW", "TRIAGED", "ROUTED", "CLOSED"]);
+  const channel = String(event.channel || "manual").toLowerCase();
+  const status = String(event.status || "NEW").toUpperCase();
+  return {
+    id: String(event.id || `INBOX-${Date.now().toString(36).toUpperCase()}`).replace(/[^A-Za-z0-9_-]/g, "-").slice(0, 90),
+    receivedAt: String(event.receivedAt || now).slice(0, 80),
+    channel: allowedChannels.has(channel) ? channel : "manual",
+    senderLabel: String(event.senderLabel || "Unknown sender").slice(0, 120),
+    subject: String(event.subject || "Untitled signal").slice(0, 240),
+    body: String(event.body || "").slice(0, 4000),
+    status: allowedStatuses.has(status) ? status : "NEW",
+    risk: ["LOW", "MEDIUM", "HIGH", "UNKNOWN"].includes(String(event.risk || "UNKNOWN").toUpperCase())
+      ? String(event.risk || "UNKNOWN").toUpperCase()
+      : "UNKNOWN",
+    provenance: String(event.provenance || "manual_local_intake").slice(0, 240),
+    routeTarget: String(event.routeTarget || "UNASSIGNED").slice(0, 120),
+    externalState: "UNKNOWN",
+    updatedAt: String(event.updatedAt || now).slice(0, 80),
+  };
+}
+
+function readInboxEvents() {
+  if (!fs.existsSync(inboxStore)) return [];
+  const parsed = JSON.parse(fs.readFileSync(inboxStore, "utf8"));
+  const events = Array.isArray(parsed) ? parsed : parsed.events;
+  return Array.isArray(events) ? events.map(sanitizeInboxEvent) : [];
+}
+
+function writeInboxEvents(events) {
+  if (!Array.isArray(events)) throw new Error("inbox events must be an array.");
+  if (events.length > 300) throw new Error("Refusing to store more than 300 local inbox events.");
+  const sanitized = events.map(sanitizeInboxEvent);
+  if (new Set(sanitized.map((event) => event.id)).size !== sanitized.length) throw new Error("Inbox event IDs must be unique.");
+  const payload = {
+    schemaVersion: "mds.command-centre.local-inbox.v1",
+    updatedAt: new Date().toISOString(),
+    authority: "D-local synthetic/manual intake only. No live channel connection, delivery, identity verification, or provider state is proved.",
+    events: sanitized.slice(0, 300),
+  };
+  const temp = `${inboxStore}.${process.pid}.tmp`;
+  fs.writeFileSync(temp, `${JSON.stringify(payload, null, 2)}\n`);
+  fs.renameSync(temp, inboxStore);
+  return payload;
 }
 
 function sanitizeActivityEvent(event) {
@@ -593,6 +642,9 @@ function snapshotHealth() {
     deltaReviewStore: path.relative(appRoot, deltaReviewStore),
     deltaReviewStoreExists: fs.existsSync(deltaReviewStore),
     deltaReviews: fs.existsSync(deltaReviewStore) ? readDeltaReviews().length : 0,
+    inboxStore: path.relative(appRoot, inboxStore),
+    inboxStoreExists: fs.existsSync(inboxStore),
+    inboxEvents: fs.existsSync(inboxStore) ? readInboxEvents().length : 0,
     sources,
   };
 }
@@ -605,6 +657,16 @@ async function handleApi(request, response, pathname) {
     }
     if (request.method === "GET" && pathname === "/api/tickets") {
       sendJson(response, 200, { tickets: readTickets(), store: path.relative(appRoot, ticketStore) });
+      return true;
+    }
+    if (request.method === "GET" && pathname === "/api/inbox") {
+      sendJson(response, 200, { events: readInboxEvents(), store: path.relative(appRoot, inboxStore) });
+      return true;
+    }
+    if (request.method === "PUT" && pathname === "/api/inbox") {
+      const parsed = JSON.parse(await readBody(request, 512 * 1024));
+      const events = Array.isArray(parsed) ? parsed : parsed.events;
+      sendJson(response, 200, writeInboxEvents(events));
       return true;
     }
     if (request.method === "PUT" && pathname === "/api/tickets") {

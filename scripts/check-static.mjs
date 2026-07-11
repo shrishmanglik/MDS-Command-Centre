@@ -234,6 +234,9 @@ if (!js.includes("buildAuthorityHandoffPacket") || !js.includes("Manual authorit
 if (!js.includes("/api/tickets") || !js.includes("/api/health") || !js.includes("refresh-snapshot")) {
   throw new Error("local API persistence/health wiring is missing.");
 }
+if (!js.includes("renderInbox") || !js.includes("inboxRoutingPacket") || !js.includes("/api/inbox") || !js.includes("LOCAL_PACKET_ONLY")) {
+  throw new Error("local inbox intake, state machine, or routing-preview wiring is missing.");
+}
 if (!Array.isArray(snapshot.sources) || snapshot.sources.length < 6) throw new Error("war-room snapshot is incomplete.");
 if (!snapshot.controlSurface || snapshot.controlSurface.status !== "LOCAL_CONTROL_SURFACE_ONLY") {
   throw new Error("structured controlSurface snapshot is missing.");

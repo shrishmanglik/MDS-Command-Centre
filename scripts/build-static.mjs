@@ -29,4 +29,5 @@ copy("src/data/localSourceTruthSnapshot.json");
 copy("src/data/localAdapterHealth.json");
 copy("src/data/localSourceEvidence.json");
 copy("src/data/localCapabilityRequests.json");
+copy("src/data/localInboxEvents.json");
 console.log(`Built static Command Centre to ${path.relative(appRoot, dist)}`);

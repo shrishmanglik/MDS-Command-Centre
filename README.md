@@ -2,7 +2,9 @@
 
 Status: Sprint 001 local-first shell.
 
-This app reads whitelisted seed files from `D:/Million Dollar AI Studio/command-centre/war-room/` and local MIDAS framework contracts into a local JSON snapshot, then renders an operator cockpit for Today, Launch OS, Search, Queue, Boards, Runtime, Proof, Operator OS, Research, Runs, Tickets, Dispatch, Closeout, Review, Promote, Activity, Decisions, Benchmark, and Health.
+This app reads whitelisted seed files from `D:/Million Dollar AI Studio/command-centre/war-room/` and local MIDAS framework contracts into a local JSON snapshot, then renders an operator cockpit for Today, Inbox, Launch OS, Search, Queue, Boards, Runtime, Proof, Operator OS, Research, Runs, Tickets, Dispatch, Closeout, Review, Promote, Activity, Decisions, Benchmark, and Health.
+
+The Inbox view is the first local-first gateway slice. It normalizes manual, synthetic, and local system signals into one queue, supports `NEW -> TRIAGED -> ROUTED -> CLOSED`, records source/provenance and risk, and generates a copyable routing preview. It does not connect to WhatsApp, Telegram, iMessage, Feishu, or any other external channel; it does not verify sender identity or send replies. Those provider and delivery states remain `UNKNOWN`.
 
 The Today view now renders a structured local control surface, not just Markdown board previews. It normalizes revenue truth, Product VCOS rows, frontend/backend/payment/deploy/provider gates, provider readiness blockers, Shrish-only approvals, active CEO work orders, agent assignments, failures, releases, content queue, Board decisions, CEO actions, next action, and nightly closeout evidence from the snapshot. Each row carries source evidence and claim ceilings so local readiness cannot become a live provider/payment/deployment claim.
 
@@ -64,6 +66,8 @@ Local API routes:
 - `GET /api/health` reports snapshot and source-health state.
 - `GET /api/tickets` reads the D-local ticket file.
 - `PUT /api/tickets` writes sanitized local tickets.
+- `GET /api/inbox` reads normalized manual/synthetic local inbox events.
+- `PUT /api/inbox` writes sanitized local inbox events with unique IDs and bounded fields.
 - `GET /api/activity` reads the D-local activity file.
 - `PUT /api/activity` writes sanitized local activity events.
 - `GET /api/decisions` reads D-local director decision exports.

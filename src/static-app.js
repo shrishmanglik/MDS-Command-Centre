@@ -49,6 +49,10 @@ const state = {
   evidencePersistence: "localStorage fallback",
   capabilityRequestPersistence: "localStorage fallback",
   adapterRefreshState: "",
+  inboxEvents: [],
+  selectedInboxEventId: "",
+  inboxFilter: "all",
+  inboxPersistence: "localStorage fallback",
 };
 
 const storageKey = "mds-command-centre:tickets:v1";
@@ -58,6 +62,7 @@ const storageRunKey = "mds-command-centre:runs:v1";
 const storageResearchKey = "mds-command-centre:research:v1";
 const storageDeltaKey = "mds-command-centre:delta-reviews:v1";
 const storageSearchViewsKey = "mds-command-centre:search-views:v1";
+const storageInboxKey = "mds-command-centre:inbox:v1";
 const targets = ["Codex", "Claude Code", "Antigravity", "NotebookLM", "GLM/Ollama", "Human"];
 const validViews = new Set([
   "today",
@@ -66,6 +71,7 @@ const validViews = new Set([
   "boards",
   "launch",
   "operator",
+  "inbox",
   "vcos",
   "files",
   "git",
@@ -105,6 +111,7 @@ function icon(name, size = 18) {
     runtime: '<path d="M4 5h16v5H4z"/><path d="M4 14h7v5H4z"/><path d="M15 14h5v5h-5z"/><path d="M8 10v4"/><path d="M17 10v4"/><path d="M11 16h4"/>',
     proof: '<path d="M12 3 5 6v6c0 4 3 7 7 9 4-2 7-5 7-9V6l-7-3Z"/><path d="m9 12 2 2 4-5"/>',
     operator: '<path d="M4 5h7v7H4z"/><path d="M13 5h7v4h-7z"/><path d="M13 11h7v8h-7z"/><path d="M4 14h7v5H4z"/><path d="M11 8h2"/><path d="M8 12v2"/><path d="M16 9v2"/>',
+    inbox: '<path d="M4 5h16v14H4z"/><path d="m4 13 4-4 4 4 4-4 4 4"/><path d="M8 17h8"/>',
     benchmark: '<path d="M4 19V5"/><path d="M4 19h16"/><path d="M8 16V9"/><path d="M12 16V7"/><path d="M16 16v-4"/>',
     search: '<circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/>',
     vcos: '<path d="M12 3v4"/><path d="M5 21v-4"/><path d="M19 21v-4"/><path d="M12 21v-6"/><rect x="9" y="7" width="6" height="4" rx="1"/><rect x="2" y="13" width="6" height="4" rx="1"/><rect x="16" y="13" width="6" height="4" rx="1"/><path d="M12 11v2"/><path d="M5 13v-1h14v1"/>',
@@ -2873,7 +2880,7 @@ function renderShell(content) {
           <div><strong>MDS Command Centre</strong><span>Local-first Sprint 001</span></div>
         </div>
         <nav>
-          ${navGroup("Operate", ["today", "launch", "search", "queue", "boards", "operator"])}
+          ${navGroup("Operate", ["today", "inbox", "launch", "search", "queue", "boards", "operator"])}
           ${navGroup("System", ["vcos", "files", "git", "sources", "capabilities", "providers", "models"])}
           ${navGroup("Execution", ["runtime", "runs", "tickets", "dispatch", "proof"])}
           ${navGroup("Govern", ["closeout", "review", "promote", "activity", "decisions", "benchmark", "health"])}
@@ -2900,6 +2907,7 @@ function renderShell(content) {
 
 const navLabels = {
   today: "Today",
+  inbox: "Inbox",
   search: "Search",
   queue: "Queue",
   boards: "Boards",
@@ -3368,6 +3376,94 @@ function renderDashboardProofStrip({ control, queueCount, activeTickets, openRun
       <span><strong>Unknowns</strong>${esc(unknownCount)} rows / ${esc(revenueMode)}</span>
     </div>
   </section>`;
+}
+
+async function loadInboxEvents() {
+  try {
+    const payload = await apiJson("/api/inbox");
+    if (Array.isArray(payload.events)) {
+      state.inboxPersistence = `file-backed: ${payload.store || "src/data/localInboxEvents.json"}`;
+      localStorage.setItem(storageInboxKey, JSON.stringify(payload.events));
+      return payload.events;
+    }
+  } catch {
+    state.inboxPersistence = "localStorage fallback";
+  }
+  try {
+    const stored = JSON.parse(localStorage.getItem(storageInboxKey) || "[]");
+    return Array.isArray(stored) ? stored : [];
+  } catch {
+    return [];
+  }
+}
+
+async function saveInboxEvents() {
+  state.inboxEvents = state.inboxEvents.slice(0, 300);
+  localStorage.setItem(storageInboxKey, JSON.stringify(state.inboxEvents));
+  try {
+    const payload = await apiJson("/api/inbox", { method: "PUT", body: JSON.stringify({ events: state.inboxEvents }) });
+    state.inboxPersistence = `file-backed: ${payload.updatedAt || "saved"}`;
+  } catch {
+    state.inboxPersistence = "localStorage fallback";
+  }
+}
+
+function selectedInboxEvent() {
+  return state.inboxEvents.find((event) => event.id === state.selectedInboxEventId) || state.inboxEvents[0] || null;
+}
+
+function inboxRoutingPacket(event) {
+  if (!event) return "No inbox event selected.";
+  return [
+    "# MDS Local Inbox Routing Preview",
+    "status: LOCAL_PACKET_ONLY",
+    `event_id: ${event.id}`,
+    `channel: ${event.channel}`,
+    `sender_label: ${event.senderLabel}`,
+    `subject: ${event.subject}`,
+    `triage_status: ${event.status}`,
+    `risk: ${event.risk}`,
+    `route_target: ${event.routeTarget || "UNASSIGNED"}`,
+    `provenance: ${event.provenance}`,
+    "external_channel_state: UNKNOWN",
+    "stop_condition: Do not send, reply, connect a provider, read credentials, or treat sender identity as verified.",
+  ].join("\n");
+}
+
+function renderInbox() {
+  const counts = Object.fromEntries(["NEW", "TRIAGED", "ROUTED", "CLOSED"].map((status) => [status, state.inboxEvents.filter((event) => event.status === status).length]));
+  const visible = state.inboxFilter === "all" ? state.inboxEvents : state.inboxEvents.filter((event) => event.status === state.inboxFilter);
+  const selected = selectedInboxEvent();
+  renderShell(`
+    <div class="inbox-grid">
+      <section class="objective-panel wide inbox-brief">
+        <div class="panel-title">${icon("inbox")}<span>Local intake boundary</span></div>
+        <h2>One queue for customer inquiries, system notifications, and operator signals.</h2>
+        <p>Manual and synthetic records only. WhatsApp, Telegram, iMessage, and Feishu connectivity, sender identity, delivery, and live provider state remain UNKNOWN.</p>
+        <div class="inbox-counts">${["NEW", "TRIAGED", "ROUTED", "CLOSED"].map((status) => `<span><strong>${counts[status]}</strong>${status}</span>`).join("")}</div>
+      </section>
+      <form class="research-form inbox-compose" id="inbox-intake-form">
+        <div class="panel-title">${icon("plus")}<span>Record local signal</span></div>
+        <div class="form-grid two">
+          ${select("Source", "channel", "manual", ["manual", "synthetic", "system"])}
+          ${select("Risk", "risk", "UNKNOWN", ["UNKNOWN", "LOW", "MEDIUM", "HIGH"])}
+        </div>
+        ${input("Sender label", "senderLabel", "", "Operator, customer label, or system")}
+        ${input("Subject", "subject", "", "What needs attention?")}
+        ${textarea("Signal", "body", "")}
+        ${select("Route target", "routeTarget", "UNASSIGNED", ["UNASSIGNED", "Customer Care", "Product Ops", "DevOps", "Sales", "Founder Review"])}
+        <div class="dispatch-actions"><button class="primary" type="submit">${icon("save", 16)} Add to inbox</button><button type="button" data-action="seed-inbox-event">${icon("plus", 16)} Add synthetic sample</button></div>
+      </form>
+      <section class="list-panel inbox-list">
+        <div class="panel-title">${icon("inbox")}<span>Intake queue</span><em>${esc(state.inboxPersistence)}</em></div>
+        <div class="review-filter-bar">${["all", "NEW", "TRIAGED", "ROUTED", "CLOSED"].map((filter) => `<button type="button" class="${state.inboxFilter === filter ? "active" : ""}" data-inbox-filter="${filter}">${esc(filter)}</button>`).join("")}</div>
+        <div class="inbox-event-list">${visible.length ? visible.map((event) => `<button type="button" class="inbox-event ${selected?.id === event.id ? "selected" : ""}" data-inbox-event="${esc(event.id)}"><span class="inbox-event-top"><em class="${statusClass(event.status)}">${esc(event.status)}</em><time>${esc(new Date(event.receivedAt).toLocaleString())}</time></span><strong>${esc(event.subject)}</strong><span>${esc(event.senderLabel)} · ${esc(event.channel)} · ${esc(event.risk)}</span></button>`).join("") : `<article class="empty-card"><strong>No ${esc(state.inboxFilter === "all" ? "local" : state.inboxFilter)} signals.</strong><p>Record a manual event or add a synthetic sample.</p></article>`}</div>
+      </section>
+      <section class="table-panel inbox-detail">
+        <div class="panel-title">${icon("dispatch")}<span>Routing preview</span></div>
+        ${selected ? `<header><div><em class="${statusClass(selected.status)}">${esc(selected.status)}</em><h2>${esc(selected.subject)}</h2><p>${esc(selected.body || "No signal body supplied.")}</p></div></header><dl class="launch-definition-list"><dt>Sender</dt><dd>${esc(selected.senderLabel)}</dd><dt>Source</dt><dd>${esc(selected.channel)} / ${esc(selected.provenance)}</dd><dt>Risk</dt><dd>${esc(selected.risk)}</dd><dt>Route</dt><dd>${esc(selected.routeTarget || "UNASSIGNED")}</dd><dt>External state</dt><dd>UNKNOWN</dd></dl><div class="inbox-state-actions">${["NEW", "TRIAGED", "ROUTED", "CLOSED"].map((status) => `<button type="button" data-inbox-status="${status}" ${selected.status === status ? "disabled" : ""}>${esc(status)}</button>`).join("")}</div><pre class="inbox-packet">${esc(inboxRoutingPacket(selected))}</pre><div class="dispatch-actions"><button type="button" data-action="copy-inbox-packet">${icon("file", 16)} Copy routing preview</button></div>` : `<article class="empty-card"><strong>No event selected.</strong><p>Add or select a local signal to review its routing packet.</p></article>`}
+      </section>
+    </div>`);
 }
 
 function renderToday() {
@@ -5578,6 +5674,7 @@ function wireMv18Events() {
 
 function render() {
   if (state.view === "today") renderToday();
+  if (state.view === "inbox") renderInbox();
   if (state.view === "search") renderSearch();
   if (state.view === "queue") renderQueue();
   if (state.view === "boards") renderBoards();
@@ -5689,6 +5786,32 @@ function wireEvents() {
       }
       render();
     }
+    if (button.dataset.inboxFilter) {
+      state.inboxFilter = button.dataset.inboxFilter;
+      render();
+    }
+    if (button.dataset.inboxEvent) {
+      state.selectedInboxEventId = button.dataset.inboxEvent;
+      render();
+    }
+    if (button.dataset.inboxStatus) {
+      const item = selectedInboxEvent();
+      if (!item) return;
+      item.status = button.dataset.inboxStatus;
+      item.updatedAt = nowIso();
+      await saveInboxEvents();
+      await recordActivity("inbox_status_changed", selectedTicket(), { details: `${item.id} moved to ${item.status}. Local intake only; no external action.` });
+      render();
+    }
+    if (button.dataset.action === "seed-inbox-event") {
+      const now = nowIso();
+      const item = { id: `INBOX-SYN-${Date.now().toString(36).toUpperCase()}`, receivedAt: now, channel: "synthetic", senderLabel: "Synthetic system monitor", subject: "Review failed local readiness check", body: "Synthetic fixture: one local readiness check requires operator triage.", status: "NEW", risk: "MEDIUM", provenance: "synthetic_fixture", routeTarget: "Product Ops", externalState: "UNKNOWN", updatedAt: now };
+      state.inboxEvents = [item, ...state.inboxEvents];
+      state.selectedInboxEventId = item.id;
+      await saveInboxEvents();
+      render();
+    }
+    if (button.dataset.action === "copy-inbox-packet") await copyTextToClipboard(inboxRoutingPacket(selectedInboxEvent()));
     if (button.dataset.board) {
       state.selectedBoardId = button.dataset.board;
       render();
@@ -6446,6 +6569,20 @@ function wireEvents() {
   });
 
   document.addEventListener("submit", async (event) => {
+    const inboxForm = event.target?.closest?.("#inbox-intake-form");
+    if (inboxForm) {
+      event.preventDefault();
+      const values = Object.fromEntries(new FormData(inboxForm).entries());
+      if (!String(values.subject || "").trim()) return;
+      const now = nowIso();
+      const item = { ...values, id: `INBOX-${Date.now().toString(36).toUpperCase()}`, receivedAt: now, status: "NEW", provenance: `${values.channel || "manual"}_local_intake`, externalState: "UNKNOWN", updatedAt: now };
+      state.inboxEvents = [item, ...state.inboxEvents];
+      state.selectedInboxEventId = item.id;
+      await saveInboxEvents();
+      await recordActivity("inbox_event_recorded", selectedTicket(), { details: `Recorded local inbox event ${item.id} from ${item.channel}. No external channel action.` });
+      render();
+      return;
+    }
     const targetFormId = event.target?.getAttribute?.("id");
     const formElement =
       targetFormId === "ticket-form" ||
@@ -6663,6 +6800,7 @@ async function boot() {
   await loadAdapterSnapshots();
   state.sourceEvidence = await loadSourceEvidence();
   state.capabilityRequests = await loadCapabilityRequests();
+  state.inboxEvents = await loadInboxEvents();
   wireMv18Events();
   state.selectedTicketId = state.tickets[0]?.id || "";
   state.selectedActivityId = state.activity[0]?.id || "";
@@ -6670,6 +6808,7 @@ async function boot() {
   state.selectedRunId = state.runs[0]?.id || "";
   state.selectedResearchId = state.research[0]?.id || "";
   state.selectedDeltaReviewId = state.deltaReviews[0]?.id || "";
+  state.selectedInboxEventId = state.inboxEvents[0]?.id || "";
   state.selectedBoardId = state.snapshot.sources[0]?.id || "";
   const initialView = new URLSearchParams(window.location.search).get("view");
   if (initialView && validViews.has(initialView)) state.view = initialView;

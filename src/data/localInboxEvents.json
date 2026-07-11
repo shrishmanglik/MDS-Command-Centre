@@ -1,0 +1,6 @@
+{
+  "schemaVersion": "mds.command-centre.local-inbox.v1",
+  "updatedAt": "UNKNOWN",
+  "authority": "D-local synthetic/manual intake only. No live channel connection, delivery, identity verification, or provider state is proved.",
+  "events": []
+}
