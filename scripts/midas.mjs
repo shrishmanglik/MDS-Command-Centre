@@ -21,6 +21,7 @@ import { inspectGameProject } from "./lib/game-dev-adapter.mjs";
 import { suggestWorkspaceNextStep } from "./lib/help-companion.mjs";
 import { readDialecticProfile, recordProfileObservation } from "./lib/user-profile-modeler.mjs";
 import { compileExperienceSkill } from "./lib/experience-skill-compiler.mjs";
+import { loadTriggeredSkills } from "./lib/progressive-skill-loader.mjs";
 
 const appRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const storePath = path.join(appRoot, "src", "data", "localPairings.json");
@@ -41,6 +42,11 @@ if (domain === "skills" && action === "validate") {
   const result = validateSkillPack(path.resolve(process.cwd(), value));
   console.log(JSON.stringify(result, null, 2));
   process.exit(result.valid ? 0 : 1);
+}
+
+if (domain === "skills" && action === "load") {
+  const input=process.argv.slice(4).join(" "); if (!input) { console.error("Usage: midas skills load <task text>"); process.exit(2); }
+  console.log(JSON.stringify(loadTriggeredSkills({input,registryPath:path.join(appRoot,"config","skill-triggers.json"),skillsRoot:path.join(appRoot,"skill-packs")}),null,2)); process.exit(0);
 }
 
 if (domain === "eval") {

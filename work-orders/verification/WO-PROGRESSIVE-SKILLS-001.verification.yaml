@@ -1,0 +1,14 @@
+schemaVersion: mds.work-order-verification.v1
+workOrderId: WO-PROGRESSIVE-SKILLS-001
+specification: Match bounded local keyword rules and read instructions only from validated matched Skill Packs without loading unmatched prompt content.
+requiredSymbols:
+  - file: scripts/lib/progressive-skill-loader.mjs
+    language: JavaScript
+    kind: function
+    name: matchSkillTriggers
+    exported: true
+  - file: scripts/lib/progressive-skill-loader.mjs
+    language: JavaScript
+    kind: function
+    name: loadTriggeredSkills
+    exported: true

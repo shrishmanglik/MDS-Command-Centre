@@ -47,6 +47,8 @@
     "test:user-profile": "node scripts/test-user-profile-modeler.mjs",
     "experience:compile": "node scripts/midas.mjs experience compile workflows/example-successful-trajectory.json",
     "test:experience-skill": "node scripts/test-experience-skill-compiler.mjs",
+    "skills:load": "node scripts/midas.mjs skills load prepare a local evidence review",
+    "test:progressive-skills": "node scripts/test-progressive-skill-loader.mjs",
     "hooks:install": "git config --local core.hooksPath .githooks",
     "predev": "npm run doctor",
     "predaemon": "npm run doctor",

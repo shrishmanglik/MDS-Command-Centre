@@ -382,6 +382,10 @@ const experienceSkillCompiler = fs.readFileSync(path.join(appRoot, "scripts", "l
 if (!experienceSkillCompiler.includes("compileExperienceSkill") || !experienceSkillCompiler.includes("executionApproved: false") || !experienceSkillCompiler.includes("SAFE_COMMAND")) {
   throw new Error("experience compiler, no-execution boundary, or strict terminal command allowlist is missing.");
 }
+const progressiveSkillLoader = fs.readFileSync(path.join(appRoot, "scripts", "lib", "progressive-skill-loader.mjs"), "utf8");
+if (!progressiveSkillLoader.includes("loadTriggeredSkills") || !progressiveSkillLoader.includes("unmatchedInstructionsRead: false") || !progressiveSkillLoader.includes("slice(0, 3)")) {
+  throw new Error("progressive Skill Pack loading, unmatched-content boundary, or load cap is missing.");
+}
 if (!fs.readFileSync(path.join(appRoot, "package.json"), "utf8").includes('"predev": "npm run doctor"')) {
   throw new Error("doctor startup guard is not wired before workflows.");
 }
