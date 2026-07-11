@@ -343,7 +343,7 @@ if (!partyRoom.includes("partyRoomReadiness") || !partyRoom.includes("PARTY_REQU
 }
 const personaMemory = fs.readFileSync(path.join(appRoot, "scripts", "lib", "persona-memory.mjs"), "utf8");
 const midasLoop = fs.readFileSync(path.join(appRoot, "scripts", "lib", "midas-loop.mjs"), "utf8");
-if (!personaMemory.includes("isolatedFromRoles") || !personaMemory.includes("MAX_ROLE_CHARS") || !midasLoop.includes("MIDAS_LOOP_APPROVED_HANDOFF_REQUIRED") || !midasLoop.includes("deployStarted: false")) {
+if (!personaMemory.includes("isolatedFromRoles") || !personaMemory.includes("MAX_ROLE_CHARS") || !midasLoop.includes("MIDAS_LOOP_APPROVED_HANDOFF_REQUIRED") || !midasLoop.includes("deployStarted: false") || !midasLoop.includes("READY_FOR_AGENT_HANDOFF") || !midasLoop.includes("build:static")) {
   throw new Error("isolated persona memory or bounded MIDAS loop authority controls are missing.");
 }
 if (!fs.readFileSync(path.join(appRoot, "package.json"), "utf8").includes('"predev": "npm run doctor"')) {
