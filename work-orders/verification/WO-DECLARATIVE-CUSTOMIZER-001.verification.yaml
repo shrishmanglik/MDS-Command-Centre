@@ -1,0 +1,14 @@
+schemaVersion: mds.work-order-verification.v1
+workOrderId: WO-DECLARATIVE-CUSTOMIZER-001
+specification: Parse strict TOML agent overrides with bounded prompts, allowlisted tools and limits, and non-disableable safety rules.
+requiredSymbols:
+  - file: scripts/lib/declarative-customizer.mjs
+    language: JavaScript
+    kind: function
+    name: validateCustomizerConfig
+    exported: true
+  - file: scripts/lib/declarative-customizer.mjs
+    language: JavaScript
+    kind: function
+    name: parseCustomizerFile
+    exported: true

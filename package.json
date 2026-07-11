@@ -35,6 +35,8 @@
     "test:orchestration-graph": "node scripts/test-orchestration-graph.mjs",
     "workers:run": "node scripts/midas.mjs workers run workflows/example-subagents.json",
     "test:subagent-engine": "node scripts/test-subagent-engine.mjs",
+    "customizer:validate": "node scripts/midas.mjs customizer validate config/agents/developer.toml",
+    "test:customizer": "node scripts/test-declarative-customizer.mjs",
     "hooks:install": "git config --local core.hooksPath .githooks",
     "predev": "npm run doctor",
     "predaemon": "npm run doctor",
@@ -67,6 +69,7 @@
   "license": "ISC",
   "dependencies": {
     "@ast-grep/napi": "^0.44.1",
+    "smol-toml": "1.7.0",
     "yaml": "2.9.0"
   }
 }

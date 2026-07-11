@@ -59,6 +59,8 @@ jobs:
       - run: npm run test:orchestration-graph
       - run: npm run test:subagent-engine
       - run: npm run workers:run
+      - run: npm run test:customizer
+      - run: npm run customizer:validate
       - run: node scripts/build-static.mjs
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3

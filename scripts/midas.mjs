@@ -13,6 +13,7 @@ import { addPartyContribution, createPartyRoom, decidePartyRoom, readPartyRooms 
 import { appendPersonaMemory, readPersonaMemory } from "./lib/persona-memory.mjs";
 import { runMidasLoop } from "./lib/midas-loop.mjs";
 import { runSubagentTaskFile } from "./lib/subagent-engine.mjs";
+import { parseCustomizerFile } from "./lib/declarative-customizer.mjs";
 
 const appRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const storePath = path.join(appRoot, "src", "data", "localPairings.json");
@@ -105,6 +106,12 @@ if (domain === "loop" && action === "run") {
 if (domain === "workers" && action === "run") {
   if (!value) { console.error("Usage: midas workers run <task-file.json>"); process.exit(2); }
   console.log(JSON.stringify(await runSubagentTaskFile(path.resolve(process.cwd(), value)), null, 2));
+  process.exit(0);
+}
+
+if (domain === "customizer" && action === "validate") {
+  if (!value) { console.error("Usage: midas customizer validate <config.toml>"); process.exit(2); }
+  console.log(JSON.stringify(parseCustomizerFile(path.resolve(process.cwd(), value)), null, 2));
   process.exit(0);
 }
 
