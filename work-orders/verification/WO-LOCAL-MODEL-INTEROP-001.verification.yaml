@@ -1,0 +1,9 @@
+schemaVersion: mds.work-order-verification.v1
+workOrderId: WO-LOCAL-MODEL-INTEROP-001
+specification: Resolve generic chat, embedding, and vector-search contracts against declared offline adapters without changing prompts or falling back to providers.
+requiredSymbols:
+  - file: scripts/lib/model-router.mjs
+    language: JavaScript
+    kind: function
+    name: resolveLocalModelContract
+    exported: true

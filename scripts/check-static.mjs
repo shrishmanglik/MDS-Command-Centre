@@ -271,7 +271,7 @@ if (!js.includes("renderVoice") || !js.includes("startVoiceCapture") || !js.incl
   throw new Error("voice operator surface or fail-closed draft copy is missing.");
 }
 const modelRouter = fs.readFileSync(path.join(appRoot, "scripts", "lib", "model-router.mjs"), "utf8");
-if (!server.includes("/api/model-router/resolve") || !server.includes("/api/model-router/failure") || !server.includes("credentialRef: \"PROVIDER_OWNED_NOT_READ\"") || !modelRouter.includes("quota_exhausted")) {
+if (!server.includes("/api/model-router/resolve") || !server.includes("/api/model-router/failure") || !server.includes("credentialRef: \"PROVIDER_OWNED_NOT_READ\"") || !modelRouter.includes("quota_exhausted") || !modelRouter.includes("resolveLocalModelContract") || !modelRouter.includes("externalFallbackAllowed: false")) {
   throw new Error("credential-blind model failover or circuit-breaker API is missing.");
 }
 if (!js.includes("model-route-form") || !js.includes("model-failure-form") || !js.includes("executionStarted=false")) {
