@@ -1,0 +1,19 @@
+schemaVersion: mds.work-order-verification.v1
+workOrderId: WO-SUBAGENT-ENGINE-001
+specification: Spawn bounded isolated Node worker threads through a fixed RPC task protocol with no arbitrary code, shell, filesystem, provider, or credential access.
+requiredSymbols:
+  - file: scripts/lib/subagent-engine.mjs
+    language: JavaScript
+    kind: function
+    name: spawnParallelSubagents
+    exported: true
+  - file: scripts/lib/subagent-engine.mjs
+    language: JavaScript
+    kind: function
+    name: runSubagentTaskFile
+    exported: true
+  - file: scripts/lib/subagent-worker-thread.mjs
+    language: JavaScript
+    kind: function
+    name: handle
+    exported: false

@@ -33,6 +33,8 @@
     "test:persona-memory": "node scripts/test-persona-memory.mjs",
     "test:midas-loop": "node scripts/test-midas-loop.mjs",
     "test:orchestration-graph": "node scripts/test-orchestration-graph.mjs",
+    "workers:run": "node scripts/midas.mjs workers run workflows/example-subagents.json",
+    "test:subagent-engine": "node scripts/test-subagent-engine.mjs",
     "hooks:install": "git config --local core.hooksPath .githooks",
     "predev": "npm run doctor",
     "predaemon": "npm run doctor",

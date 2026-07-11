@@ -353,6 +353,11 @@ const orchestrationGraph = fs.readFileSync(path.join(appRoot, "scripts", "lib", 
 if (!orchestrationGraph.includes("runParallelGraphWave") || !orchestrationGraph.includes("maxIterations") || !orchestrationGraph.includes("providerAgentsSpawned: false") || !js.includes("Graph Studio")) {
   throw new Error("bounded graph cycles, parallel wave scheduler, provider boundary, or Graph Studio navigation is missing.");
 }
+const subagentEngine = fs.readFileSync(path.join(appRoot, "scripts", "lib", "subagent-engine.mjs"), "utf8");
+const subagentWorker = fs.readFileSync(path.join(appRoot, "scripts", "lib", "subagent-worker-thread.mjs"), "utf8");
+if (!subagentEngine.includes("spawnParallelSubagents") || !subagentEngine.includes("arbitraryCodeAllowed: false") || !subagentEngine.includes("SERIALIZED_TASK_PAYLOAD_ONLY") || !subagentWorker.includes("WORKER_TASK_TYPE_UNSUPPORTED")) {
+  throw new Error("RPC worker spawning, arbitrary-code refusal, isolated context, or fixed worker protocol is missing.");
+}
 if (!fs.readFileSync(path.join(appRoot, "package.json"), "utf8").includes('"predev": "npm run doctor"')) {
   throw new Error("doctor startup guard is not wired before workflows.");
 }

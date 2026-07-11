@@ -12,6 +12,7 @@ import { compileGitReleaseAudit } from "./lib/git-release-audit.mjs";
 import { addPartyContribution, createPartyRoom, decidePartyRoom, readPartyRooms } from "./lib/party-room.mjs";
 import { appendPersonaMemory, readPersonaMemory } from "./lib/persona-memory.mjs";
 import { runMidasLoop } from "./lib/midas-loop.mjs";
+import { runSubagentTaskFile } from "./lib/subagent-engine.mjs";
 
 const appRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const storePath = path.join(appRoot, "src", "data", "localPairings.json");
@@ -98,6 +99,12 @@ if (domain === "loop" && action === "run") {
   const selection = String(cli[3] || "");
   const options = ["quick", "full"].includes(selection) ? { profile: selection } : { scripts: selection.split(",").filter(Boolean) };
   console.log(JSON.stringify(runMidasLoop({ room, ...options, cwd: appRoot }), null, 2));
+  process.exit(0);
+}
+
+if (domain === "workers" && action === "run") {
+  if (!value) { console.error("Usage: midas workers run <task-file.json>"); process.exit(2); }
+  console.log(JSON.stringify(await runSubagentTaskFile(path.resolve(process.cwd(), value)), null, 2));
   process.exit(0);
 }
 

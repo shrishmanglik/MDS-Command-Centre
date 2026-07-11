@@ -1,0 +1,8 @@
+{
+  "concurrency": 2,
+  "timeoutMs": 5000,
+  "tasks": [
+    { "id": "test-plan", "type": "test-plan", "payload": { "subject": "local router", "behaviors": ["selects an eligible adapter", "fails closed without an adapter"] } },
+    { "id": "spec-metrics", "type": "text-metrics", "payload": { "text": "Local worker payload only" } }
+  ]
+}
