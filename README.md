@@ -92,6 +92,7 @@ Local API routes:
 - `GET /api/inbox` reads normalized manual/synthetic local inbox events.
 - `PUT /api/inbox` writes sanitized local inbox events with unique IDs and bounded fields.
 - `POST /api/inbox/intake` derives stream identity, enforces quarantine/pairing state, and returns a new pairing key once.
+- `POST /api/mobile-node/intake` accepts bounded, signature-checked screenshot or voice-note artifacts from an explicit-capture mobile node and creates a quarantined inbox input with `executionAllowed=false`.
 - `GET /api/pairing` returns pairing metadata without key digests or plaintext keys.
 - `GET /api/workspaces` returns the sanitized local workspace registry.
 - `POST /api/workspaces/route` idempotently maps a paired Inbox stream into a contained local workspace.

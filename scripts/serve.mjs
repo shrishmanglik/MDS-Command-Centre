@@ -10,6 +10,7 @@ import { parseVoiceTranscript, WAKE_WORD } from "./lib/voice-gate.mjs";
 import { recordModelFailure, resolveModelRoute, TASK_CHAINS } from "./lib/model-router.mjs";
 import { readA2UIDocuments, sanitizeA2UIDocument, writeA2UIDocuments } from "./lib/a2ui-store.mjs";
 import { buildDockerArgs, normalizeSandboxRequest, sandboxIds, sandboxPolicy } from "./lib/sandbox-runner.mjs";
+import { persistMobileNodeInput } from "./lib/mobile-node-intake.mjs";
 
 const appRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const args = process.argv.slice(2);
@@ -38,6 +39,7 @@ const voiceModel = path.join(appRoot, "voice", "models", "ggml-base.en.bin");
 const modelRouterStore = path.join(appRoot, "src", "data", "localModelRouter.json");
 const canvasStore = path.join(appRoot, "src", "data", "localCanvasDocuments.json");
 const sandboxReceiptStore = path.join(appRoot, "src", "data", "localSandboxReceipts.json");
+const mobileNodeRoot = path.join(appRoot, "output", "mobile-nodes");
 const D_ROOT = "D:/Million Dollar AI Studio";
 const BROWSE_ROOTS = ["Products", "vcos", "command-centre", "output/playwright", "."];
 const SECRET_PATH_PATTERN =
@@ -922,6 +924,14 @@ async function handleApi(request, response, pathname) {
     if (request.method === "POST" && pathname === "/api/inbox/intake") {
       const parsed = JSON.parse(await readBody(request, 64 * 1024));
       sendJson(response, 201, intakeInboxEvent(parsed.event || parsed));
+      return true;
+    }
+    if (request.method === "POST" && pathname === "/api/mobile-node/intake") {
+      const parsed = JSON.parse(await readBody(request, 18 * 1024 * 1024));
+      const pairing = ensurePairing(pairingStore, "mobile-node", String(parsed.nodeId || "UNKNOWN"));
+      const receipt = persistMobileNodeInput(mobileNodeRoot, parsed, pairing.record.status);
+      const intake = intakeInboxEvent({ id: receipt.id, receivedAt: receipt.createdAt, channel: "mobile-node", senderLabel: receipt.nodeId, subject: `${receipt.mimeType.startsWith("image/") ? "Screenshot" : "Voice note"} from ${receipt.label}`, body: receipt.note || `Mobile work-order input stored at ${receipt.artifactPath}.`, status: "NEW", risk: "MEDIUM", provenance: "native_mobile_explicit_capture", routeTarget: "Product Ops", artifactPath: receipt.artifactPath });
+      sendJson(response, 201, { receipt, event: intake.event, pairingKey: pairing.pairingKey, pairingCreated: pairing.created, executionAllowed: false });
       return true;
     }
     if (request.method === "GET" && pathname === "/api/pairing") {
