@@ -237,6 +237,15 @@ if (!js.includes("/api/tickets") || !js.includes("/api/health") || !js.includes(
 if (!js.includes("renderInbox") || !js.includes("inboxRoutingPacket") || !js.includes("/api/inbox") || !js.includes("LOCAL_PACKET_ONLY")) {
   throw new Error("local inbox intake, state machine, or routing-preview wiring is missing.");
 }
+const daemon = fs.readFileSync(path.join(appRoot, "scripts", "daemon.mjs"), "utf8");
+const systemd = fs.readFileSync(path.join(appRoot, "service", "systemd", "mds-command-centre.service"), "utf8");
+const launchd = fs.readFileSync(path.join(appRoot, "service", "launchd", "com.mds.command-centre.plist"), "utf8");
+if (!daemon.includes("127.0.0.1") || !daemon.includes("three consecutive health failures") || !daemon.includes("SIGTERM")) {
+  throw new Error("daemon loopback, health-failure, or shutdown contract is missing.");
+}
+if (!systemd.includes("Restart=on-failure") || !launchd.includes("SuccessfulExit")) {
+  throw new Error("systemd/launchd restart contract is missing.");
+}
 if (!Array.isArray(snapshot.sources) || snapshot.sources.length < 6) throw new Error("war-room snapshot is incomplete.");
 if (!snapshot.controlSurface || snapshot.controlSurface.status !== "LOCAL_CONTROL_SURFACE_ONLY") {
   throw new Error("structured controlSurface snapshot is missing.");

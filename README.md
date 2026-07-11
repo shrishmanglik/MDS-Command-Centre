@@ -6,6 +6,8 @@ This app reads whitelisted seed files from `D:/Million Dollar AI Studio/command-
 
 The Inbox view is the first local-first gateway slice. It normalizes manual, synthetic, and local system signals into one queue, supports `NEW -> TRIAGED -> ROUTED -> CLOSED`, records source/provenance and risk, and generates a copyable routing preview. It does not connect to WhatsApp, Telegram, iMessage, Feishu, or any other external channel; it does not verify sender identity or send replies. Those provider and delivery states remain `UNKNOWN`.
 
+The daemon wrapper keeps the loopback server process observable for an operating-system user service. `scripts/daemon.mjs` starts the server on `127.0.0.1`, probes `/api/health`, writes bounded process status under `output/daemon/`, exits after three consecutive health failures, and handles `SIGINT`/`SIGTERM` cleanly. The OS service manager owns restart behavior. Templates are provided for Linux user `systemd`, macOS `launchd`, and a Windows PowerShell entrypoint. Nothing installs or enables itself.
+
 The Today view now renders a structured local control surface, not just Markdown board previews. It normalizes revenue truth, Product VCOS rows, frontend/backend/payment/deploy/provider gates, provider readiness blockers, Shrish-only approvals, active CEO work orders, agent assignments, failures, releases, content queue, Board decisions, CEO actions, next action, and nightly closeout evidence from the snapshot. Each row carries source evidence and claim ceilings so local readiness cannot become a live provider/payment/deployment claim.
 
 The CEO work-order control creates file-backed local tickets from source-derived work orders and records a `ceo_work_order_created` Activity event. It does not launch agents, append the official ledger, promote company memory, push GitHub, mutate providers, deploy, move money, read secrets, or contact anyone externally.
@@ -55,7 +57,11 @@ npm run refresh-data
 npm run dev
 npm run build
 npm run desktop
+npm run daemon:probe
+npm run service:render
 ```
+
+`npm run service:render` produces path-resolved systemd and launchd definitions under `output/daemon/service-config/`. Installation remains a manual operator action because persistence changes host state. The Windows entrypoint is `service/windows/run-command-centre-daemon.ps1`; registering it with Task Scheduler is intentionally not automatic.
 
 There are no runtime npm dependencies for Sprint 001; the app is plain HTML, CSS, and JavaScript.
 
