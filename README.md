@@ -75,6 +75,7 @@ npm run verify:gaps
 npm run harness:export
 npm run harness:check
 npm run workflow:parse
+npm run release:audit
 npm run refresh-data
 npm run dev
 npm run build
@@ -103,6 +104,8 @@ npm run test:a2ui
 `npm run harness:export` compiles `harness-sources/local-proof-review.md` into deterministic native project assets for Claude (`.claude/agents`), Cursor (`.cursor/rules`), Gemini CLI (`.gemini/commands`), and GitHub Copilot (`.github/prompts`). The governed source allowlists read-only tools, rejects secret-shaped paths and execution/file-injection directives, and emits a SHA-256 manifest. `npm run harness:check` is read-only and fails on missing or changed generated output. Exporting configuration does not install an editor integration, access credentials, call a provider, or grant execution authority.
 
 `npm run workflow:parse` parses a governed `Read fully and follow:` Markdown checklist into a deterministic JSON plan. Every step must be unchecked, sequentially numbered, and include `Action`, `Verify`, and `Stop if` fields. Generic `execute` instructions, missing verification, pre-checked steps, sequence gaps, malformed metadata, and secret-shaped input paths fail closed. The receipt makes only the first step eligible and records `executionStarted=false`; parsing never runs a command or workflow.
+
+`npm run release:audit` compiles a bounded committed Git range into a conventional-commit changelog and machine-readable audit receipt. Agent personas and human operators are credited only from explicit `Agent:` and `Operator:` commit trailers; missing credits remain `UNKNOWN`, malformed credits are excluded, and unattributed commits are counted. Git is invoked without a shell, with a 200-commit ceiling and timeout. The audit never creates or moves tags, publishes releases, deploys, or infers provider state.
 
 The governed outbound HTTP path is `POST /api/http-proxy`. It accepts only HTTP(S) GET/HEAD requests, blocks userinfo and custom ports, resolves and validates every DNS answer, rejects private/link-local/loopback/reserved/metadata targets, pins the approved address during connection, and revalidates every redirect. It strips caller credentials and proxy environment behavior and bounds redirects, time, and response size. Docker sandboxes remain `--network none`; direct subagent egress is not enabled. This is a loopback governed egress path, not transparent host-wide interception.
 

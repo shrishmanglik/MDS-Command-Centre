@@ -1,0 +1,19 @@
+schemaVersion: mds.work-order-verification.v1
+workOrderId: WO-GIT-RELEASE-AUDIT-001
+specification: Compile bounded committed Git history into a deterministic changelog and explicit agent/operator credit audit without publishing a release.
+requiredSymbols:
+  - file: scripts/lib/git-release-audit.mjs
+    language: JavaScript
+    kind: function
+    name: parseGitReleaseLog
+    exported: true
+  - file: scripts/lib/git-release-audit.mjs
+    language: JavaScript
+    kind: function
+    name: renderReleaseAudit
+    exported: true
+  - file: scripts/lib/git-release-audit.mjs
+    language: JavaScript
+    kind: function
+    name: compileGitReleaseAudit
+    exported: true

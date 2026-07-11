@@ -8,6 +8,7 @@ import { evaluateWorkflow } from "./lib/plugin-eval.mjs";
 import { validateFrontmatterCollections } from "./lib/frontmatter-order.mjs";
 import { exportHarnessAdapters } from "./lib/harness-adapter.mjs";
 import { parseChecklistWorkflow } from "./lib/checklist-workflow.mjs";
+import { compileGitReleaseAudit } from "./lib/git-release-audit.mjs";
 
 const appRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const storePath = path.join(appRoot, "src", "data", "localPairings.json");
@@ -58,8 +59,14 @@ if (domain === "workflow" && action === "parse") {
   process.exit(0);
 }
 
+if (domain === "release" && action === "audit") {
+  const result = compileGitReleaseAudit({ repoPath: process.cwd(), range: value || "HEAD~20..HEAD" });
+  console.log(JSON.stringify(result, null, 2));
+  process.exit(0);
+}
+
 if (domain !== "pairing" || !["list", "approve"].includes(action || "")) {
-  console.error("Usage: midas doctor | midas skills validate <pack-path> | midas eval <workflow-path> | midas docs validate [root] | midas harness export <source-path> [--check] | midas workflow parse <checklist-path> | midas pairing list | midas pairing approve <pairing-key>");
+  console.error("Usage: midas doctor | midas skills validate <pack-path> | midas eval <workflow-path> | midas docs validate [root] | midas harness export <source-path> [--check] | midas workflow parse <checklist-path> | midas release audit [git-range] | midas pairing list | midas pairing approve <pairing-key>");
   process.exit(2);
 }
 
