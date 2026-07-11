@@ -64,6 +64,11 @@ const state = {
   voiceListening: false,
   modelRouter: null,
   modelRouterNotice: "",
+  canvasDocuments: [],
+  selectedCanvasId: "",
+  selectedCanvasComponentId: "",
+  canvasPersistence: "local API unavailable",
+  canvasNotice: "",
 };
 let voiceMediaRecorder = null;
 let voiceMediaStream = null;
@@ -87,6 +92,7 @@ const validViews = new Set([
   "inbox",
   "workspaces",
   "voice",
+  "canvas",
   "vcos",
   "files",
   "git",
@@ -129,6 +135,7 @@ function icon(name, size = 18) {
     inbox: '<path d="M4 5h16v14H4z"/><path d="m4 13 4-4 4 4 4-4 4 4"/><path d="M8 17h8"/>',
     workspaces: '<path d="M3 5h8v6H3z"/><path d="M13 5h8v6h-8z"/><path d="M3 13h8v6H3z"/><path d="M13 13h8v6h-8z"/><path d="M11 8h2"/><path d="M7 11v2"/><path d="M17 11v2"/>',
     voice: '<path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3Z"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v3"/><path d="M9 21h6"/>',
+    canvas: '<path d="M3 4h18v16H3z"/><path d="M7 8h5v4H7z"/><path d="M14 8h3"/><path d="M14 12h3"/><path d="M7 16h10"/>',
     benchmark: '<path d="M4 19V5"/><path d="M4 19h16"/><path d="M8 16V9"/><path d="M12 16V7"/><path d="M16 16v-4"/>',
     search: '<circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/>',
     vcos: '<path d="M12 3v4"/><path d="M5 21v-4"/><path d="M19 21v-4"/><path d="M12 21v-6"/><rect x="9" y="7" width="6" height="4" rx="1"/><rect x="2" y="13" width="6" height="4" rx="1"/><rect x="16" y="13" width="6" height="4" rx="1"/><path d="M12 11v2"/><path d="M5 13v-1h14v1"/>',
@@ -2897,7 +2904,7 @@ function renderShell(content) {
           <div><strong>MDS Command Centre</strong><span>Local-first Sprint 001</span></div>
         </div>
         <nav>
-          ${navGroup("Operate", ["today", "inbox", "workspaces", "voice", "launch", "search", "queue", "boards", "operator"])}
+          ${navGroup("Operate", ["today", "inbox", "workspaces", "voice", "canvas", "launch", "search", "queue", "boards", "operator"])}
           ${navGroup("System", ["vcos", "files", "git", "sources", "capabilities", "providers", "models"])}
           ${navGroup("Execution", ["runtime", "runs", "tickets", "dispatch", "proof"])}
           ${navGroup("Govern", ["closeout", "review", "promote", "activity", "decisions", "benchmark", "health"])}
@@ -2927,6 +2934,7 @@ const navLabels = {
   inbox: "Inbox",
   workspaces: "Workspaces",
   voice: "Voice",
+  canvas: "Live Canvas",
   search: "Search",
   queue: "Queue",
   boards: "Boards",
@@ -3444,6 +3452,105 @@ async function loadModelRouter() {
   } catch {
     state.modelRouter = { state: { authProfiles: [], failures: [], receipts: [] }, inventory: [], chains: {}, credentialValuesRead: false, status: "LOCAL_API_OFFLINE" };
   }
+}
+
+function blankCanvasDocument() {
+  const now = nowIso();
+  return {
+    id: `CANVAS-${Date.now().toString(36).toUpperCase()}`,
+    title: "Operator canvas",
+    workspaceId: "UNASSIGNED",
+    status: "DRAFT_LOCAL",
+    authority: "LOCAL_A2UI_DRAFT_ONLY",
+    executionAllowed: false,
+    createdAt: now,
+    updatedAt: now,
+    components: [
+      { id: `CMP-${Date.now().toString(36).toUpperCase()}-H`, type: "heading", label: "Heading", text: "Workspace command brief", value: "", tone: "neutral", width: "full", rows: [] },
+      { id: `CMP-${Date.now().toString(36).toUpperCase()}-N`, type: "notice", label: "Authority", text: "Local draft only. Operator review required.", value: "", tone: "info", width: "full", rows: [] },
+    ],
+  };
+}
+
+async function loadCanvasDocuments() {
+  try {
+    const payload = await apiJson("/api/canvas");
+    state.canvasPersistence = `file-backed: ${payload.store || "src/data/localCanvasDocuments.json"}`;
+    return Array.isArray(payload.records) && payload.records.length ? payload.records : [blankCanvasDocument()];
+  } catch {
+    state.canvasPersistence = "browser session draft";
+    return [blankCanvasDocument()];
+  }
+}
+
+async function saveCanvasDocuments() {
+  const payload = await apiJson("/api/canvas", { method: "PUT", body: JSON.stringify({ records: state.canvasDocuments }) });
+  if (Array.isArray(payload.records)) state.canvasDocuments = payload.records;
+  state.canvasPersistence = `file-backed: ${payload.updatedAt || "saved"}`;
+}
+
+function selectedCanvasDocument() {
+  return state.canvasDocuments.find((document) => document.id === state.selectedCanvasId) || state.canvasDocuments[0] || blankCanvasDocument();
+}
+
+function selectedCanvasComponent() {
+  const document = selectedCanvasDocument();
+  return document.components.find((component) => component.id === state.selectedCanvasComponentId) || document.components[0] || null;
+}
+
+function canvasComponent(type) {
+  const id = `CMP-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).slice(2, 5).toUpperCase()}`;
+  const defaults = {
+    heading: ["Section heading", "Untitled section", "", "full"],
+    text: ["Text", "Add operator context.", "", "half"],
+    metric: ["Metric", "", "UNKNOWN", "third"],
+    button: ["Command", "Review draft", "", "third"],
+    input: ["Input", "Operator supplied value", "", "half"],
+    notice: ["Notice", "Local draft only.", "", "full"],
+    divider: ["Divider", "", "", "full"],
+    table: ["Table", "", "", "full"],
+  }[type] || ["Text", "", "", "half"];
+  return { id, type, label: defaults[0], text: defaults[1], value: defaults[2], tone: type === "notice" ? "info" : "neutral", width: defaults[3], rows: type === "table" ? [["Field", "Value"], ["Status", "UNKNOWN"]] : [] };
+}
+
+function renderCanvasComponent(component, selected) {
+  let content = "";
+  if (component.type === "heading") content = `<h2>${esc(component.text || component.label)}</h2>`;
+  if (component.type === "text") content = `<p>${esc(component.text)}</p>`;
+  if (component.type === "metric") content = `<span>${esc(component.label)}</span><strong>${esc(component.value)}</strong>`;
+  if (component.type === "button") content = `<button type="button" disabled>${esc(component.text || component.label)}</button>`;
+  if (component.type === "input") content = `<label>${esc(component.label)}<input type="text" value="${esc(component.value)}" placeholder="${esc(component.text)}" disabled></label>`;
+  if (component.type === "notice") content = `<strong>${esc(component.label)}</strong><p>${esc(component.text)}</p>`;
+  if (component.type === "divider") content = `<hr>`;
+  if (component.type === "table") content = `<strong>${esc(component.label)}</strong><div class="canvas-mini-table">${(component.rows || []).map((row) => `<div>${row.map((cell) => `<span>${esc(cell)}</span>`).join("")}</div>`).join("")}</div>`;
+  return `<article draggable="true" class="canvas-node ${esc(component.type)} ${esc(component.tone)} width-${esc(component.width)} ${selected ? "selected" : ""}" data-canvas-component="${esc(component.id)}"><div class="canvas-node-chrome"><span>${icon("canvas", 14)} ${esc(component.type)}</span><div><button type="button" title="Move up" data-canvas-move="up" data-component-id="${esc(component.id)}">↑</button><button type="button" title="Move down" data-canvas-move="down" data-component-id="${esc(component.id)}">↓</button></div></div><div class="canvas-node-body">${content}</div></article>`;
+}
+
+function renderCanvas() {
+  const document = selectedCanvasDocument();
+  const selected = selectedCanvasComponent();
+  const workspaceOptions = ["UNASSIGNED", ...state.workspaces.map((workspace) => workspace.id)];
+  renderShell(`
+    <div class="a2ui-shell">
+      <aside class="canvas-palette">
+        <div class="panel-title">${icon("plus")}<span>Components</span></div>
+        <div class="canvas-palette-grid">${["heading", "text", "metric", "button", "input", "notice", "divider", "table"].map((type) => `<button type="button" data-canvas-add="${type}">${icon(type === "button" ? "check" : type === "notice" ? "warning" : "canvas", 16)} ${esc(type)}</button>`).join("")}</div>
+        <div class="canvas-document-list"><div class="panel-title">${icon("file")}<span>Documents</span></div>${state.canvasDocuments.map((item) => `<button type="button" class="${item.id === document.id ? "active" : ""}" data-canvas-document="${esc(item.id)}"><strong>${esc(item.title)}</strong><span>${esc(item.status)}</span></button>`).join("")}</div>
+        <div class="dispatch-actions"><button type="button" data-action="new-canvas">${icon("plus", 16)} New</button><button type="button" class="primary" data-action="save-canvas">${icon("save", 16)} Save</button></div>
+        <p class="unknown-note">${esc(state.canvasPersistence)}</p>
+      </aside>
+      <main class="canvas-stage-panel">
+        <header class="canvas-toolbar"><div><span class="eyebrow">${esc(document.workspaceId)}</span><h2>${esc(document.title)}</h2></div><div><em class="${statusClass(document.status)}">${esc(document.status)}</em><span>${esc(document.components.length)} components</span></div></header>
+        ${state.canvasNotice ? `<div class="pairing-notice" role="status"><strong>Canvas status</strong><code>${esc(state.canvasNotice)}</code></div>` : ""}
+        <section class="canvas-stage" aria-label="A2UI canvas">${document.components.length ? document.components.map((component) => renderCanvasComponent(component, selected?.id === component.id)).join("") : `<div class="canvas-empty"><strong>Empty canvas</strong><p>Add an allowlisted component from the palette.</p></div>`}</section>
+        <footer class="canvas-statusbar"><span>authority: LOCAL_A2UI_DRAFT_ONLY</span><span>executionAllowed=false</span><span>agent imports require sanitization</span></footer>
+      </main>
+      <aside class="canvas-inspector">
+        <form id="canvas-document-form" class="canvas-inspector-form"><div class="panel-title">${icon("canvas")}<span>Document</span></div>${input("Title", "title", document.title)}${select("Workspace", "workspaceId", document.workspaceId, workspaceOptions)}<button type="submit">${icon("save", 16)} Apply document</button></form>
+        ${selected ? `<form id="canvas-component-form" class="canvas-inspector-form"><div class="panel-title">${icon("review")}<span>Selected component</span></div><input type="hidden" name="id" value="${esc(selected.id)}">${input("Label", "label", selected.label)}${textarea("Text", "text", selected.text)}${input("Value", "value", selected.value)}${select("Tone", "tone", selected.tone, ["neutral", "info", "success", "warning", "danger"])}${select("Width", "width", selected.width, ["third", "half", "full"])}<div class="dispatch-actions"><button type="submit">${icon("check", 16)} Apply</button><button type="button" data-action="delete-canvas-component">${icon("warning", 16)} Delete</button></div></form>` : `<section class="empty-card"><strong>No component selected.</strong><p>Select a canvas component to edit it.</p></section>`}
+        <form id="canvas-import-form" class="canvas-inspector-form"><div class="panel-title">${icon("upload")}<span>Agent A2UI import</span></div><p>Allowlisted JSON only. Server sanitization runs before preview.</p>${textarea("A2UI JSON", "payload", '{"title":"Agent draft","components":[{"type":"heading","text":"Review queue"}]}')}<button type="submit">${icon("upload", 16)} Sanitize and import</button></form>
+      </aside>
+    </div>`);
 }
 
 function blobToBase64(blob) {
@@ -5900,6 +6007,7 @@ function render() {
   if (state.view === "inbox") renderInbox();
   if (state.view === "workspaces") renderWorkspaces();
   if (state.view === "voice") renderVoice();
+  if (state.view === "canvas") renderCanvas();
   if (state.view === "search") renderSearch();
   if (state.view === "queue") renderQueue();
   if (state.view === "boards") renderBoards();
@@ -5998,6 +6106,12 @@ async function loadHealth() {
 
 function wireEvents() {
   document.addEventListener("click", async (event) => {
+    const canvasNode = event.target.closest?.("[data-canvas-component]");
+    if (canvasNode && !event.target.closest?.("[data-canvas-move]")) {
+      state.selectedCanvasComponentId = canvasNode.dataset.canvasComponent;
+      render();
+      return;
+    }
     const button = event.target.closest("button");
     if (!button) return;
     if (button.dataset.deltaStageSubmit) state.pendingDeltaStage = button.dataset.deltaStageSubmit;
@@ -6021,6 +6135,31 @@ function wireEvents() {
     }
     if (button.dataset.workspace) {
       state.selectedWorkspaceId = button.dataset.workspace;
+      render();
+    }
+    if (button.dataset.canvasDocument) {
+      state.selectedCanvasId = button.dataset.canvasDocument;
+      state.selectedCanvasComponentId = selectedCanvasDocument().components[0]?.id || "";
+      render();
+    }
+    if (button.dataset.canvasComponent) {
+      state.selectedCanvasComponentId = button.dataset.canvasComponent;
+      render();
+    }
+    if (button.dataset.canvasAdd) {
+      const document = selectedCanvasDocument();
+      const component = canvasComponent(button.dataset.canvasAdd);
+      document.components.push(component);
+      document.status = "DRAFT_LOCAL";
+      state.selectedCanvasComponentId = component.id;
+      render();
+    }
+    if (button.dataset.canvasMove) {
+      const document = selectedCanvasDocument();
+      const index = document.components.findIndex((component) => component.id === button.dataset.componentId);
+      const target = button.dataset.canvasMove === "up" ? index - 1 : index + 1;
+      if (index >= 0 && target >= 0 && target < document.components.length) [document.components[index], document.components[target]] = [document.components[target], document.components[index]];
+      document.status = "DRAFT_LOCAL";
       render();
     }
     if (button.dataset.voiceView) {
@@ -6069,6 +6208,33 @@ function wireEvents() {
     if (button.dataset.action === "stop-voice") {
       stopVoiceCapture();
       state.voiceNotice = "Listening stopped. No background microphone capture remains.";
+      render();
+    }
+    if (button.dataset.action === "new-canvas") {
+      const document = blankCanvasDocument();
+      state.canvasDocuments = [document, ...state.canvasDocuments];
+      state.selectedCanvasId = document.id;
+      state.selectedCanvasComponentId = document.components[0]?.id || "";
+      state.canvasNotice = "New local canvas draft created.";
+      render();
+    }
+    if (button.dataset.action === "save-canvas") {
+      const document = selectedCanvasDocument();
+      document.status = "SAVED_LOCAL";
+      try {
+        await saveCanvasDocuments();
+        state.canvasNotice = "Canvas saved to the D-local A2UI store. No deployment or execution occurred.";
+      } catch (error) {
+        document.status = "DRAFT_LOCAL";
+        state.canvasNotice = `Save blocked: ${error.message}`;
+      }
+      render();
+    }
+    if (button.dataset.action === "delete-canvas-component") {
+      const document = selectedCanvasDocument();
+      document.components = document.components.filter((component) => component.id !== state.selectedCanvasComponentId);
+      state.selectedCanvasComponentId = document.components[0]?.id || "";
+      document.status = "DRAFT_LOCAL";
       render();
     }
     if (button.dataset.board) {
@@ -6828,6 +6994,48 @@ function wireEvents() {
   });
 
   document.addEventListener("submit", async (event) => {
+    const documentForm = event.target?.closest?.("#canvas-document-form");
+    if (documentForm) {
+      event.preventDefault();
+      const values = Object.fromEntries(new FormData(documentForm).entries());
+      const document = selectedCanvasDocument();
+      document.title = String(values.title || "Untitled canvas").slice(0, 160);
+      document.workspaceId = String(values.workspaceId || "UNASSIGNED").slice(0, 64);
+      document.status = "DRAFT_LOCAL";
+      render();
+      return;
+    }
+    const componentForm = event.target?.closest?.("#canvas-component-form");
+    if (componentForm) {
+      event.preventDefault();
+      const values = Object.fromEntries(new FormData(componentForm).entries());
+      const component = selectedCanvasComponent();
+      if (!component || component.id !== values.id) return;
+      component.label = String(values.label || "Label").slice(0, 120);
+      component.text = String(values.text || "").slice(0, 1000);
+      component.value = String(values.value || "").slice(0, 160);
+      component.tone = values.tone;
+      component.width = values.width;
+      selectedCanvasDocument().status = "DRAFT_LOCAL";
+      render();
+      return;
+    }
+    const importForm = event.target?.closest?.("#canvas-import-form");
+    if (importForm) {
+      event.preventDefault();
+      try {
+        const payload = JSON.parse(String(new FormData(importForm).get("payload") || "{}"));
+        const result = await apiJson("/api/canvas/import", { method: "POST", body: JSON.stringify({ document: payload }) });
+        state.canvasDocuments = [result.document, ...state.canvasDocuments.filter((document) => document.id !== result.document.id)];
+        state.selectedCanvasId = result.document.id;
+        state.selectedCanvasComponentId = result.document.components[0]?.id || "";
+        state.canvasNotice = "Agent A2UI draft sanitized. Operator save is still required.";
+      } catch (error) {
+        state.canvasNotice = `Import blocked: ${error.message}`;
+      }
+      render();
+      return;
+    }
     const voiceForm = event.target?.closest?.("#voice-transcript-form");
     if (voiceForm) {
       event.preventDefault();
@@ -7051,6 +7259,28 @@ function wireEvents() {
       inputElement?.setSelectionRange(state.searchQuery.length, state.searchQuery.length);
     }
   });
+
+  document.addEventListener("dragstart", (event) => {
+    const node = event.target.closest?.("[data-canvas-component]");
+    if (node && event.dataTransfer) event.dataTransfer.setData("text/plain", node.dataset.canvasComponent);
+  });
+  document.addEventListener("dragover", (event) => {
+    if (event.target.closest?.("[data-canvas-component]")) event.preventDefault();
+  });
+  document.addEventListener("drop", (event) => {
+    const targetNode = event.target.closest?.("[data-canvas-component]");
+    const sourceId = event.dataTransfer?.getData("text/plain");
+    if (!targetNode || !sourceId || sourceId === targetNode.dataset.canvasComponent) return;
+    event.preventDefault();
+    const document = selectedCanvasDocument();
+    const sourceIndex = document.components.findIndex((component) => component.id === sourceId);
+    const targetIndex = document.components.findIndex((component) => component.id === targetNode.dataset.canvasComponent);
+    if (sourceIndex < 0 || targetIndex < 0) return;
+    const [moved] = document.components.splice(sourceIndex, 1);
+    document.components.splice(targetIndex, 0, moved);
+    document.status = "DRAFT_LOCAL";
+    render();
+  });
 }
 
 async function boot() {
@@ -7071,6 +7301,7 @@ async function boot() {
   state.workspaces = await loadWorkspaces();
   await loadVoiceState();
   await loadModelRouter();
+  state.canvasDocuments = await loadCanvasDocuments();
   wireMv18Events();
   state.selectedTicketId = state.tickets[0]?.id || "";
   state.selectedActivityId = state.activity[0]?.id || "";
@@ -7080,6 +7311,8 @@ async function boot() {
   state.selectedDeltaReviewId = state.deltaReviews[0]?.id || "";
   state.selectedInboxEventId = state.inboxEvents[0]?.id || "";
   state.selectedWorkspaceId = state.workspaces[0]?.id || "";
+  state.selectedCanvasId = state.canvasDocuments[0]?.id || "";
+  state.selectedCanvasComponentId = state.canvasDocuments[0]?.components?.[0]?.id || "";
   state.selectedBoardId = state.snapshot.sources[0]?.id || "";
   const initialView = new URLSearchParams(window.location.search).get("view");
   if (initialView && validViews.has(initialView)) state.view = initialView;

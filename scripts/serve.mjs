@@ -8,6 +8,7 @@ import { ensurePairing, readPairings, streamIdFor } from "./lib/pairing-store.mj
 import { readWorkspaces, routeStreamToWorkspace } from "./lib/workspace-store.mjs";
 import { parseVoiceTranscript, WAKE_WORD } from "./lib/voice-gate.mjs";
 import { recordModelFailure, resolveModelRoute, TASK_CHAINS } from "./lib/model-router.mjs";
+import { readA2UIDocuments, sanitizeA2UIDocument, writeA2UIDocuments } from "./lib/a2ui-store.mjs";
 
 const appRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const args = process.argv.slice(2);
@@ -33,6 +34,7 @@ const workspaceRoot = path.join(appRoot, "output", "workspaces");
 const voiceCommandStore = path.join(appRoot, "src", "data", "localVoiceCommands.json");
 const voiceModel = path.join(appRoot, "voice", "models", "ggml-base.en.bin");
 const modelRouterStore = path.join(appRoot, "src", "data", "localModelRouter.json");
+const canvasStore = path.join(appRoot, "src", "data", "localCanvasDocuments.json");
 const D_ROOT = "D:/Million Dollar AI Studio";
 const BROWSE_ROOTS = ["Products", "vcos", "command-centre", "output/playwright", "."];
 const SECRET_PATH_PATTERN =
@@ -813,6 +815,7 @@ function snapshotHealth() {
     workspaces: readWorkspaces(workspaceStore).length,
     voice: voiceStatus(),
     modelRouter: { inventory: localModelInventory().length, openCircuits: readModelRouter().failures.length },
+    canvasDocuments: readA2UIDocuments(canvasStore, fs).length,
     sources,
   };
 }
@@ -907,6 +910,21 @@ async function handleApi(request, response, pathname) {
       const failed = recordModelFailure(state, { targetId: parsed.targetId, reason: parsed.reason });
       writeModelRouter(failed);
       sendJson(response, 201, resolveAndStoreModelRoute(String(parsed.taskClass || "general")));
+      return true;
+    }
+    if (request.method === "GET" && pathname === "/api/canvas") {
+      sendJson(response, 200, { records: readA2UIDocuments(canvasStore, fs), store: path.relative(appRoot, canvasStore) });
+      return true;
+    }
+    if (request.method === "PUT" && pathname === "/api/canvas") {
+      const parsed = JSON.parse(await readBody(request, 512 * 1024));
+      const records = Array.isArray(parsed) ? parsed : parsed.records;
+      sendJson(response, 200, writeA2UIDocuments(canvasStore, records, fs));
+      return true;
+    }
+    if (request.method === "POST" && pathname === "/api/canvas/import") {
+      const parsed = JSON.parse(await readBody(request, 256 * 1024));
+      sendJson(response, 201, { document: sanitizeA2UIDocument(parsed.document || parsed), imported: true, executionAllowed: false });
       return true;
     }
     if (request.method === "PUT" && pathname === "/api/tickets") {

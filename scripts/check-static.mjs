@@ -25,6 +25,7 @@ const required = [
   "src/data/localWorkspaces.json",
   "src/data/localVoiceCommands.json",
   "src/data/localModelRouter.json",
+  "src/data/localCanvasDocuments.json",
   "desktop/launch-command-centre.ps1",
 ];
 
@@ -270,6 +271,13 @@ if (!server.includes("/api/model-router/resolve") || !server.includes("/api/mode
 }
 if (!js.includes("model-route-form") || !js.includes("model-failure-form") || !js.includes("executionStarted=false")) {
   throw new Error("model failover operator controls or claim ceiling is missing.");
+}
+const a2uiStore = fs.readFileSync(path.join(appRoot, "scripts", "lib", "a2ui-store.mjs"), "utf8");
+if (!server.includes("/api/canvas/import") || !server.includes("sanitizeA2UIDocument") || !a2uiStore.includes("UNSAFE_CONTENT")) {
+  throw new Error("A2UI server sanitization or import boundary is missing.");
+}
+if (!js.includes("renderCanvas") || !js.includes("canvas-component-form") || !js.includes("data-canvas-add") || !js.includes("executionAllowed=false")) {
+  throw new Error("interactive A2UI canvas editor wiring is missing.");
 }
 const daemon = fs.readFileSync(path.join(appRoot, "scripts", "daemon.mjs"), "utf8");
 const systemd = fs.readFileSync(path.join(appRoot, "service", "systemd", "mds-command-centre.service"), "utf8");

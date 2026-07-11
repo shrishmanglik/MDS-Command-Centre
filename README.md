@@ -16,6 +16,8 @@ The Voice lane implements an operator-triggered local wake service around the wa
 
 The Models lane includes a credential-blind failover resolver. Auth profiles store names and verification state only; credential values remain provider-owned and unread. Explicit `rate_limit`, `quota_exhausted`, `auth_unavailable`, and `runtime_unavailable` signals open bounded local circuit breakers, then atomically re-resolve through the next verified profile, a task-aware installed Ollama model chain, or `manual-offline-handoff`. Local inventory comes from bounded `ollama list` metadata and excludes `:cloud` entries. Route receipts always preserve `executionStarted=false` until a separate runtime proves execution.
 
+The Live Canvas lane is a local A2UI editor with a component palette, responsive visual stage, document list, selected-component inspector, drag/reorder controls, workspace binding, local save, and agent JSON import. The server accepts only `heading`, `text`, `metric`, `button`, `input`, `notice`, `divider`, and `table` records with bounded tones and widths. HTML, scripts, URLs, event handlers, templates, embedded media, CSS, and executable actions are rejected. Agent imports remain `DRAFT_LOCAL`; only an operator can save them, and every document preserves `executionAllowed=false`.
+
 The Today view now renders a structured local control surface, not just Markdown board previews. It normalizes revenue truth, Product VCOS rows, frontend/backend/payment/deploy/provider gates, provider readiness blockers, Shrish-only approvals, active CEO work orders, agent assignments, failures, releases, content queue, Board decisions, CEO actions, next action, and nightly closeout evidence from the snapshot. Each row carries source evidence and claim ceilings so local readiness cannot become a live provider/payment/deployment claim.
 
 The CEO work-order control creates file-backed local tickets from source-derived work orders and records a `ceo_work_order_created` Activity event. It does not launch agents, append the official ledger, promote company memory, push GitHub, mutate providers, deploy, move money, read secrets, or contact anyone externally.
@@ -71,6 +73,7 @@ npm run test:pairing
 npm run test:workspace-router
 npm run test:voice-gate
 npm run test:model-router
+npm run test:a2ui
 ```
 
 `npm run service:render` produces path-resolved systemd and launchd definitions under `output/daemon/service-config/`. Installation remains a manual operator action because persistence changes host state. The Windows entrypoint is `service/windows/run-command-centre-daemon.ps1`; registering it with Task Scheduler is intentionally not automatic.
@@ -97,6 +100,9 @@ Local API routes:
 - `GET /api/model-router/status` reports names-only profiles, local model inventory, circuits, chains, and receipts.
 - `POST /api/model-router/resolve` creates a task-class routing receipt without executing a model.
 - `POST /api/model-router/failure` opens a bounded circuit and returns the next eligible route.
+- `GET /api/canvas` reads sanitized local A2UI documents.
+- `PUT /api/canvas` writes bounded local A2UI documents.
+- `POST /api/canvas/import` sanitizes an agent-supplied A2UI draft without saving or executing it.
 - `GET /api/activity` reads the D-local activity file.
 - `PUT /api/activity` writes sanitized local activity events.
 - `GET /api/decisions` reads D-local director decision exports.
