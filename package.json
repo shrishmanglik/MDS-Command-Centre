@@ -30,6 +30,8 @@
     "test:release-audit": "node scripts/test-git-release-audit.mjs",
     "party:list": "node scripts/midas.mjs party list",
     "test:party-room": "node scripts/test-party-room.mjs",
+    "test:persona-memory": "node scripts/test-persona-memory.mjs",
+    "test:midas-loop": "node scripts/test-midas-loop.mjs",
     "hooks:install": "git config --local core.hooksPath .githooks",
     "predev": "npm run doctor",
     "predaemon": "npm run doctor",

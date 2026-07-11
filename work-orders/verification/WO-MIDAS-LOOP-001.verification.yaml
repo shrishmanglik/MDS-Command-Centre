@@ -1,0 +1,9 @@
+schemaVersion: mds.work-order-verification.v1
+workOrderId: WO-MIDAS-LOOP-001
+specification: Run an approved Party Mode handoff through a sequential allowlisted local verification loop that stops on first failure.
+requiredSymbols:
+  - file: scripts/lib/midas-loop.mjs
+    language: JavaScript
+    kind: function
+    name: runMidasLoop
+    exported: true

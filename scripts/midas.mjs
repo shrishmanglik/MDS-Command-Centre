@@ -10,10 +10,13 @@ import { exportHarnessAdapters } from "./lib/harness-adapter.mjs";
 import { parseChecklistWorkflow } from "./lib/checklist-workflow.mjs";
 import { compileGitReleaseAudit } from "./lib/git-release-audit.mjs";
 import { addPartyContribution, createPartyRoom, decidePartyRoom, readPartyRooms } from "./lib/party-room.mjs";
+import { appendPersonaMemory, readPersonaMemory } from "./lib/persona-memory.mjs";
+import { runMidasLoop } from "./lib/midas-loop.mjs";
 
 const appRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const storePath = path.join(appRoot, "src", "data", "localPairings.json");
 const partyStorePath = path.join(appRoot, "src", "data", "localPartyRooms.json");
+const personaMemoryStorePath = path.join(appRoot, "src", "data", "localPersonaMemory.json");
 const [domain, action, value] = process.argv.slice(2);
 
 if (domain === "doctor") {
@@ -72,10 +75,28 @@ if (domain === "party") {
   let result;
   if (action === "list") result = { rooms: readPartyRooms(partyStorePath), executionStarted: false };
   else if (action === "create") result = createPartyRoom(partyStorePath, { title: value, workOrderId: cli[3] || "UNKNOWN" });
-  else if (action === "contribute") result = addPartyContribution(partyStorePath, { roomId: value, role: cli[3], message: cli.slice(4).join(" ") });
+  else if (action === "contribute") {
+    const message = cli.slice(4).join(" ");
+    result = addPartyContribution(partyStorePath, { roomId: value, role: cli[3], message });
+    appendPersonaMemory(personaMemoryStorePath, { roomId: value, role: cli[3], content: message });
+  }
   else if (action === "decide") result = decidePartyRoom(partyStorePath, { roomId: value, disposition: cli[3], operator: cli[4], rationale: cli.slice(5).join(" ") });
   else { console.error("Usage: midas party list | create <title> [work-order] | contribute <room-id> <role> <message> | decide <room-id> <APPROVED|REVISE> <operator> <rationale>"); process.exit(2); }
   console.log(JSON.stringify(result, null, 2));
+  process.exit(0);
+}
+
+if (domain === "memory" && action === "read") {
+  const cli = process.argv.slice(2);
+  console.log(JSON.stringify(readPersonaMemory(personaMemoryStorePath, { roomId: value, role: cli[3] }), null, 2));
+  process.exit(0);
+}
+
+if (domain === "loop" && action === "run") {
+  const cli = process.argv.slice(2);
+  const room = readPartyRooms(partyStorePath).find((item) => item.id === value);
+  const scripts = String(cli[3] || "").split(",").filter(Boolean);
+  console.log(JSON.stringify(runMidasLoop({ room, scripts, cwd: appRoot }), null, 2));
   process.exit(0);
 }
 

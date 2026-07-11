@@ -1,0 +1,14 @@
+schemaVersion: mds.work-order-verification.v1
+workOrderId: WO-PERSONA-MEMORY-001
+specification: Persist independently capped PM, Architect, and Developer memory buffers without cross-role retrieval.
+requiredSymbols:
+  - file: scripts/lib/persona-memory.mjs
+    language: JavaScript
+    kind: function
+    name: appendPersonaMemory
+    exported: true
+  - file: scripts/lib/persona-memory.mjs
+    language: JavaScript
+    kind: function
+    name: readPersonaMemory
+    exported: true
