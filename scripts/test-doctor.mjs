@@ -1,0 +1,16 @@
+import assert from "node:assert/strict";
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { runDoctor } from "./lib/doctor.mjs";
+const appRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const clean = runDoctor({ appRoot, trackedFiles: ["scripts/serve.mjs", "README.md"], environmentNames: ["PATH", "TEST_API_TOKEN"] });
+assert.equal(clean.blockers, 0);
+assert.equal(clean.status, "READY_WITH_WARNINGS");
+assert.equal(clean.credentialValuesRead, false);
+assert.equal(clean.secretFilesRead, false);
+assert.ok(clean.checks.some((item) => item.id === "environment:names-only" && item.detail.includes("names and values withheld")));
+const blocked = runDoctor({ appRoot, trackedFiles: [".env", "private.pem"], environmentNames: [] });
+assert.ok(blocked.blockers > 0);
+assert.ok(blocked.checks.find((item) => item.id === "git:sensitive-paths").detail.includes("names withheld"));
+console.log("Doctor checks passed.");
