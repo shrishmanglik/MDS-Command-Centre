@@ -76,6 +76,7 @@ npm run harness:export
 npm run harness:check
 npm run workflow:parse
 npm run release:audit
+npm run party:list
 npm run refresh-data
 npm run dev
 npm run build
@@ -106,6 +107,8 @@ npm run test:a2ui
 `npm run workflow:parse` parses a governed `Read fully and follow:` Markdown checklist into a deterministic JSON plan. Every step must be unchecked, sequentially numbered, and include `Action`, `Verify`, and `Stop if` fields. Generic `execute` instructions, missing verification, pre-checked steps, sequence gaps, malformed metadata, and secret-shaped input paths fail closed. The receipt makes only the first step eligible and records `executionStarted=false`; parsing never runs a command or workflow.
 
 `npm run release:audit` compiles the cross-platform, CI-safe `HEAD~1..HEAD` committed range into a conventional-commit changelog and machine-readable audit receipt; `midas release audit <range>` accepts a wider validated range when local history is available. Agent personas and human operators are credited only from explicit `Agent:` and `Operator:` commit trailers; missing credits remain `UNKNOWN`, malformed credits are excluded, and unattributed commits are counted. Git is invoked without a shell, with a 200-commit ceiling and timeout. The audit never creates or moves tags, publishes releases, deploys, or infers provider state.
+
+Party Mode persists bounded local deliberation rooms through `midas party create`, `contribute`, `decide`, and `list`. An approved handoff requires recorded contributions from PM, Architect, and Developer plus an explicit human operator decision. Contributions are evidence records with `identityProof=NOT_VERIFIED`; they do not prove that an autonomous persona ran. Rooms never spawn agents or begin implementation, and every readiness receipt preserves `executionStarted=false` and `spawnAuthorityGranted=false`.
 
 The governed outbound HTTP path is `POST /api/http-proxy`. It accepts only HTTP(S) GET/HEAD requests, blocks userinfo and custom ports, resolves and validates every DNS answer, rejects private/link-local/loopback/reserved/metadata targets, pins the approved address during connection, and revalidates every redirect. It strips caller credentials and proxy environment behavior and bounds redirects, time, and response size. Docker sandboxes remain `--network none`; direct subagent egress is not enabled. This is a loopback governed egress path, not transparent host-wide interception.
 

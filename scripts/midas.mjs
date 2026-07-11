@@ -9,9 +9,11 @@ import { validateFrontmatterCollections } from "./lib/frontmatter-order.mjs";
 import { exportHarnessAdapters } from "./lib/harness-adapter.mjs";
 import { parseChecklistWorkflow } from "./lib/checklist-workflow.mjs";
 import { compileGitReleaseAudit } from "./lib/git-release-audit.mjs";
+import { addPartyContribution, createPartyRoom, decidePartyRoom, readPartyRooms } from "./lib/party-room.mjs";
 
 const appRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const storePath = path.join(appRoot, "src", "data", "localPairings.json");
+const partyStorePath = path.join(appRoot, "src", "data", "localPartyRooms.json");
 const [domain, action, value] = process.argv.slice(2);
 
 if (domain === "doctor") {
@@ -61,6 +63,18 @@ if (domain === "workflow" && action === "parse") {
 
 if (domain === "release" && action === "audit") {
   const result = compileGitReleaseAudit({ repoPath: process.cwd(), range: value || "HEAD~20..HEAD" });
+  console.log(JSON.stringify(result, null, 2));
+  process.exit(0);
+}
+
+if (domain === "party") {
+  const cli = process.argv.slice(2);
+  let result;
+  if (action === "list") result = { rooms: readPartyRooms(partyStorePath), executionStarted: false };
+  else if (action === "create") result = createPartyRoom(partyStorePath, { title: value, workOrderId: cli[3] || "UNKNOWN" });
+  else if (action === "contribute") result = addPartyContribution(partyStorePath, { roomId: value, role: cli[3], message: cli.slice(4).join(" ") });
+  else if (action === "decide") result = decidePartyRoom(partyStorePath, { roomId: value, disposition: cli[3], operator: cli[4], rationale: cli.slice(5).join(" ") });
+  else { console.error("Usage: midas party list | create <title> [work-order] | contribute <room-id> <role> <message> | decide <room-id> <APPROVED|REVISE> <operator> <rationale>"); process.exit(2); }
   console.log(JSON.stringify(result, null, 2));
   process.exit(0);
 }

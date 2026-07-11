@@ -27,6 +27,7 @@ const required = [
   "src/data/localModelRouter.json",
   "src/data/localCanvasDocuments.json",
   "src/data/localSandboxReceipts.json",
+  "src/data/localPartyRooms.json",
   "desktop/launch-command-centre.ps1",
   "desktop/command-centre-tray.ps1",
 ];
@@ -334,6 +335,10 @@ if (!checklistWorkflow.includes("parseChecklistWorkflow") || !checklistWorkflow.
 const gitReleaseAudit = fs.readFileSync(path.join(appRoot, "scripts", "lib", "git-release-audit.mjs"), "utf8");
 if (!gitReleaseAudit.includes("compileGitReleaseAudit") || !gitReleaseAudit.includes("tagCreated: false") || !gitReleaseAudit.includes("unattributedCommitCount")) {
   throw new Error("bounded release audit compiler, no-tag boundary, or attribution accounting is missing.");
+}
+const partyRoom = fs.readFileSync(path.join(appRoot, "scripts", "lib", "party-room.mjs"), "utf8");
+if (!partyRoom.includes("partyRoomReadiness") || !partyRoom.includes("PARTY_REQUIRED_ROLES_MISSING") || !partyRoom.includes("spawnAuthorityGranted: false")) {
+  throw new Error("Party Mode readiness, required-role gate, or no-spawn boundary is missing.");
 }
 if (!fs.readFileSync(path.join(appRoot, "package.json"), "utf8").includes('"predev": "npm run doctor"')) {
   throw new Error("doctor startup guard is not wired before workflows.");

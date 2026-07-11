@@ -1,0 +1,24 @@
+schemaVersion: mds.work-order-verification.v1
+workOrderId: WO-PARTY-MODE-001
+specification: Persist PM, Architect, and Developer deliberation rooms and require an explicit operator disposition before creating a no-execution handoff.
+requiredSymbols:
+  - file: scripts/lib/party-room.mjs
+    language: JavaScript
+    kind: function
+    name: createPartyRoom
+    exported: true
+  - file: scripts/lib/party-room.mjs
+    language: JavaScript
+    kind: function
+    name: addPartyContribution
+    exported: true
+  - file: scripts/lib/party-room.mjs
+    language: JavaScript
+    kind: function
+    name: decidePartyRoom
+    exported: true
+  - file: scripts/lib/party-room.mjs
+    language: JavaScript
+    kind: function
+    name: partyRoomReadiness
+    exported: true

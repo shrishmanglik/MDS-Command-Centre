@@ -1,0 +1,20 @@
+import assert from "node:assert/strict";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import { addPartyContribution, createPartyRoom, decidePartyRoom, readPartyRooms } from "./lib/party-room.mjs";
+
+const root = fs.mkdtempSync(path.join(os.tmpdir(), "mds-party-"));
+const store = path.join(root, "rooms.json");
+const room = createPartyRoom(store, { title: "Review local adapter", workOrderId: "WO-21" });
+assert.equal(room.executionStarted, false);
+assert.throws(() => decidePartyRoom(store, { roomId: room.id, disposition: "APPROVED", rationale: "Ready", operator: "Shrish" }), /PARTY_REQUIRED_ROLES_MISSING/);
+for (const role of ["PM", "Architect", "Developer"]) addPartyContribution(store, { roomId: room.id, role, message: `${role} evidence-bound position` });
+const ready = decidePartyRoom(store, { roomId: room.id, disposition: "APPROVED", rationale: "Plan accepted for separate execution handoff", operator: "Shrish" });
+assert.equal(ready.status, "HANDOFF_READY");
+assert.equal(ready.executionStarted, false);
+assert.equal(ready.spawnAuthorityGranted, false);
+assert.equal(readPartyRooms(store)[0].contributions.length, 3);
+assert.throws(() => addPartyContribution(store, { roomId: room.id, role: "Developer", message: "late" }), /PARTY_ROOM_CLOSED/);
+fs.rmSync(root, { recursive: true, force: true });
+console.log("Party room checks passed.");

@@ -52,6 +52,8 @@ jobs:
       - run: npm run workflow:parse
       - run: npm run test:release-audit
       - run: npm run release:audit
+      - run: npm run test:party-room
+      - run: npm run party:list
       - run: node scripts/build-static.mjs
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3

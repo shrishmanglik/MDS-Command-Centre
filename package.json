@@ -28,6 +28,8 @@
     "test:checklist-workflow": "node scripts/test-checklist-workflow.mjs",
     "release:audit": "node scripts/midas.mjs release audit HEAD~1..HEAD",
     "test:release-audit": "node scripts/test-git-release-audit.mjs",
+    "party:list": "node scripts/midas.mjs party list",
+    "test:party-room": "node scripts/test-party-room.mjs",
     "hooks:install": "git config --local core.hooksPath .githooks",
     "predev": "npm run doctor",
     "predaemon": "npm run doctor",

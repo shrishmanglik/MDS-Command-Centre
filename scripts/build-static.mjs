@@ -36,4 +36,5 @@ copy("src/data/localVoiceCommands.json");
 copy("src/data/localModelRouter.json");
 copy("src/data/localCanvasDocuments.json");
 copy("src/data/localSandboxReceipts.json");
+copy("src/data/localPartyRooms.json");
 console.log(`Built static Command Centre to ${path.relative(appRoot, dist)}`);
