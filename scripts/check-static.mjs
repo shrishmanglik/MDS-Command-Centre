@@ -319,6 +319,10 @@ const verificationGap = fs.readFileSync(path.join(appRoot, "scripts", "lib", "ve
 if (!verificationGap.includes("@ast-grep/napi") || !verificationGap.includes("WORK_ORDER_COVERAGE_MISSING") || !verificationGap.includes("SYMBOL_MISSING") || !preCommit.includes("verification-gap.mjs --staged")) {
   throw new Error("AST verification-gap parser, coverage/symbol checks, or pre-commit gate is missing.");
 }
+const ssrfGuard = fs.readFileSync(path.join(appRoot, "scripts", "lib", "ssrf-guard.mjs"), "utf8");
+if (!server.includes("/api/http-proxy") || !ssrfGuard.includes("BLOCKED_PRIVATE_OR_RESERVED_ADDRESS") || !ssrfGuard.includes("pinnedLookup") || !ssrfGuard.includes("proxyEnvironmentUsed: false")) {
+  throw new Error("SSRF policy, DNS pinning, proxy bypass, or loopback API wiring is missing.");
+}
 if (!fs.readFileSync(path.join(appRoot, "package.json"), "utf8").includes('"predev": "npm run doctor"')) {
   throw new Error("doctor startup guard is not wired before workflows.");
 }

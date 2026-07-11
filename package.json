@@ -20,6 +20,7 @@
     "test:frontmatter": "node scripts/test-frontmatter-order.mjs",
     "verify:gaps": "node scripts/verification-gap.mjs --staged",
     "test:verification-gap": "node scripts/test-verification-gap.mjs",
+    "test:ssrf-guard": "node scripts/test-ssrf-guard.mjs",
     "hooks:install": "git config --local core.hooksPath .githooks",
     "predev": "npm run doctor",
     "predaemon": "npm run doctor",
