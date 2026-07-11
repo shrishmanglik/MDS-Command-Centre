@@ -70,6 +70,8 @@ jobs:
       - run: npm run test:user-profile
       - run: npm run profile:show
       - run: npm run test:experience-skill
+      - run: npm run test:progressive-skills
+      - run: npm run skills:load
       - run: node scripts/build-static.mjs
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
