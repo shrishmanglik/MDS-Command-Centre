@@ -331,6 +331,10 @@ const checklistWorkflow = fs.readFileSync(path.join(appRoot, "scripts", "lib", "
 if (!checklistWorkflow.includes("parseChecklistWorkflow") || !checklistWorkflow.includes("CHECKLIST_HEADING_REQUIRED") || !checklistWorkflow.includes("executionStarted: false")) {
   throw new Error("structured checklist parser, required heading, or no-execution boundary is missing.");
 }
+const gitReleaseAudit = fs.readFileSync(path.join(appRoot, "scripts", "lib", "git-release-audit.mjs"), "utf8");
+if (!gitReleaseAudit.includes("compileGitReleaseAudit") || !gitReleaseAudit.includes("tagCreated: false") || !gitReleaseAudit.includes("unattributedCommitCount")) {
+  throw new Error("bounded release audit compiler, no-tag boundary, or attribution accounting is missing.");
+}
 if (!fs.readFileSync(path.join(appRoot, "package.json"), "utf8").includes('"predev": "npm run doctor"')) {
   throw new Error("doctor startup guard is not wired before workflows.");
 }
