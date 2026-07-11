@@ -1,0 +1,14 @@
+import assert from "node:assert/strict";
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { validateFrontmatterCollections } from "./lib/frontmatter-order.mjs";
+const appRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+assert.equal(validateFrontmatterCollections(path.join(appRoot, "generated-docs")).status, "VALID");
+const root = path.join(appRoot, "output", "frontmatter-test"); fs.rmSync(root, { recursive: true, force: true });
+for (const folder of ["product-briefs", "user-journeys"]) fs.mkdirSync(path.join(root, folder), { recursive: true });
+const doc = (type, index, slug, ordered = true) => ordered ? `---\ndocumentType: ${type}\ntitle: Test\nslug: ${slug}\nnavIndex: ${index}\nstatus: DRAFT\nupdatedAt: 2026-07-11\nauthority: LOCAL_DRAFT_ONLY\n---\n# Test\n` : `---\ntitle: Test\ndocumentType: ${type}\nslug: ${slug}\nnavIndex: ${index}\nstatus: DRAFT\nupdatedAt: 2026-07-11\nauthority: LOCAL_DRAFT_ONLY\n---\n`;
+fs.writeFileSync(path.join(root, "product-briefs", "01-test-brief.md"), doc("product-brief", 1, "test-brief", false));
+fs.writeFileSync(path.join(root, "user-journeys", "03-test-journey.md"), doc("user-journey", 2, "test-journey"));
+const invalid = validateFrontmatterCollections(root); assert.equal(invalid.status, "INVALID"); assert.ok(invalid.errors.some((error) => error.code === "KEY_ORDER")); assert.ok(invalid.errors.some((error) => error.code === "NAV_SEQUENCE")); assert.ok(invalid.errors.some((error) => error.code === "FILENAME_ALIGNMENT"));
+fs.rmSync(root, { recursive: true, force: true }); console.log("Frontmatter order checks passed.");

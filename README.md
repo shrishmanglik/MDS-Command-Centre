@@ -68,6 +68,7 @@ npm run skills:validate -- skill-packs/local-review
 npm run eval -- workflows/example-review.workflow.yaml
 npm run hooks:install
 npm run docs:check
+npm run docs:frontmatter
 npm run refresh-data
 npm run dev
 npm run build
@@ -88,6 +89,8 @@ npm run test:a2ui
 `midas eval <workflow-path>` runs the Three-Layer Quality Evaluator. Static and deterministic rubric layers produce a provisional 1–5 grade, then exactly 50 SHA-256-seeded mutation trials measure mean, standard deviation, range, and stability rate. The LLM Judge layer remains `NOT_RUN` unless a hash-bound `mds.llm-judge-receipt.v1` with `VERIFIED_LOCAL_JUDGE` evidence is supplied via `--judge-receipt`; without that evidence, certification is `BLOCKED_LLM_JUDGE_EVIDENCE` even when the provisional grade and stability pass. No provider call or model result is fabricated.
 
 `npm run hooks:install` configures this repository to use `.githooks/`. The pre-commit documentation-staleness guard evaluates staged filenames only and requires mapped API/CLI/runtime/desktop/mobile documentation in the same commit as corresponding source changes. `npm run docs:check` runs the staged check directly, while CI evaluates the pushed commit range so bypassing a local hook cannot bypass integration. Secret-shaped filenames are withheld and file contents are never read. Passing confirms mapping coverage only, not documentation accuracy or live-state truth.
+
+`midas docs validate [root]` (or `npm run docs:frontmatter`) validates generated product briefs and user journeys under `generated-docs/`. It enforces exact frontmatter key order, collection-specific document types, contiguous unique `navIndex` values, `NN-slug.md` filename alignment, ISO dates, bounded statuses, and `LOCAL_DRAFT_ONLY` authority. The pre-commit hook runs it after the staleness guard. Validation aligns metadata only; it does not approve document content or public claims.
 
 `npm run service:render` produces path-resolved systemd and launchd definitions under `output/daemon/service-config/`. Installation remains a manual operator action because persistence changes host state. The Windows entrypoint is `service/windows/run-command-centre-daemon.ps1`; registering it with Task Scheduler is intentionally not automatic.
 
