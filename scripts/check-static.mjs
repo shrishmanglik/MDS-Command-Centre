@@ -33,6 +33,7 @@ const required = [
   "src/data/localPartyRooms.json",
   "src/data/localPersonaMemory.json",
   "src/data/localTeamSignals.json",
+  "src/data/localUserProfileEvidence.json",
   "desktop/launch-command-centre.ps1",
   "desktop/command-centre-tray.ps1",
 ];
@@ -372,6 +373,10 @@ const gameDevAdapter = fs.readFileSync(path.join(appRoot, "scripts", "lib", "gam
 const helpCompanion = fs.readFileSync(path.join(appRoot, "scripts", "lib", "help-companion.mjs"), "utf8");
 if (!taskRestructurer.includes("administrativeRelayRemoved") || !gameDevAdapter.includes("assetsRead: false") || !helpCompanion.includes("DETERMINISTIC_LOCAL_GUIDANCE")) {
   throw new Error("direct task routing, no-asset-read game adapter, or deterministic help guidance is missing.");
+}
+const userProfileModeler = fs.readFileSync(path.join(appRoot, "scripts", "lib", "user-profile-modeler.mjs"), "utf8");
+if (!userProfileModeler.includes("buildDialecticProfile") || !userProfileModeler.includes("sensitiveAttributesModeled: false") || !userProfileModeler.includes("autoApplied: false")) {
+  throw new Error("dialectic profile model, sensitive-trait exclusion, or no-auto-apply boundary is missing.");
 }
 if (!fs.readFileSync(path.join(appRoot, "package.json"), "utf8").includes('"predev": "npm run doctor"')) {
   throw new Error("doctor startup guard is not wired before workflows.");

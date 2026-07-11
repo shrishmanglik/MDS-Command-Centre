@@ -43,6 +43,8 @@
     "game:inspect": "node scripts/midas.mjs game inspect .",
     "help": "node scripts/midas.mjs help README.md",
     "test:task-game-help": "node scripts/test-task-game-help.mjs",
+    "profile:show": "node scripts/midas.mjs profile show",
+    "test:user-profile": "node scripts/test-user-profile-modeler.mjs",
     "hooks:install": "git config --local core.hooksPath .githooks",
     "predev": "npm run doctor",
     "predaemon": "npm run doctor",

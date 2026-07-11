@@ -19,12 +19,14 @@ import { readTeamSignals, stageTeamSignal } from "./lib/team-signaling.mjs";
 import { restructureTaskAssignments } from "./lib/task-restructurer.mjs";
 import { inspectGameProject } from "./lib/game-dev-adapter.mjs";
 import { suggestWorkspaceNextStep } from "./lib/help-companion.mjs";
+import { readDialecticProfile, recordProfileObservation } from "./lib/user-profile-modeler.mjs";
 
 const appRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const storePath = path.join(appRoot, "src", "data", "localPairings.json");
 const partyStorePath = path.join(appRoot, "src", "data", "localPartyRooms.json");
 const personaMemoryStorePath = path.join(appRoot, "src", "data", "localPersonaMemory.json");
 const teamSignalStorePath = path.join(appRoot, "src", "data", "localTeamSignals.json");
+const userProfileStorePath = path.join(appRoot, "src", "data", "localUserProfileEvidence.json");
 const [domain, action, value] = process.argv.slice(2);
 
 if (domain === "doctor") {
@@ -144,6 +146,15 @@ if (domain === "game" && action === "inspect") {
 
 if (domain === "help") {
   console.log(JSON.stringify(suggestWorkspaceNextStep({ repoPath: process.cwd(), openFiles: process.argv.slice(3) }), null, 2)); process.exit(0);
+}
+
+if (domain === "profile") {
+  if (action === "show") { console.log(JSON.stringify(readDialecticProfile(userProfileStorePath), null, 2)); process.exit(0); }
+  if (action === "record" && value) {
+    const absolute=path.resolve(process.cwd(),value); if (/(^|[\\/])\.env|\.(pem|p12|pfx|key)$/i.test(absolute)) throw new Error("PROFILE_SECRET_SHAPED_PATH");
+    console.log(JSON.stringify(recordProfileObservation(userProfileStorePath,JSON.parse(fs.readFileSync(absolute,"utf8"))),null,2)); process.exit(0);
+  }
+  console.error("Usage: midas profile show | record <observation.json>"); process.exit(2);
 }
 
 if (domain !== "pairing" || !["list", "approve"].includes(action || "")) {

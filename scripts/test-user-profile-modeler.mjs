@@ -1,0 +1,10 @@
+import assert from "node:assert/strict"; import fs from "node:fs"; import os from "node:os"; import path from "node:path";
+import { readDialecticProfile, recordProfileObservation } from "./lib/user-profile-modeler.mjs";
+const root=fs.mkdtempSync(path.join(os.tmpdir(),"mds-profile-")); const store=path.join(root,"profile.json");
+const base={category:"verification",claimKey:"run-focused-tests",statement:"Run focused tests before integration",polarity:"SUPPORT",explicitDeveloperEvidence:true};
+recordProfileObservation(store,{...base,sourceRef:"work-order-1"}); let profile=recordProfileObservation(store,{...base,sourceRef:"work-order-2"}).profile;
+assert.equal(profile.claims[0].status,"ACCEPTED_REVIEWABLE"); assert.equal(profile.autoApplied,false);
+recordProfileObservation(store,{...base,polarity:"CONTRADICT",statement:"Skip focused tests for this task",sourceRef:"override-1"}); profile=recordProfileObservation(store,{...base,polarity:"CONTRADICT",statement:"Skip focused tests for this task",sourceRef:"override-2"}).profile;
+assert.equal(profile.claims[0].status,"DISPUTED"); assert.equal(profile.sensitiveAttributesModeled,false);
+assert.throws(()=>recordProfileObservation(store,{...base,statement:"Store political preference",sourceRef:"x"}),/STATEMENT_INVALID/);
+assert.equal(readDialecticProfile(store).hiddenTelemetryUsed,false); fs.rmSync(root,{recursive:true,force:true}); console.log("Dialectic user profile checks passed.");
