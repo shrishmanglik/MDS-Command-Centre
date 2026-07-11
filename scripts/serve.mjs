@@ -9,6 +9,7 @@ import { readWorkspaces, routeStreamToWorkspace } from "./lib/workspace-store.mj
 import { parseVoiceTranscript, WAKE_WORD } from "./lib/voice-gate.mjs";
 import { recordModelFailure, resolveModelRoute, TASK_CHAINS } from "./lib/model-router.mjs";
 import { readA2UIDocuments, sanitizeA2UIDocument, writeA2UIDocuments } from "./lib/a2ui-store.mjs";
+import { buildDockerArgs, normalizeSandboxRequest, sandboxIds, sandboxPolicy } from "./lib/sandbox-runner.mjs";
 
 const appRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const args = process.argv.slice(2);
@@ -35,6 +36,7 @@ const voiceCommandStore = path.join(appRoot, "src", "data", "localVoiceCommands.
 const voiceModel = path.join(appRoot, "voice", "models", "ggml-base.en.bin");
 const modelRouterStore = path.join(appRoot, "src", "data", "localModelRouter.json");
 const canvasStore = path.join(appRoot, "src", "data", "localCanvasDocuments.json");
+const sandboxReceiptStore = path.join(appRoot, "src", "data", "localSandboxReceipts.json");
 const D_ROOT = "D:/Million Dollar AI Studio";
 const BROWSE_ROOTS = ["Products", "vcos", "command-centre", "output/playwright", "."];
 const SECRET_PATH_PATTERN =
@@ -117,6 +119,80 @@ function execFilePromise(executable, args, options = {}) {
       resolve({ stdout: String(stdout || "").slice(0, 2000), stderr: String(stderr || "").slice(0, 2000) });
     });
   });
+}
+
+function readSandboxReceipts() {
+  if (!fs.existsSync(sandboxReceiptStore)) return [];
+  const parsed = JSON.parse(fs.readFileSync(sandboxReceiptStore, "utf8"));
+  return Array.isArray(parsed.receipts) ? parsed.receipts.slice(0, 100) : [];
+}
+
+function writeSandboxReceipt(receipt) {
+  const payload = {
+    schemaVersion: "mds.command-centre.sandbox-receipts.v1",
+    updatedAt: new Date().toISOString(),
+    authority: sandboxPolicy().authority,
+    receipts: [receipt, ...readSandboxReceipts()].slice(0, 100),
+  };
+  const temp = `${sandboxReceiptStore}.${process.pid}.tmp`;
+  fs.writeFileSync(temp, `${JSON.stringify(payload, null, 2)}\n`, { mode: 0o600 });
+  fs.renameSync(temp, sandboxReceiptStore);
+  return payload;
+}
+
+async function dockerStatus() {
+  const docker = findExecutable(["docker"]);
+  if (!docker) return { status: "BLOCKED_RUNTIME_UNAVAILABLE", dockerPresent: false, daemonReachable: false, policy: sandboxPolicy() };
+  try {
+    await execFilePromise(docker, ["info", "--format", "{{.ServerVersion}}"], { cwd: appRoot, timeout: 5000 });
+    return { status: "READY_LOCAL_DOCKER", dockerPresent: true, daemonReachable: true, policy: sandboxPolicy() };
+  } catch {
+    return { status: "BLOCKED_RUNTIME_UNAVAILABLE", dockerPresent: true, daemonReachable: false, policy: sandboxPolicy() };
+  }
+}
+
+async function executeSandbox(input) {
+  const docker = findExecutable(["docker"]);
+  const readiness = await dockerStatus();
+  if (!docker || readiness.status !== "READY_LOCAL_DOCKER") throw new Error("BLOCKED_RUNTIME_UNAVAILABLE: Docker daemon is required; host execution fallback is forbidden.");
+  const request = normalizeSandboxRequest(input);
+  try {
+    await execFilePromise(docker, ["image", "inspect", request.profile.image], { cwd: appRoot, timeout: 5000 });
+  } catch {
+    throw new Error(`BLOCKED_IMAGE_UNAVAILABLE: ${request.profile.image} must already exist locally; automatic pulls are forbidden.`);
+  }
+  const ids = sandboxIds();
+  const artifactDir = path.join(appRoot, "output", "sandboxes", ids.receiptId);
+  fs.mkdirSync(artifactDir, { recursive: true, mode: 0o700 });
+  const sourcePath = path.join(artifactDir, request.profile.filename);
+  fs.writeFileSync(sourcePath, request.source, { mode: 0o600 });
+  const initName = `${ids.jobName}-init`;
+  const startedAt = new Date().toISOString();
+  let result = { stdout: "", stderr: "" };
+  let status = "COMPLETED";
+  try {
+    await execFilePromise(docker, ["volume", "create", "--label", "mds.command-centre.ephemeral=true", ids.workVolume], { cwd: appRoot, timeout: 10_000 });
+    await execFilePromise(docker, ["create", "--name", initName, "--mount", `type=volume,src=${ids.workVolume},dst=/workspace`, request.profile.image, "true"], { cwd: appRoot, timeout: 15_000 });
+    await execFilePromise(docker, ["cp", sourcePath, `${initName}:/workspace/${request.profile.filename}`], { cwd: appRoot, timeout: 10_000 });
+    await execFilePromise(docker, ["rm", initName], { cwd: appRoot, timeout: 10_000 });
+    result = await execFilePromise(docker, buildDockerArgs({ profile: request.profile, jobName: ids.jobName, workVolume: ids.workVolume }), { cwd: appRoot, timeout: request.timeoutMs, maxBuffer: 16 * 1024 });
+  } catch (error) {
+    status = error.killed || error.signal ? "TIMED_OUT" : "FAILED";
+    result = { stdout: String(error.stdout || "").slice(0, 16 * 1024), stderr: String(error.stderr || error.message || "").slice(0, 16 * 1024) };
+  } finally {
+    await execFilePromise(docker, ["rm", "-f", initName], { cwd: appRoot, timeout: 5000 }).catch(() => {});
+    await execFilePromise(docker, ["rm", "-f", ids.jobName], { cwd: appRoot, timeout: 5000 }).catch(() => {});
+    await execFilePromise(docker, ["volume", "rm", "-f", ids.workVolume], { cwd: appRoot, timeout: 5000 }).catch(() => {});
+    fs.rmSync(artifactDir, { recursive: true, force: true });
+  }
+  const receipt = {
+    id: ids.receiptId, status, runtime: request.runtime, image: request.profile.image,
+    startedAt, completedAt: new Date().toISOString(), timeoutMs: request.timeoutMs,
+    sourceSha256: crypto.createHash("sha256").update(request.source).digest("hex"),
+    stdout: result.stdout.slice(0, 2000), stderr: result.stderr.slice(0, 2000),
+    policy: sandboxPolicy(), hostExecution: false, externalState: "UNKNOWN",
+  };
+  return { receipt, ...writeSandboxReceipt(receipt) };
 }
 
 async function transcribeLocalAudio(parsed) {
@@ -816,6 +892,7 @@ function snapshotHealth() {
     voice: voiceStatus(),
     modelRouter: { inventory: localModelInventory().length, openCircuits: readModelRouter().failures.length },
     canvasDocuments: readA2UIDocuments(canvasStore, fs).length,
+    sandboxReceipts: readSandboxReceipts().length,
     sources,
   };
 }
@@ -925,6 +1002,15 @@ async function handleApi(request, response, pathname) {
     if (request.method === "POST" && pathname === "/api/canvas/import") {
       const parsed = JSON.parse(await readBody(request, 256 * 1024));
       sendJson(response, 201, { document: sanitizeA2UIDocument(parsed.document || parsed), imported: true, executionAllowed: false });
+      return true;
+    }
+    if (request.method === "GET" && pathname === "/api/sandbox/status") {
+      sendJson(response, 200, { ...(await dockerStatus()), receipts: readSandboxReceipts() });
+      return true;
+    }
+    if (request.method === "POST" && pathname === "/api/sandbox/execute") {
+      const parsed = JSON.parse(await readBody(request, 96 * 1024));
+      sendJson(response, 201, await executeSandbox(parsed));
       return true;
     }
     if (request.method === "PUT" && pathname === "/api/tickets") {

@@ -103,6 +103,8 @@ Local API routes:
 - `GET /api/canvas` reads sanitized local A2UI documents.
 - `PUT /api/canvas` writes bounded local A2UI documents.
 - `POST /api/canvas/import` sanitizes an agent-supplied A2UI draft without saving or executing it.
+- `GET /api/sandbox/status` reports Docker readiness, fixed images, isolation policy, and bounded local receipts.
+- `POST /api/sandbox/execute` runs allowlisted Node.js or Python source in an ephemeral, networkless Docker container. It never falls back to the host shell or pulls missing images.
 - `GET /api/activity` reads the D-local activity file.
 - `PUT /api/activity` writes sanitized local activity events.
 - `GET /api/decisions` reads D-local director decision exports.

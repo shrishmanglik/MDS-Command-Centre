@@ -69,6 +69,10 @@ const state = {
   selectedCanvasComponentId: "",
   canvasPersistence: "local API unavailable",
   canvasNotice: "",
+  sandboxRuntime: null,
+  sandboxReceipts: [],
+  sandboxNotice: "",
+  sandboxRunning: false,
 };
 let voiceMediaRecorder = null;
 let voiceMediaStream = null;
@@ -101,6 +105,7 @@ const validViews = new Set([
   "providers",
   "models",
   "runtime",
+  "sandbox",
   "runs",
   "tickets",
   "dispatch",
@@ -130,6 +135,7 @@ function icon(name, size = 18) {
     activity: '<path d="M4 5h16"/><path d="M8 5v14"/><path d="M4 12h16"/><path d="M4 19h16"/><circle cx="8" cy="5" r="2"/><circle cx="8" cy="12" r="2"/><circle cx="8" cy="19" r="2"/>',
     decisions: '<path d="M6 4h12v16H6z"/><path d="M9 8h6"/><path d="M9 12h6"/><path d="m8 17 2 2 4-5"/>',
     runtime: '<path d="M4 5h16v5H4z"/><path d="M4 14h7v5H4z"/><path d="M15 14h5v5h-5z"/><path d="M8 10v4"/><path d="M17 10v4"/><path d="M11 16h4"/>',
+    sandbox: '<path d="M12 3 4 7v10l8 4 8-4V7l-8-4Z"/><path d="m4 7 8 4 8-4"/><path d="M12 11v10"/><path d="m8 9 8-4"/>',
     proof: '<path d="M12 3 5 6v6c0 4 3 7 7 9 4-2 7-5 7-9V6l-7-3Z"/><path d="m9 12 2 2 4-5"/>',
     operator: '<path d="M4 5h7v7H4z"/><path d="M13 5h7v4h-7z"/><path d="M13 11h7v8h-7z"/><path d="M4 14h7v5H4z"/><path d="M11 8h2"/><path d="M8 12v2"/><path d="M16 9v2"/>',
     inbox: '<path d="M4 5h16v14H4z"/><path d="m4 13 4-4 4 4 4-4 4 4"/><path d="M8 17h8"/>',
@@ -2906,7 +2912,7 @@ function renderShell(content) {
         <nav>
           ${navGroup("Operate", ["today", "inbox", "workspaces", "voice", "canvas", "launch", "search", "queue", "boards", "operator"])}
           ${navGroup("System", ["vcos", "files", "git", "sources", "capabilities", "providers", "models"])}
-          ${navGroup("Execution", ["runtime", "runs", "tickets", "dispatch", "proof"])}
+          ${navGroup("Execution", ["runtime", "sandbox", "runs", "tickets", "dispatch", "proof"])}
           ${navGroup("Govern", ["closeout", "review", "promote", "activity", "decisions", "benchmark", "health"])}
         </nav>
         <div class="authority-box">${icon("lock", 16)}<p>D root local shell. Providers remain live-state authority.</p></div>
@@ -2948,6 +2954,7 @@ const navLabels = {
   providers: "Providers",
   models: "Models",
   runtime: "Runtime",
+  sandbox: "Sandbox",
   runs: "Runs",
   tickets: "Tickets",
   dispatch: "Dispatch",
@@ -6013,6 +6020,7 @@ function render() {
   if (state.view === "boards") renderBoards();
   if (state.view === "launch") renderLaunchOs();
   if (state.view === "runtime") renderRuntime();
+  if (state.view === "sandbox") renderSandbox();
   if (state.view === "vcos") renderVcosView();
   if (state.view === "files") renderFilesView();
   if (state.view === "git") renderGitTruthView();
@@ -6994,6 +7002,26 @@ function wireEvents() {
   });
 
   document.addEventListener("submit", async (event) => {
+    const sandboxForm = event.target?.closest?.("#sandbox-form");
+    if (sandboxForm) {
+      event.preventDefault();
+      state.sandboxRunning = true;
+      state.sandboxNotice = "Starting ephemeral Docker sandbox...";
+      render();
+      try {
+        const values = Object.fromEntries(new FormData(sandboxForm).entries());
+        const payload = await apiJson("/api/sandbox/execute", { method: "POST", body: JSON.stringify({ mode: "docker", ...values, timeoutMs: Number(values.timeoutMs) }) });
+        state.sandboxReceipts = Array.isArray(payload.receipts) ? payload.receipts : state.sandboxReceipts;
+        state.sandboxNotice = `${payload.receipt.status}: container and ephemeral volume cleanup requested.`;
+      } catch (error) {
+        state.sandboxNotice = `Execution blocked: ${error.message}`;
+      } finally {
+        state.sandboxRunning = false;
+        await loadSandboxStatus();
+        render();
+      }
+      return;
+    }
     const documentForm = event.target?.closest?.("#canvas-document-form");
     if (documentForm) {
       event.preventDefault();
@@ -7283,6 +7311,50 @@ function wireEvents() {
   });
 }
 
+async function loadSandboxStatus() {
+  try {
+    const payload = await apiJson("/api/sandbox/status");
+    state.sandboxRuntime = payload;
+    state.sandboxReceipts = Array.isArray(payload.receipts) ? payload.receipts : [];
+  } catch (error) {
+    state.sandboxRuntime = { status: "BLOCKED_RUNTIME_UNAVAILABLE", policy: null };
+    state.sandboxNotice = error.message;
+  }
+}
+
+function renderSandbox() {
+  const runtime = state.sandboxRuntime || { status: "UNKNOWN", policy: {} };
+  const policy = runtime.policy || {};
+  const receipt = state.sandboxReceipts[0];
+  renderShell(`<section class="page-body sandbox-page">
+    <section class="view-heading"><div><span class="eyebrow">Execution / isolated local runtime</span><h2>Run disposable code without trusting the host</h2><p>Docker only. No network, host mounts, secrets, privileged mode, provider actions, or host-shell fallback. SSH remains unsupported.</p></div><span class="${statusClass(runtime.status)}">${esc(runtime.status)}</span></section>
+    <section class="sandbox-policy-strip">
+      ${readinessItem("Network", policy.network || "UNKNOWN", policy.network === "none" ? "ready" : "blocked")}
+      ${readinessItem("Root filesystem", policy.rootFilesystem || "UNKNOWN", "ready")}
+      ${readinessItem("Host mounts", String(policy.hostMounts ?? "UNKNOWN"), policy.hostMounts === false ? "ready" : "blocked")}
+      ${readinessItem("Secrets", String(policy.secrets ?? "UNKNOWN"), policy.secrets === false ? "ready" : "blocked")}
+      ${readinessItem("SSH", policy.ssh || "UNKNOWN", "blocked")}
+    </section>
+    <div class="sandbox-layout">
+      <section class="panel sandbox-compose">
+        <div class="panel-title"><div><span class="eyebrow">Ephemeral job</span><h3>Source runner</h3></div><span class="status active">ALLOWLISTED</span></div>
+        <form id="sandbox-form" class="sandbox-form">
+          <label>Runtime<select name="runtime"><option value="node20">Node.js 20 / Alpine</option><option value="python312">Python 3.12 / Alpine</option></select></label>
+          <label>Timeout<select name="timeoutMs"><option value="5000">5 seconds</option><option value="10000" selected>10 seconds</option><option value="30000">30 seconds</option></select></label>
+          <label class="wide">Source<textarea name="source" rows="16" spellcheck="false" required>${esc("console.log('MDS sandbox ready')")}</textarea></label>
+          <button class="primary wide" type="submit" ${runtime.status !== "READY_LOCAL_DOCKER" || state.sandboxRunning ? "disabled" : ""}>${icon("runtime", 16)} ${state.sandboxRunning ? "Running..." : "Run isolated"}</button>
+        </form>
+        <p class="form-help">Images are fixed by runtime. Source is copied into an ephemeral Docker volume, mounted read-only for execution, then the container and volume are removed.</p>
+        ${state.sandboxNotice ? `<div class="sandbox-notice">${esc(state.sandboxNotice)}</div>` : ""}
+      </section>
+      <section class="panel sandbox-output">
+        <div class="panel-title"><div><span class="eyebrow">Latest receipt</span><h3>${esc(receipt?.id || "No execution receipt")}</h3></div>${receipt ? `<span class="${statusClass(receipt.status)}">${esc(receipt.status)}</span>` : ""}</div>
+        ${receipt ? `<dl class="launch-definition-list"><dt>Runtime</dt><dd>${esc(receipt.runtime)} / ${esc(receipt.image)}</dd><dt>Source SHA-256</dt><dd class="mono-wrap">${esc(receipt.sourceSha256)}</dd><dt>Completed</dt><dd>${esc(receipt.completedAt)}</dd><dt>External state</dt><dd>${esc(receipt.externalState)}</dd></dl><h4>stdout</h4><pre>${esc(receipt.stdout || "(empty)")}</pre><h4>stderr</h4><pre>${esc(receipt.stderr || "(empty)")}</pre>` : `<article class="empty-card"><strong>No sandbox run recorded.</strong><p>Docker readiness is checked locally. Nothing runs until the operator submits this form.</p></article>`}
+      </section>
+    </div>
+  </section>`);
+}
+
 async function boot() {
   await loadSnapshot();
   state.tickets = await loadTickets();
@@ -7302,6 +7374,7 @@ async function boot() {
   await loadVoiceState();
   await loadModelRouter();
   state.canvasDocuments = await loadCanvasDocuments();
+  await loadSandboxStatus();
   wireMv18Events();
   state.selectedTicketId = state.tickets[0]?.id || "";
   state.selectedActivityId = state.activity[0]?.id || "";

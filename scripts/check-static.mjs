@@ -279,6 +279,16 @@ if (!server.includes("/api/canvas/import") || !server.includes("sanitizeA2UIDocu
 if (!js.includes("renderCanvas") || !js.includes("canvas-component-form") || !js.includes("data-canvas-add") || !js.includes("executionAllowed=false")) {
   throw new Error("interactive A2UI canvas editor wiring is missing.");
 }
+const sandboxRunner = fs.readFileSync(path.join(appRoot, "scripts", "lib", "sandbox-runner.mjs"), "utf8");
+if (!server.includes("/api/sandbox/execute") || !server.includes("BLOCKED_RUNTIME_UNAVAILABLE") || !server.includes("BLOCKED_IMAGE_UNAVAILABLE")) {
+  throw new Error("fail-closed Docker sandbox API is missing.");
+}
+if (!sandboxRunner.includes('"--network", "none"') || !sandboxRunner.includes('"--read-only"') || !sandboxRunner.includes('"--cap-drop", "ALL"') || !sandboxRunner.includes("no-new-privileges:true")) {
+  throw new Error("sandbox isolation flags are incomplete.");
+}
+if (!js.includes("renderSandbox") || !js.includes("sandbox-form") || !js.includes("No network, host mounts, secrets")) {
+  throw new Error("sandbox operator surface or claim boundary is missing.");
+}
 const daemon = fs.readFileSync(path.join(appRoot, "scripts", "daemon.mjs"), "utf8");
 const systemd = fs.readFileSync(path.join(appRoot, "service", "systemd", "mds-command-centre.service"), "utf8");
 const launchd = fs.readFileSync(path.join(appRoot, "service", "launchd", "com.mds.command-centre.plist"), "utf8");

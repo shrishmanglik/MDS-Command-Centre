@@ -23,6 +23,7 @@
     ,"test:voice-gate": "node scripts/test-voice-gate.mjs"
     ,"test:model-router": "node scripts/test-model-router.mjs"
     ,"test:a2ui": "node scripts/test-a2ui-store.mjs"
+    ,"test:sandbox": "node scripts/test-sandbox-runner.mjs"
   },
   "devDependencies": {},
   "main": "index.js",
