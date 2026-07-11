@@ -1,0 +1,20 @@
+import { recordModelFailure, resolveModelRoute } from "./lib/model-router.mjs";
+
+const now = Date.parse("2026-07-11T00:00:00Z");
+const inventory = [{ name: "qwen3-coder:30b", local: true }, { name: "llama3.1:8b", local: true }, { name: "qwen2.5vl:3b", local: true }];
+const profiles = [{ id: "api-primary", status: "VERIFIED" }, { id: "api-secondary", status: "VERIFIED" }];
+let state = { failures: [] };
+let route = resolveModelRoute({ taskClass: "coding", inventory, profiles, state, now });
+if (route.targetId !== "api-primary" || route.executionStarted) throw new Error("Verified primary profile was not selected safely.");
+state = recordModelFailure(state, { targetId: "api-primary", reason: "rate_limit" }, now);
+route = resolveModelRoute({ taskClass: "coding", inventory, profiles, state, now });
+if (route.targetId !== "api-secondary") throw new Error("Auth profile rotation did not select the next verified profile.");
+state = recordModelFailure(state, { targetId: "api-secondary", reason: "quota_exhausted" }, now);
+route = resolveModelRoute({ taskClass: "coding", inventory, profiles, state, now });
+if (route.targetId !== "qwen3-coder:30b" || route.layer !== "local") throw new Error("External failure did not fall back to local model.");
+state = recordModelFailure(state, { targetId: "qwen3-coder:30b", reason: "runtime_unavailable" }, now);
+route = resolveModelRoute({ taskClass: "coding", inventory, profiles, state, now });
+if (route.targetId !== "llama3.1:8b") throw new Error("Local model failover chain did not advance.");
+route = resolveModelRoute({ taskClass: "multimodal", inventory: [], profiles: [], state: { failures: [] }, now });
+if (route.layer !== "offline" || route.targetId !== "manual-offline-handoff") throw new Error("Offline terminal fallback failed.");
+console.log("Model router checks passed.");

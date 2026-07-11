@@ -62,6 +62,8 @@ const state = {
   voiceCommands: [],
   voiceNotice: "",
   voiceListening: false,
+  modelRouter: null,
+  modelRouterNotice: "",
 };
 let voiceMediaRecorder = null;
 let voiceMediaStream = null;
@@ -3436,6 +3438,14 @@ async function loadVoiceState() {
   }
 }
 
+async function loadModelRouter() {
+  try {
+    state.modelRouter = await apiJson("/api/model-router/status");
+  } catch {
+    state.modelRouter = { state: { authProfiles: [], failures: [], receipts: [] }, inventory: [], chains: {}, credentialValuesRead: false, status: "LOCAL_API_OFFLINE" };
+  }
+}
+
 function blobToBase64(blob) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -5685,6 +5695,8 @@ function renderModelsView() {
   const models = state.localCaps?.modelProviders || {};
   const runtimes = models.runtimes || [];
   const paid = models.paidApiAdapters || [];
+  const router = state.modelRouter || { state: { authProfiles: [], failures: [], receipts: [] }, inventory: [], chains: {} };
+  const latestReceipt = router.state?.receipts?.[0];
   renderShell(`
     <div class="health-grid">
       ${snapshotBanner(state.localCaps, "Models")}
@@ -5709,6 +5721,40 @@ function renderModelsView() {
             )
             .join("") || `<div class="health-row"><strong>No local model runtime records.</strong><em class="status unknown">UNKNOWN</em><span></span><span></span><span></span></div>`}
         </div>
+      </section>
+      <section class="objective-panel wide model-router-panel">
+        <div class="panel-title">${icon("models")}<span>Failover resolver</span></div>
+        <h2>Credential-blind routing across verified profiles, local models, and offline fallback.</h2>
+        <p>Provider auth profiles contain names and verification state only. Circuit breakers react to explicit local failure signals. Every receipt is a routing decision, not proof that a model executed successfully.</p>
+        ${state.modelRouterNotice ? `<div class="pairing-notice" role="status"><strong>Router result</strong><code>${esc(state.modelRouterNotice)}</code></div>` : ""}
+        <div class="voice-runtime-strip">
+          <span><strong>Local models</strong>${esc(router.inventory?.filter((item) => item.local).length || 0)}</span>
+          <span><strong>Auth profiles</strong>${esc(router.state?.authProfiles?.length || 0)} names only</span>
+          <span><strong>Open circuits</strong>${esc(router.state?.failures?.length || 0)}</span>
+          <span><strong>Credentials read</strong>${router.credentialValuesRead === false ? "NO" : "UNKNOWN"}</span>
+        </div>
+        <div class="model-router-layout">
+          <form class="research-form" id="model-route-form">
+            <div class="panel-title">${icon("dispatch")}<span>Resolve route</span></div>
+            ${select("Task class", "taskClass", "general", ["general", "coding", "multimodal"])}
+            <div class="dispatch-actions"><button type="submit" class="primary">${icon("check", 16)} Resolve without execution</button></div>
+          </form>
+          <form class="research-form" id="model-failure-form">
+            <div class="panel-title">${icon("warning")}<span>Record failure signal</span></div>
+            ${input("Target ID", "targetId", latestReceipt?.targetId || "", "profile or model id")}
+            ${select("Reason", "reason", "rate_limit", ["rate_limit", "quota_exhausted", "auth_unavailable", "runtime_unavailable"])}
+            ${select("Task class", "taskClass", latestReceipt?.taskClass || "general", ["general", "coding", "multimodal"])}
+            <div class="dispatch-actions"><button type="submit">${icon("warning", 16)} Open circuit and re-resolve</button></div>
+          </form>
+        </div>
+      </section>
+      <section class="table-panel wide">
+        <div class="panel-title">${icon("runtime")}<span>Verified local inventory</span></div>
+        <div class="stack-list">${router.inventory?.length ? router.inventory.map((item) => `<article><strong>${esc(item.name)}</strong><p>${esc(item.evidence)}</p><em class="${statusClass(item.local ? "READY LOCAL" : "UNKNOWN")}">${item.local ? "LOCAL" : "CLOUD/EXCLUDED"}</em></article>`).join("") : `<article class="empty-card"><strong>No verified local model inventory.</strong><p>Resolver will terminate at manual offline handoff.</p></article>`}</div>
+      </section>
+      <section class="table-panel wide">
+        <div class="panel-title">${icon("proof")}<span>Route receipts</span></div>
+        <div class="stack-list">${router.state?.receipts?.length ? router.state.receipts.map((receipt) => `<article><header><strong>${esc(receipt.targetId)}</strong><em class="${statusClass(receipt.layer === "local" ? "READY" : receipt.layer === "offline" ? "PARTIAL" : "UNKNOWN")}">${esc(receipt.layer)}</em></header><p>${esc(receipt.taskClass)} · ${esc(receipt.reason)}</p><span>executionStarted=false · credentialValuesRead=false</span></article>`).join("") : `<article class="empty-card"><strong>No route receipts.</strong><p>Resolve a task class to create a local decision receipt.</p></article>`}</div>
       </section>
       <section class="table-panel wide">
         <div class="panel-title">${icon("lock")}<span>Paid API adapters</span></div>
@@ -5767,6 +5813,31 @@ function wireMv18Events() {
   });
 
   document.addEventListener("submit", async (event) => {
+    const modelRouteForm = event.target?.closest?.("#model-route-form");
+    if (modelRouteForm) {
+      event.preventDefault();
+      const values = Object.fromEntries(new FormData(modelRouteForm).entries());
+      const payload = await apiJson("/api/model-router/resolve", { method: "POST", body: JSON.stringify(values) });
+      state.modelRouterNotice = `${payload.receipt.layer}: ${payload.receipt.targetId} (${payload.receipt.reason}); executionStarted=false.`;
+      await loadModelRouter();
+      render();
+      return;
+    }
+    const modelFailureForm = event.target?.closest?.("#model-failure-form");
+    if (modelFailureForm) {
+      event.preventDefault();
+      const values = Object.fromEntries(new FormData(modelFailureForm).entries());
+      if (!String(values.targetId || "").trim()) {
+        state.modelRouterNotice = "Failure target ID is required.";
+        render();
+        return;
+      }
+      const payload = await apiJson("/api/model-router/failure", { method: "POST", body: JSON.stringify(values) });
+      state.modelRouterNotice = `Circuit opened for ${values.targetId}; next route ${payload.receipt.layer}: ${payload.receipt.targetId}.`;
+      await loadModelRouter();
+      render();
+      return;
+    }
     const formElement = event.target?.closest?.("#source-evidence-form, #capability-request-form");
     if (!formElement) return;
     event.preventDefault();
@@ -6999,6 +7070,7 @@ async function boot() {
   state.inboxEvents = await loadInboxEvents();
   state.workspaces = await loadWorkspaces();
   await loadVoiceState();
+  await loadModelRouter();
   wireMv18Events();
   state.selectedTicketId = state.tickets[0]?.id || "";
   state.selectedActivityId = state.activity[0]?.id || "";

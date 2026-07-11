@@ -2,11 +2,12 @@ import http from "node:http";
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
-import { execFile } from "node:child_process";
+import { execFile, execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { ensurePairing, readPairings, streamIdFor } from "./lib/pairing-store.mjs";
 import { readWorkspaces, routeStreamToWorkspace } from "./lib/workspace-store.mjs";
 import { parseVoiceTranscript, WAKE_WORD } from "./lib/voice-gate.mjs";
+import { recordModelFailure, resolveModelRoute, TASK_CHAINS } from "./lib/model-router.mjs";
 
 const appRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const args = process.argv.slice(2);
@@ -31,6 +32,7 @@ const workspaceStore = path.join(appRoot, "src", "data", "localWorkspaces.json")
 const workspaceRoot = path.join(appRoot, "output", "workspaces");
 const voiceCommandStore = path.join(appRoot, "src", "data", "localVoiceCommands.json");
 const voiceModel = path.join(appRoot, "voice", "models", "ggml-base.en.bin");
+const modelRouterStore = path.join(appRoot, "src", "data", "localModelRouter.json");
 const D_ROOT = "D:/Million Dollar AI Studio";
 const BROWSE_ROOTS = ["Products", "vcos", "command-centre", "output/playwright", "."];
 const SECRET_PATH_PATTERN =
@@ -61,6 +63,45 @@ function voiceStatus() {
     commandMode: "DRAFT_ONLY",
     authority: "Local offline STT metadata only. No microphone permission, model execution, code execution, provider action, or external send is implied.",
   };
+}
+
+function localModelInventory() {
+  const ollama = findExecutable(["ollama"]);
+  if (!ollama) return [];
+  try {
+    const output = execFileSync(ollama, ["list"], { cwd: appRoot, encoding: "utf8", timeout: 5000, windowsHide: true });
+    return String(output).split(/\r?\n/).slice(1).map((line) => line.trim().split(/\s{2,}/)[0]).filter(Boolean).map((name) => ({ name, local: !/:cloud$/i.test(name), evidence: "ollama list metadata" }));
+  } catch {
+    return [];
+  }
+}
+
+function readModelRouter() {
+  const fallback = { schemaVersion: "mds.command-centre.model-router.v1", updatedAt: "UNKNOWN", authProfiles: [], failures: [], receipts: [] };
+  if (!fs.existsSync(modelRouterStore)) return fallback;
+  const parsed = JSON.parse(fs.readFileSync(modelRouterStore, "utf8"));
+  return { ...fallback, ...parsed, authProfiles: Array.isArray(parsed.authProfiles) ? parsed.authProfiles.slice(0, 20) : [], failures: Array.isArray(parsed.failures) ? parsed.failures.filter((failure) => new Date(failure.openUntil).getTime() > Date.now()).slice(0, 100) : [], receipts: Array.isArray(parsed.receipts) ? parsed.receipts.slice(0, 100) : [] };
+}
+
+function writeModelRouter(state) {
+  const payload = {
+    schemaVersion: "mds.command-centre.model-router.v1",
+    updatedAt: new Date().toISOString(),
+    authority: "D-local model routing and circuit-breaker state only. No credential values, provider calls, model execution, quota truth, or billing state is stored.",
+    authProfiles: (state.authProfiles || []).map((profile) => ({ id: String(profile.id).slice(0, 80), provider: String(profile.provider || "UNKNOWN").slice(0, 40), status: profile.status === "VERIFIED" ? "VERIFIED" : "UNKNOWN", credentialRef: "PROVIDER_OWNED_NOT_READ" })).slice(0, 20),
+    failures: (state.failures || []).slice(0, 100),
+    receipts: (state.receipts || []).slice(0, 100),
+  };
+  const temp = `${modelRouterStore}.${process.pid}.tmp`;
+  fs.writeFileSync(temp, `${JSON.stringify(payload, null, 2)}\n`, { mode: 0o600 });
+  fs.renameSync(temp, modelRouterStore);
+  return payload;
+}
+
+function resolveAndStoreModelRoute(taskClass) {
+  const state = readModelRouter();
+  const receipt = resolveModelRoute({ taskClass, inventory: localModelInventory(), profiles: state.authProfiles, state });
+  return { receipt, state: writeModelRouter({ ...state, receipts: [receipt, ...state.receipts] }), inventory: localModelInventory(), chains: TASK_CHAINS };
 }
 
 function execFilePromise(executable, args, options = {}) {
@@ -771,6 +812,7 @@ function snapshotHealth() {
     quarantinedStreams: readPairings(pairingStore).filter((record) => record.status === "QUARANTINED").length,
     workspaces: readWorkspaces(workspaceStore).length,
     voice: voiceStatus(),
+    modelRouter: { inventory: localModelInventory().length, openCircuits: readModelRouter().failures.length },
     sources,
   };
 }
@@ -847,6 +889,24 @@ async function handleApi(request, response, pathname) {
       }
       const parsed = JSON.parse(await readBody(request, 12 * 1024 * 1024));
       sendJson(response, 201, await transcribeLocalAudio(parsed));
+      return true;
+    }
+    if (request.method === "GET" && pathname === "/api/model-router/status") {
+      const state = readModelRouter();
+      sendJson(response, 200, { state, inventory: localModelInventory(), chains: TASK_CHAINS, credentialValuesRead: false });
+      return true;
+    }
+    if (request.method === "POST" && pathname === "/api/model-router/resolve") {
+      const parsed = JSON.parse(await readBody(request, 32 * 1024));
+      sendJson(response, 201, resolveAndStoreModelRoute(String(parsed.taskClass || "general")));
+      return true;
+    }
+    if (request.method === "POST" && pathname === "/api/model-router/failure") {
+      const parsed = JSON.parse(await readBody(request, 32 * 1024));
+      const state = readModelRouter();
+      const failed = recordModelFailure(state, { targetId: parsed.targetId, reason: parsed.reason });
+      writeModelRouter(failed);
+      sendJson(response, 201, resolveAndStoreModelRoute(String(parsed.taskClass || "general")));
       return true;
     }
     if (request.method === "PUT" && pathname === "/api/tickets") {

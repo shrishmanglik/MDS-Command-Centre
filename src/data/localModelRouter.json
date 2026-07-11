@@ -1,0 +1,12 @@
+{
+  "schemaVersion": "mds.command-centre.model-router.v1",
+  "updatedAt": "UNKNOWN",
+  "authority": "D-local model routing and circuit-breaker state only. No credential values, provider calls, model execution, quota truth, or billing state is stored.",
+  "authProfiles": [
+    { "id": "anthropic-primary", "provider": "anthropic", "status": "UNKNOWN", "credentialRef": "PROVIDER_OWNED_NOT_READ" },
+    { "id": "anthropic-secondary", "provider": "anthropic", "status": "UNKNOWN", "credentialRef": "PROVIDER_OWNED_NOT_READ" },
+    { "id": "openai-primary", "provider": "openai", "status": "UNKNOWN", "credentialRef": "PROVIDER_OWNED_NOT_READ" }
+  ],
+  "failures": [],
+  "receipts": []
+}

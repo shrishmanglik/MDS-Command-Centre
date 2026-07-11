@@ -21,6 +21,7 @@
     ,"test:pairing": "node scripts/test-pairing-gate.mjs"
     ,"test:workspace-router": "node scripts/test-workspace-router.mjs"
     ,"test:voice-gate": "node scripts/test-voice-gate.mjs"
+    ,"test:model-router": "node scripts/test-model-router.mjs"
   },
   "devDependencies": {},
   "main": "index.js",

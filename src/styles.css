@@ -2992,6 +2992,16 @@ pre {
   justify-self: start;
 }
 
+.model-router-layout {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.model-router-layout .research-form {
+  margin: 0;
+}
+
 .workspace-router-grid .wide {
   grid-column: 1 / -1;
 }
@@ -3002,6 +3012,10 @@ pre {
   }
 
   .voice-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .model-router-layout {
     grid-template-columns: 1fr;
   }
 }

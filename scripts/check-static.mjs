@@ -24,6 +24,7 @@ const required = [
   "src/data/localPairings.json",
   "src/data/localWorkspaces.json",
   "src/data/localVoiceCommands.json",
+  "src/data/localModelRouter.json",
   "desktop/launch-command-centre.ps1",
 ];
 
@@ -262,6 +263,13 @@ if (!server.includes("/api/voice/audio") || !server.includes("whisper-cli") || !
 }
 if (!js.includes("renderVoice") || !js.includes("startVoiceCapture") || !js.includes("voice-transcript-form") || !js.includes("executionAllowed=false")) {
   throw new Error("voice operator surface or fail-closed draft copy is missing.");
+}
+const modelRouter = fs.readFileSync(path.join(appRoot, "scripts", "lib", "model-router.mjs"), "utf8");
+if (!server.includes("/api/model-router/resolve") || !server.includes("/api/model-router/failure") || !server.includes("credentialRef: \"PROVIDER_OWNED_NOT_READ\"") || !modelRouter.includes("quota_exhausted")) {
+  throw new Error("credential-blind model failover or circuit-breaker API is missing.");
+}
+if (!js.includes("model-route-form") || !js.includes("model-failure-form") || !js.includes("executionStarted=false")) {
+  throw new Error("model failover operator controls or claim ceiling is missing.");
 }
 const daemon = fs.readFileSync(path.join(appRoot, "scripts", "daemon.mjs"), "utf8");
 const systemd = fs.readFileSync(path.join(appRoot, "service", "systemd", "mds-command-centre.service"), "utf8");
