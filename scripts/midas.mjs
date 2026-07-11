@@ -3,6 +3,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { approvePairing, readPairings } from "./lib/pairing-store.mjs";
 import { runDoctor } from "./lib/doctor.mjs";
+import { validateSkillPack } from "./lib/skill-validator.mjs";
 
 const appRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const storePath = path.join(appRoot, "src", "data", "localPairings.json");
@@ -14,8 +15,15 @@ if (domain === "doctor") {
   process.exit(result.blockers ? 1 : 0);
 }
 
+if (domain === "skills" && action === "validate") {
+  if (!value) { console.error("Usage: midas skills validate <pack-path>"); process.exit(2); }
+  const result = validateSkillPack(path.resolve(process.cwd(), value));
+  console.log(JSON.stringify(result, null, 2));
+  process.exit(result.valid ? 0 : 1);
+}
+
 if (domain !== "pairing" || !["list", "approve"].includes(action || "")) {
-  console.error("Usage: midas doctor | midas pairing list | midas pairing approve <pairing-key>");
+  console.error("Usage: midas doctor | midas skills validate <pack-path> | midas pairing list | midas pairing approve <pairing-key>");
   process.exit(2);
 }
 

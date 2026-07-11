@@ -1,0 +1,18 @@
+schemaVersion: mds.skill-pack.v1
+id: local-review
+name: Local Review
+version: 1.0.0
+description: Reviews bounded local artifacts and returns evidence without external actions.
+entrypoint: SKILL.md
+capabilities:
+  - read_files
+  - run_checks
+permissions:
+  writeFiles: false
+  modelRequest: false
+inputs:
+  - name: artifactPath
+    type: string
+outputs:
+  - name: findings
+    type: array
