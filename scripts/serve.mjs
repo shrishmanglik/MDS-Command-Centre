@@ -3,6 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { execFile } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import { ensurePairing, readPairings, streamIdFor } from "./lib/pairing-store.mjs";
 
 const appRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const args = process.argv.slice(2);
@@ -22,6 +23,7 @@ const adapterRefreshScript = path.join(appRoot, "scripts", "refresh-local-adapte
 const sourceEvidenceStore = path.join(appRoot, "src", "data", "localSourceEvidence.json");
 const capabilityRequestStore = path.join(appRoot, "src", "data", "localCapabilityRequests.json");
 const inboxStore = path.join(appRoot, "src", "data", "localInboxEvents.json");
+const pairingStore = path.join(appRoot, "src", "data", "localPairings.json");
 const D_ROOT = "D:/Million Dollar AI Studio";
 const BROWSE_ROOTS = ["Products", "vcos", "command-centre", "output/playwright", "."];
 const SECRET_PATH_PATTERN =
@@ -109,11 +111,15 @@ function sanitizeInboxEvent(event) {
   const allowedStatuses = new Set(["NEW", "TRIAGED", "ROUTED", "CLOSED"]);
   const channel = String(event.channel || "manual").toLowerCase();
   const status = String(event.status || "NEW").toUpperCase();
+  const senderLabel = String(event.senderLabel || "Unknown sender").slice(0, 120);
+  const streamId = streamIdFor(channel, senderLabel);
+  const pairing = readPairings(pairingStore).find((record) => record.streamId === streamId);
+  const pairingStatus = pairing?.status === "PAIRED" ? "PAIRED" : "QUARANTINED";
   return {
     id: String(event.id || `INBOX-${Date.now().toString(36).toUpperCase()}`).replace(/[^A-Za-z0-9_-]/g, "-").slice(0, 90),
     receivedAt: String(event.receivedAt || now).slice(0, 80),
     channel: allowedChannels.has(channel) ? channel : "manual",
-    senderLabel: String(event.senderLabel || "Unknown sender").slice(0, 120),
+    senderLabel,
     subject: String(event.subject || "Untitled signal").slice(0, 240),
     body: String(event.body || "").slice(0, 4000),
     status: allowedStatuses.has(status) ? status : "NEW",
@@ -123,8 +129,19 @@ function sanitizeInboxEvent(event) {
     provenance: String(event.provenance || "manual_local_intake").slice(0, 240),
     routeTarget: String(event.routeTarget || "UNASSIGNED").slice(0, 120),
     externalState: "UNKNOWN",
+    streamId,
+    pairingStatus,
+    executionAllowed: pairingStatus === "PAIRED",
     updatedAt: String(event.updatedAt || now).slice(0, 80),
   };
+}
+
+function intakeInboxEvent(event) {
+  const pairing = ensurePairing(pairingStore, event.channel, event.senderLabel);
+  const sanitized = sanitizeInboxEvent({ ...event, status: "NEW" });
+  const current = readInboxEvents();
+  const payload = writeInboxEvents([sanitized, ...current.filter((item) => item.id !== sanitized.id)]);
+  return { ...payload, event: sanitized, pairingKey: pairing.pairingKey, pairingCreated: pairing.created };
 }
 
 function readInboxEvents() {
@@ -210,6 +227,9 @@ function sanitizeDecisionExport(decision) {
 
 function sanitizeAgentRun(run) {
   const now = new Date().toISOString();
+  const sourceStreamId = String(run.sourceStreamId || "").slice(0, 32);
+  const sourcePairing = sourceStreamId ? readPairings(pairingStore).find((record) => record.streamId === sourceStreamId) : null;
+  const pairingBlocked = Boolean(sourceStreamId) && sourcePairing?.status !== "PAIRED";
   return {
     id: String(run.id || `RUN-${Date.now().toString(36).toUpperCase()}`).slice(0, 90),
     ticketId: String(run.ticketId || "UNKNOWN").slice(0, 80),
@@ -217,9 +237,12 @@ function sanitizeAgentRun(run) {
     targetAgent: String(run.targetAgent || "Codex").slice(0, 80),
     owner: String(run.owner || "Codex Strategic Board").slice(0, 120),
     lane: String(run.lane || "Command Centre").slice(0, 120),
-    status: String(run.status || "DRAFT").slice(0, 80),
+    status: pairingBlocked ? "BLOCKED_PAIRING_REQUIRED" : String(run.status || "DRAFT").slice(0, 80),
     priority: String(run.priority || "P1").slice(0, 12),
-    approvalClass: String(run.approvalClass || "LOCAL_ONLY").slice(0, 80),
+    approvalClass: pairingBlocked ? "PAIRING_REQUIRED" : String(run.approvalClass || "LOCAL_ONLY").slice(0, 80),
+    sourceStreamId,
+    sourcePairingStatus: sourceStreamId ? sourcePairing?.status || "QUARANTINED" : "NOT_APPLICABLE",
+    executionAllowed: sourceStreamId ? sourcePairing?.status === "PAIRED" : true,
     objective: String(run.objective || "").slice(0, 3000),
     sourceEvidence: String(run.sourceEvidence || "").slice(0, 3000),
     allowedActions: String(run.allowedActions || "").slice(0, 3000),
@@ -645,6 +668,9 @@ function snapshotHealth() {
     inboxStore: path.relative(appRoot, inboxStore),
     inboxStoreExists: fs.existsSync(inboxStore),
     inboxEvents: fs.existsSync(inboxStore) ? readInboxEvents().length : 0,
+    pairingStore: path.relative(appRoot, pairingStore),
+    pairedStreams: readPairings(pairingStore).filter((record) => record.status === "PAIRED").length,
+    quarantinedStreams: readPairings(pairingStore).filter((record) => record.status === "QUARANTINED").length,
     sources,
   };
 }
@@ -667,6 +693,15 @@ async function handleApi(request, response, pathname) {
       const parsed = JSON.parse(await readBody(request, 512 * 1024));
       const events = Array.isArray(parsed) ? parsed : parsed.events;
       sendJson(response, 200, writeInboxEvents(events));
+      return true;
+    }
+    if (request.method === "POST" && pathname === "/api/inbox/intake") {
+      const parsed = JSON.parse(await readBody(request, 64 * 1024));
+      sendJson(response, 201, intakeInboxEvent(parsed.event || parsed));
+      return true;
+    }
+    if (request.method === "GET" && pathname === "/api/pairing") {
+      sendJson(response, 200, { records: readPairings(pairingStore).map(({ keyDigest, ...record }) => record), store: path.relative(appRoot, pairingStore) });
       return true;
     }
     if (request.method === "PUT" && pathname === "/api/tickets") {

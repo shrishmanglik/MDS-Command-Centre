@@ -2919,6 +2919,24 @@ pre {
   background: #f8fafc;
 }
 
+.pairing-notice {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 6px;
+  padding: 12px;
+  border: 1px solid #d69e2e;
+  border-left-width: 4px;
+  border-radius: 6px;
+  background: #fffaf0;
+}
+
+.pairing-notice code {
+  overflow-wrap: anywhere;
+  color: #744210;
+  font-size: 12px;
+  white-space: normal;
+}
+
 @media (max-width: 980px) {
   .inbox-grid,
   .inbox-brief {

@@ -1,0 +1,6 @@
+{
+  "schemaVersion": "mds.command-centre.pairing-registry.v1",
+  "updatedAt": "UNKNOWN",
+  "authority": "D-local stream pairing only. Pairing does not authorize provider mutation, external sends, secret access, or code execution by itself.",
+  "records": []
+}

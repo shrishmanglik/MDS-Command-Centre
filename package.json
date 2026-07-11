@@ -4,6 +4,9 @@
   "version": "0.1.0",
   "type": "module",
   "description": "Local-first MDS Command Centre shell reading D-root War Room boards.",
+  "bin": {
+    "midas": "scripts/midas.mjs"
+  },
   "scripts": {
     "refresh-data": "node scripts/refresh-war-room-data.mjs && node scripts/refresh-local-adapters.mjs",
     "dev": "npm run refresh-data && node scripts/serve.mjs --root . --port 5178",
@@ -14,6 +17,8 @@
     ,"daemon": "node scripts/daemon.mjs --root . --port 5178"
     ,"daemon:probe": "node scripts/daemon.mjs --root . --port 5191 --probe-once"
     ,"service:render": "node scripts/render-service-config.mjs"
+    ,"pairing:list": "node scripts/midas.mjs pairing list"
+    ,"test:pairing": "node scripts/test-pairing-gate.mjs"
   },
   "devDependencies": {},
   "main": "index.js",

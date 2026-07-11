@@ -8,6 +8,8 @@ The Inbox view is the first local-first gateway slice. It normalizes manual, syn
 
 The daemon wrapper keeps the loopback server process observable for an operating-system user service. `scripts/daemon.mjs` starts the server on `127.0.0.1`, probes `/api/health`, writes bounded process status under `output/daemon/`, exits after three consecutive health failures, and handles `SIGINT`/`SIGTERM` cleanly. The OS service manager owns restart behavior. Templates are provided for Linux user `systemd`, macOS `launchd`, and a Windows PowerShell entrypoint. Nothing installs or enables itself.
 
+The zero-trust pairing gate quarantines every previously unseen channel/sender stream. Intake returns a one-time key while `src/data/localPairings.json` stores only its SHA-256 digest. The stream remains `QUARANTINED` with `executionAllowed=false` until an operator runs `midas pairing approve <pairing-key>` (or `node scripts/midas.mjs pairing approve <pairing-key>` from the repo). Pairing changes the stream to `PAIRED`; it does not itself authorize a model run, code execution, provider access, external send, or identity claim. A separate governed run remains mandatory.
+
 The Today view now renders a structured local control surface, not just Markdown board previews. It normalizes revenue truth, Product VCOS rows, frontend/backend/payment/deploy/provider gates, provider readiness blockers, Shrish-only approvals, active CEO work orders, agent assignments, failures, releases, content queue, Board decisions, CEO actions, next action, and nightly closeout evidence from the snapshot. Each row carries source evidence and claim ceilings so local readiness cannot become a live provider/payment/deployment claim.
 
 The CEO work-order control creates file-backed local tickets from source-derived work orders and records a `ceo_work_order_created` Activity event. It does not launch agents, append the official ledger, promote company memory, push GitHub, mutate providers, deploy, move money, read secrets, or contact anyone externally.
@@ -59,6 +61,7 @@ npm run build
 npm run desktop
 npm run daemon:probe
 npm run service:render
+npm run test:pairing
 ```
 
 `npm run service:render` produces path-resolved systemd and launchd definitions under `output/daemon/service-config/`. Installation remains a manual operator action because persistence changes host state. The Windows entrypoint is `service/windows/run-command-centre-daemon.ps1`; registering it with Task Scheduler is intentionally not automatic.
@@ -74,6 +77,8 @@ Local API routes:
 - `PUT /api/tickets` writes sanitized local tickets.
 - `GET /api/inbox` reads normalized manual/synthetic local inbox events.
 - `PUT /api/inbox` writes sanitized local inbox events with unique IDs and bounded fields.
+- `POST /api/inbox/intake` derives stream identity, enforces quarantine/pairing state, and returns a new pairing key once.
+- `GET /api/pairing` returns pairing metadata without key digests or plaintext keys.
 - `GET /api/activity` reads the D-local activity file.
 - `PUT /api/activity` writes sanitized local activity events.
 - `GET /api/decisions` reads D-local director decision exports.

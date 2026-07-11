@@ -53,6 +53,7 @@ const state = {
   selectedInboxEventId: "",
   inboxFilter: "all",
   inboxPersistence: "localStorage fallback",
+  inboxPairingNotice: "",
 };
 
 const storageKey = "mds-command-centre:tickets:v1";
@@ -145,7 +146,7 @@ function esc(value) {
 function statusClass(value) {
   const normalized = String(value).toUpperCase();
   if (normalized.includes("READY") || normalized.includes("PASS") || normalized.includes("GREEN")) return "status ready";
-  if (normalized.includes("BLOCK") || normalized.includes("NO_GO") || normalized.includes("FORBIDDEN") || normalized.includes("GAP")) return "status blocked";
+  if (normalized.includes("BLOCK") || normalized.includes("NO_GO") || normalized.includes("FORBIDDEN") || normalized.includes("GAP") || normalized.includes("QUARANTINED")) return "status blocked";
   if (normalized.includes("PARK")) return "status parked";
   if (normalized.includes("FIX") || normalized.includes("REVIEW") || normalized.includes("PARTIAL")) return "status fix";
   if (normalized.includes("UNKNOWN")) return "status unknown";
@@ -3402,10 +3403,23 @@ async function saveInboxEvents() {
   localStorage.setItem(storageInboxKey, JSON.stringify(state.inboxEvents));
   try {
     const payload = await apiJson("/api/inbox", { method: "PUT", body: JSON.stringify({ events: state.inboxEvents }) });
+    if (Array.isArray(payload.events)) state.inboxEvents = payload.events;
     state.inboxPersistence = `file-backed: ${payload.updatedAt || "saved"}`;
   } catch {
     state.inboxPersistence = "localStorage fallback";
   }
+}
+
+async function intakeInboxEvent(event) {
+  const payload = await apiJson("/api/inbox/intake", { method: "POST", body: JSON.stringify({ event }) });
+  if (Array.isArray(payload.events)) state.inboxEvents = payload.events;
+  state.selectedInboxEventId = payload.event?.id || state.inboxEvents[0]?.id || "";
+  state.inboxPersistence = `file-backed: ${payload.updatedAt || "saved"}`;
+  state.inboxPairingNotice = payload.pairingKey
+    ? `Pairing key ${payload.pairingKey} issued once for ${payload.event.streamId}. Approve locally with: midas pairing approve ${payload.pairingKey}`
+    : `${payload.event?.streamId || "Stream"} remains ${payload.event?.pairingStatus || "QUARANTINED"}.`;
+  localStorage.setItem(storageInboxKey, JSON.stringify(state.inboxEvents));
+  return payload.event;
 }
 
 function selectedInboxEvent() {
@@ -3425,8 +3439,11 @@ function inboxRoutingPacket(event) {
     `risk: ${event.risk}`,
     `route_target: ${event.routeTarget || "UNASSIGNED"}`,
     `provenance: ${event.provenance}`,
+    `stream_id: ${event.streamId || "UNKNOWN"}`,
+    `pairing_status: ${event.pairingStatus || "QUARANTINED"}`,
+    `code_execution_allowed: ${event.executionAllowed === true ? "PAIRED_STREAM_ONLY" : "NO"}`,
     "external_channel_state: UNKNOWN",
-    "stop_condition: Do not send, reply, connect a provider, read credentials, or treat sender identity as verified.",
+    "stop_condition: Do not run a code-execution model unless pairing_status is PAIRED and a separate governed run authorizes execution. Never send, reply, connect a provider, read credentials, or treat sender identity as verified.",
   ].join("\n");
 }
 
@@ -3440,6 +3457,7 @@ function renderInbox() {
         <div class="panel-title">${icon("inbox")}<span>Local intake boundary</span></div>
         <h2>One queue for customer inquiries, system notifications, and operator signals.</h2>
         <p>Manual and synthetic records only. WhatsApp, Telegram, iMessage, and Feishu connectivity, sender identity, delivery, and live provider state remain UNKNOWN.</p>
+        ${state.inboxPairingNotice ? `<div class="pairing-notice" role="status"><strong>Pairing gate</strong><code>${esc(state.inboxPairingNotice)}</code></div>` : ""}
         <div class="inbox-counts">${["NEW", "TRIAGED", "ROUTED", "CLOSED"].map((status) => `<span><strong>${counts[status]}</strong>${status}</span>`).join("")}</div>
       </section>
       <form class="research-form inbox-compose" id="inbox-intake-form">
@@ -3461,7 +3479,7 @@ function renderInbox() {
       </section>
       <section class="table-panel inbox-detail">
         <div class="panel-title">${icon("dispatch")}<span>Routing preview</span></div>
-        ${selected ? `<header><div><em class="${statusClass(selected.status)}">${esc(selected.status)}</em><h2>${esc(selected.subject)}</h2><p>${esc(selected.body || "No signal body supplied.")}</p></div></header><dl class="launch-definition-list"><dt>Sender</dt><dd>${esc(selected.senderLabel)}</dd><dt>Source</dt><dd>${esc(selected.channel)} / ${esc(selected.provenance)}</dd><dt>Risk</dt><dd>${esc(selected.risk)}</dd><dt>Route</dt><dd>${esc(selected.routeTarget || "UNASSIGNED")}</dd><dt>External state</dt><dd>UNKNOWN</dd></dl><div class="inbox-state-actions">${["NEW", "TRIAGED", "ROUTED", "CLOSED"].map((status) => `<button type="button" data-inbox-status="${status}" ${selected.status === status ? "disabled" : ""}>${esc(status)}</button>`).join("")}</div><pre class="inbox-packet">${esc(inboxRoutingPacket(selected))}</pre><div class="dispatch-actions"><button type="button" data-action="copy-inbox-packet">${icon("file", 16)} Copy routing preview</button></div>` : `<article class="empty-card"><strong>No event selected.</strong><p>Add or select a local signal to review its routing packet.</p></article>`}
+        ${selected ? `<header><div><em class="${statusClass(selected.status)}">${esc(selected.status)}</em><h2>${esc(selected.subject)}</h2><p>${esc(selected.body || "No signal body supplied.")}</p></div></header><dl class="launch-definition-list"><dt>Sender</dt><dd>${esc(selected.senderLabel)}</dd><dt>Source</dt><dd>${esc(selected.channel)} / ${esc(selected.provenance)}</dd><dt>Risk</dt><dd>${esc(selected.risk)}</dd><dt>Route</dt><dd>${esc(selected.routeTarget || "UNASSIGNED")}</dd><dt>Pairing</dt><dd><em class="${statusClass(selected.pairingStatus)}">${esc(selected.pairingStatus || "QUARANTINED")}</em></dd><dt>Code execution</dt><dd>${selected.executionAllowed === true ? "Pairing gate passed; separate run approval still required" : "BLOCKED"}</dd><dt>External state</dt><dd>UNKNOWN</dd></dl><div class="inbox-state-actions">${["NEW", "TRIAGED", "ROUTED", "CLOSED"].map((status) => `<button type="button" data-inbox-status="${status}" ${selected.status === status ? "disabled" : ""}>${esc(status)}</button>`).join("")}</div><pre class="inbox-packet">${esc(inboxRoutingPacket(selected))}</pre><div class="dispatch-actions"><button type="button" data-action="copy-inbox-packet">${icon("file", 16)} Copy routing preview</button></div>` : `<article class="empty-card"><strong>No event selected.</strong><p>Add or select a local signal to review its routing packet.</p></article>`}
       </section>
     </div>`);
 }
@@ -5806,9 +5824,7 @@ function wireEvents() {
     if (button.dataset.action === "seed-inbox-event") {
       const now = nowIso();
       const item = { id: `INBOX-SYN-${Date.now().toString(36).toUpperCase()}`, receivedAt: now, channel: "synthetic", senderLabel: "Synthetic system monitor", subject: "Review failed local readiness check", body: "Synthetic fixture: one local readiness check requires operator triage.", status: "NEW", risk: "MEDIUM", provenance: "synthetic_fixture", routeTarget: "Product Ops", externalState: "UNKNOWN", updatedAt: now };
-      state.inboxEvents = [item, ...state.inboxEvents];
-      state.selectedInboxEventId = item.id;
-      await saveInboxEvents();
+      await intakeInboxEvent(item);
       render();
     }
     if (button.dataset.action === "copy-inbox-packet") await copyTextToClipboard(inboxRoutingPacket(selectedInboxEvent()));
@@ -6576,9 +6592,7 @@ function wireEvents() {
       if (!String(values.subject || "").trim()) return;
       const now = nowIso();
       const item = { ...values, id: `INBOX-${Date.now().toString(36).toUpperCase()}`, receivedAt: now, status: "NEW", provenance: `${values.channel || "manual"}_local_intake`, externalState: "UNKNOWN", updatedAt: now };
-      state.inboxEvents = [item, ...state.inboxEvents];
-      state.selectedInboxEventId = item.id;
-      await saveInboxEvents();
+      await intakeInboxEvent(item);
       await recordActivity("inbox_event_recorded", selectedTicket(), { details: `Recorded local inbox event ${item.id} from ${item.channel}. No external channel action.` });
       render();
       return;

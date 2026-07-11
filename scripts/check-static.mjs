@@ -20,6 +20,8 @@ const required = [
   "src/data/localAdapterHealth.json",
   "src/data/localSourceEvidence.json",
   "src/data/localCapabilityRequests.json",
+  "src/data/localInboxEvents.json",
+  "src/data/localPairings.json",
   "desktop/launch-command-centre.ps1",
 ];
 
@@ -236,6 +238,14 @@ if (!js.includes("/api/tickets") || !js.includes("/api/health") || !js.includes(
 }
 if (!js.includes("renderInbox") || !js.includes("inboxRoutingPacket") || !js.includes("/api/inbox") || !js.includes("LOCAL_PACKET_ONLY")) {
   throw new Error("local inbox intake, state machine, or routing-preview wiring is missing.");
+}
+const server = fs.readFileSync(path.join(appRoot, "scripts", "serve.mjs"), "utf8");
+const pairingCli = fs.readFileSync(path.join(appRoot, "scripts", "midas.mjs"), "utf8");
+if (!server.includes("/api/inbox/intake") || !server.includes("pairingStatus") || !server.includes("BLOCKED_PAIRING_REQUIRED") || !server.includes("executionAllowed")) {
+  throw new Error("server-side inbox pairing enforcement is missing.");
+}
+if (!pairingCli.includes("pairing approve") || !pairingCli.includes("executionAuthority")) {
+  throw new Error("manual pairing approval CLI is missing or overclaims execution authority.");
 }
 const daemon = fs.readFileSync(path.join(appRoot, "scripts", "daemon.mjs"), "utf8");
 const systemd = fs.readFileSync(path.join(appRoot, "service", "systemd", "mds-command-centre.service"), "utf8");
