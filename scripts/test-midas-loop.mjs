@@ -6,9 +6,15 @@ const pass = runMidasLoop({ room, scripts: ["lint", "test:verification-gap"], cw
 assert.equal(pass.status, "VERIFICATION_PASS");
 assert.equal(pass.steps.length, 2);
 assert.equal(pass.codeModified, false);
-const stopped = runMidasLoop({ room, scripts: ["lint", "test:verification-gap"], cwd: ".", runner: (script) => { if (script === "lint") throw new Error("failed"); } });
+const profile = runMidasLoop({ room, profile: "quick", cwd: ".", runner: (script) => `${script} passed` });
+assert.deepEqual(profile.steps.map((step) => step.script), ["lint", "test:verification-gap", "build:static"]);
+const stopped = runMidasLoop({ room, profile: "full", cwd: ".", runner: (script) => { if (script === "test:verification-gap") { const error = new Error("token=unsafe-value compile failed"); throw error; } return "pass"; } });
 assert.equal(stopped.status, "STOPPED_ON_FAILURE");
-assert.equal(stopped.steps.length, 1);
+assert.equal(stopped.steps.length, 2);
+assert.equal(stopped.correctionPacket.failedScript, "test:verification-gap");
+assert.equal(stopped.correctionPacket.agentCorrectionStarted, false);
+assert.match(stopped.correctionPacket.errorExcerpt, /token=\[REDACTED\]/);
 assert.throws(() => runMidasLoop({ room, scripts: ["build"], cwd: "." }), /SCRIPT_NOT_ALLOWED/);
 assert.throws(() => runMidasLoop({ room: { status: "DELIBERATING" }, scripts: ["lint"], cwd: "." }), /APPROVED_HANDOFF_REQUIRED/);
+assert.throws(() => runMidasLoop({ room, profile: "unknown", cwd: "." }), /PROFILE_INVALID/);
 console.log("MIDAS loop checks passed.");

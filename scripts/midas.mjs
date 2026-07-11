@@ -95,8 +95,9 @@ if (domain === "memory" && action === "read") {
 if (domain === "loop" && action === "run") {
   const cli = process.argv.slice(2);
   const room = readPartyRooms(partyStorePath).find((item) => item.id === value);
-  const scripts = String(cli[3] || "").split(",").filter(Boolean);
-  console.log(JSON.stringify(runMidasLoop({ room, scripts, cwd: appRoot }), null, 2));
+  const selection = String(cli[3] || "");
+  const options = ["quick", "full"].includes(selection) ? { profile: selection } : { scripts: selection.split(",").filter(Boolean) };
+  console.log(JSON.stringify(runMidasLoop({ room, ...options, cwd: appRoot }), null, 2));
   process.exit(0);
 }
 
