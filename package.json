@@ -18,6 +18,8 @@
     "test:docs-staleness": "node scripts/test-docs-staleness.mjs",
     "docs:frontmatter": "node scripts/midas.mjs docs validate",
     "test:frontmatter": "node scripts/test-frontmatter-order.mjs",
+    "verify:gaps": "node scripts/verification-gap.mjs --staged",
+    "test:verification-gap": "node scripts/test-verification-gap.mjs",
     "hooks:install": "git config --local core.hooksPath .githooks",
     "predev": "npm run doctor",
     "predaemon": "npm run doctor",
@@ -28,27 +30,27 @@
     "build": "npm run refresh-data && node scripts/build-static.mjs",
     "lint": "node scripts/check-static.mjs",
     "preview": "node scripts/serve.mjs --root dist --port 4178",
-    "desktop": "powershell -NoProfile -ExecutionPolicy Bypass -File desktop/launch-command-centre.ps1"
-    ,"tray": "powershell -NoProfile -ExecutionPolicy Bypass -File desktop/command-centre-tray.ps1"
-    ,"tray:diagnostics": "powershell -NoProfile -ExecutionPolicy Bypass -File desktop/command-centre-tray.ps1 -DiagnosticsOnly"
-    ,"daemon": "node scripts/daemon.mjs --root . --port 5178"
-    ,"daemon:probe": "node scripts/daemon.mjs --root . --port 5191 --probe-once"
-    ,"service:render": "node scripts/render-service-config.mjs"
-    ,"pairing:list": "node scripts/midas.mjs pairing list"
-    ,"test:pairing": "node scripts/test-pairing-gate.mjs"
-    ,"test:workspace-router": "node scripts/test-workspace-router.mjs"
-    ,"test:voice-gate": "node scripts/test-voice-gate.mjs"
-    ,"test:model-router": "node scripts/test-model-router.mjs"
-    ,"test:a2ui": "node scripts/test-a2ui-store.mjs"
-    ,"test:sandbox": "node scripts/test-sandbox-runner.mjs"
-    ,"test:mobile-node": "node scripts/test-mobile-node-intake.mjs"
+    "desktop": "powershell -NoProfile -ExecutionPolicy Bypass -File desktop/launch-command-centre.ps1",
+    "tray": "powershell -NoProfile -ExecutionPolicy Bypass -File desktop/command-centre-tray.ps1",
+    "tray:diagnostics": "powershell -NoProfile -ExecutionPolicy Bypass -File desktop/command-centre-tray.ps1 -DiagnosticsOnly",
+    "daemon": "node scripts/daemon.mjs --root . --port 5178",
+    "daemon:probe": "node scripts/daemon.mjs --root . --port 5191 --probe-once",
+    "service:render": "node scripts/render-service-config.mjs",
+    "pairing:list": "node scripts/midas.mjs pairing list",
+    "test:pairing": "node scripts/test-pairing-gate.mjs",
+    "test:workspace-router": "node scripts/test-workspace-router.mjs",
+    "test:voice-gate": "node scripts/test-voice-gate.mjs",
+    "test:model-router": "node scripts/test-model-router.mjs",
+    "test:a2ui": "node scripts/test-a2ui-store.mjs",
+    "test:sandbox": "node scripts/test-sandbox-runner.mjs",
+    "test:mobile-node": "node scripts/test-mobile-node-intake.mjs"
   },
-  "devDependencies": {},
   "main": "index.js",
   "keywords": [],
   "author": "",
-  "license": "ISC"
-  ,"dependencies": {
+  "license": "ISC",
+  "dependencies": {
+    "@ast-grep/napi": "^0.44.1",
     "yaml": "2.9.0"
   }
 }

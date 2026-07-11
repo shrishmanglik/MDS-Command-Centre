@@ -1,0 +1,14 @@
+schemaVersion: mds.work-order-verification.v1
+workOrderId: WO-AST-GAP-001
+specification: Add a mandatory ast-grep verification-gap gate that blocks missing requested symbols.
+requiredSymbols:
+  - file: scripts/lib/verification-gap.mjs
+    language: JavaScript
+    kind: function
+    name: evaluateVerificationGaps
+    exported: true
+  - file: scripts/lib/docs-staleness.mjs
+    language: JavaScript
+    kind: function
+    name: evaluateDocsStaleness
+    exported: true
