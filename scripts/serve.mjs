@@ -1,10 +1,12 @@
 import http from "node:http";
+import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { execFile } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { ensurePairing, readPairings, streamIdFor } from "./lib/pairing-store.mjs";
 import { readWorkspaces, routeStreamToWorkspace } from "./lib/workspace-store.mjs";
+import { parseVoiceTranscript, WAKE_WORD } from "./lib/voice-gate.mjs";
 
 const appRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const args = process.argv.slice(2);
@@ -27,10 +29,103 @@ const inboxStore = path.join(appRoot, "src", "data", "localInboxEvents.json");
 const pairingStore = path.join(appRoot, "src", "data", "localPairings.json");
 const workspaceStore = path.join(appRoot, "src", "data", "localWorkspaces.json");
 const workspaceRoot = path.join(appRoot, "output", "workspaces");
+const voiceCommandStore = path.join(appRoot, "src", "data", "localVoiceCommands.json");
+const voiceModel = path.join(appRoot, "voice", "models", "ggml-base.en.bin");
 const D_ROOT = "D:/Million Dollar AI Studio";
 const BROWSE_ROOTS = ["Products", "vcos", "command-centre", "output/playwright", "."];
 const SECRET_PATH_PATTERN =
   /(^|[\\/])\.env[^\\/]*$|\.pem$|\.p12$|\.pfx$|(^|[\\/])id_rsa[^\\/]*$|\.key$|(^|[\\/])(secrets?|tokens?|credentials?|cookies?)([\\/.]|$)|authinfo|(^|[\\/])hosts\.ya?ml$|\.npmrc$|(^|[\\/])\.aws([\\/]|$)|(^|[\\/])\.ssh([\\/]|$)/i;
+
+function findExecutable(names) {
+  const pathEntries = String(process.env.PATH || "").split(path.delimiter).filter(Boolean);
+  for (const directory of pathEntries) {
+    for (const name of names) {
+      const candidate = path.join(directory, process.platform === "win32" ? `${name}.exe` : name);
+      if (fs.existsSync(candidate) && fs.statSync(candidate).isFile()) return candidate;
+    }
+  }
+  return null;
+}
+
+function voiceStatus() {
+  const engine = findExecutable(["whisper-cli"]);
+  const ffmpeg = findExecutable(["ffmpeg"]);
+  const modelPresent = fs.existsSync(voiceModel) && fs.statSync(voiceModel).isFile();
+  return {
+    status: engine && ffmpeg && modelPresent ? "READY_LOCAL_OFFLINE" : "BLOCKED_ENGINE_MISSING",
+    engine: engine ? "whisper-cli" : "UNKNOWN",
+    audioConverter: ffmpeg ? "ffmpeg" : "UNKNOWN",
+    model: modelPresent ? path.relative(appRoot, voiceModel) : "UNKNOWN",
+    wakeWord: WAKE_WORD,
+    continuousCaptureAllowed: Boolean(engine && ffmpeg && modelPresent),
+    commandMode: "DRAFT_ONLY",
+    authority: "Local offline STT metadata only. No microphone permission, model execution, code execution, provider action, or external send is implied.",
+  };
+}
+
+function execFilePromise(executable, args, options = {}) {
+  return new Promise((resolve, reject) => {
+    execFile(executable, args, { windowsHide: true, timeout: 120000, ...options }, (error, stdout, stderr) => {
+      if (error) {
+        error.stderr = String(stderr || "").slice(0, 2000);
+        reject(error);
+        return;
+      }
+      resolve({ stdout: String(stdout || "").slice(0, 2000), stderr: String(stderr || "").slice(0, 2000) });
+    });
+  });
+}
+
+async function transcribeLocalAudio(parsed) {
+  const status = voiceStatus();
+  if (!status.continuousCaptureAllowed) throw new Error("BLOCKED_ENGINE_MISSING: local whisper-cli, ffmpeg, and app-owned model are required.");
+  const mimeType = String(parsed.mimeType || "").toLowerCase();
+  if (!new Set(["audio/webm", "audio/wav", "audio/wave", "audio/x-wav"]).has(mimeType)) throw new Error("Only WAV or WebM audio is accepted.");
+  const encoded = String(parsed.audioBase64 || "");
+  if (!encoded || encoded.length > 12 * 1024 * 1024 || !/^[A-Za-z0-9+/=]+$/.test(encoded)) throw new Error("Audio payload is missing, malformed, or exceeds 9 MB decoded.");
+  const bytes = Buffer.from(encoded, "base64");
+  if (!bytes.length || bytes.length > 9 * 1024 * 1024) throw new Error("Decoded audio exceeds the 9 MB limit.");
+  const jobId = `VOICEJOB-${Date.now().toString(36).toUpperCase()}-${crypto.randomBytes(3).toString("hex").toUpperCase()}`;
+  const jobDir = path.join(appRoot, "output", "voice", "jobs", jobId);
+  fs.mkdirSync(jobDir, { recursive: true, mode: 0o700 });
+  const source = path.join(jobDir, mimeType === "audio/webm" ? "capture.webm" : "capture.wav");
+  const wav = path.join(jobDir, "capture-16k.wav");
+  const outputPrefix = path.join(jobDir, "transcript");
+  fs.writeFileSync(source, bytes, { mode: 0o600 });
+  await execFilePromise(findExecutable(["ffmpeg"]), ["-nostdin", "-hide_banner", "-loglevel", "error", "-y", "-i", source, "-ar", "16000", "-ac", "1", wav], { cwd: jobDir });
+  await execFilePromise(findExecutable(["whisper-cli"]), ["-m", voiceModel, "-f", wav, "-otxt", "-of", outputPrefix, "-nt"], { cwd: jobDir });
+  const transcriptFile = `${outputPrefix}.txt`;
+  if (!fs.existsSync(transcriptFile)) throw new Error("Offline STT completed without a transcript artifact.");
+  const transcript = fs.readFileSync(transcriptFile, "utf8").trim().slice(0, 2000);
+  const payload = writeVoiceCommand({ ...parseVoiceTranscript(transcript), jobId, evidencePath: path.relative(appRoot, jobDir).replace(/\\/g, "/") });
+  return { ...payload, jobId, evidencePath: path.relative(appRoot, jobDir).replace(/\\/g, "/") };
+}
+
+function readVoiceCommands() {
+  if (!fs.existsSync(voiceCommandStore)) return [];
+  const parsed = JSON.parse(fs.readFileSync(voiceCommandStore, "utf8"));
+  return Array.isArray(parsed.records) ? parsed.records.slice(0, 200) : [];
+}
+
+function writeVoiceCommand(result) {
+  const record = {
+    id: `VOICE-${Date.now().toString(36).toUpperCase()}`,
+    createdAt: new Date().toISOString(),
+    ...result,
+    transcript: String(result.transcript || "").slice(0, 2000),
+    executionAllowed: false,
+  };
+  const payload = {
+    schemaVersion: "mds.command-centre.local-voice-commands.v1",
+    updatedAt: new Date().toISOString(),
+    authority: "D-local voice command drafts only. Voice never grants code execution, external sends, provider mutation, payment, deploy, secret, pairing approval, or live-state authority.",
+    records: [record, ...readVoiceCommands()].slice(0, 200),
+  };
+  const temp = `${voiceCommandStore}.${process.pid}.tmp`;
+  fs.writeFileSync(temp, `${JSON.stringify(payload, null, 2)}\n`, { mode: 0o600 });
+  fs.renameSync(temp, voiceCommandStore);
+  return { record, ...payload };
+}
 
 const contentTypes = new Map([
   [".html", "text/html; charset=utf-8"],
@@ -675,6 +770,7 @@ function snapshotHealth() {
     pairedStreams: readPairings(pairingStore).filter((record) => record.status === "PAIRED").length,
     quarantinedStreams: readPairings(pairingStore).filter((record) => record.status === "QUARANTINED").length,
     workspaces: readWorkspaces(workspaceStore).length,
+    voice: voiceStatus(),
     sources,
   };
 }
@@ -727,6 +823,30 @@ async function handleApi(request, response, pathname) {
         event,
       });
       sendJson(response, result.created ? 201 : 200, result);
+      return true;
+    }
+    if (request.method === "GET" && pathname === "/api/voice/status") {
+      sendJson(response, 200, { ...voiceStatus(), drafts: readVoiceCommands().length });
+      return true;
+    }
+    if (request.method === "GET" && pathname === "/api/voice/commands") {
+      sendJson(response, 200, { records: readVoiceCommands(), store: path.relative(appRoot, voiceCommandStore) });
+      return true;
+    }
+    if (request.method === "POST" && pathname === "/api/voice/transcript") {
+      const parsed = JSON.parse(await readBody(request, 32 * 1024));
+      const result = parseVoiceTranscript(parsed.transcript);
+      sendJson(response, 201, writeVoiceCommand(result));
+      return true;
+    }
+    if (request.method === "POST" && pathname === "/api/voice/audio") {
+      const status = voiceStatus();
+      if (!status.continuousCaptureAllowed) {
+        sendJson(response, 503, { ok: false, status: status.status, error: "Offline whisper-cli and app-owned model are required before microphone audio is accepted." });
+        return true;
+      }
+      const parsed = JSON.parse(await readBody(request, 12 * 1024 * 1024));
+      sendJson(response, 201, await transcribeLocalAudio(parsed));
       return true;
     }
     if (request.method === "PUT" && pathname === "/api/tickets") {

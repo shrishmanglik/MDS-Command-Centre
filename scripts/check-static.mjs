@@ -23,6 +23,7 @@ const required = [
   "src/data/localInboxEvents.json",
   "src/data/localPairings.json",
   "src/data/localWorkspaces.json",
+  "src/data/localVoiceCommands.json",
   "desktop/launch-command-centre.ps1",
 ];
 
@@ -254,6 +255,13 @@ if (!server.includes("/api/workspaces/route") || !server.includes("routeStreamTo
 }
 if (!js.includes("renderWorkspaces") || !js.includes("route-inbox-workspace") || !js.includes("One paired stream, one contained workspace")) {
   throw new Error("workspace router operator surface is missing.");
+}
+const voiceGate = fs.readFileSync(path.join(appRoot, "scripts", "lib", "voice-gate.mjs"), "utf8");
+if (!server.includes("/api/voice/audio") || !server.includes("whisper-cli") || !server.includes("transcribeLocalAudio") || !voiceGate.includes("BLOCKED_FORBIDDEN_VOICE_ACTION")) {
+  throw new Error("local offline voice adapter or deterministic wake gate is missing.");
+}
+if (!js.includes("renderVoice") || !js.includes("startVoiceCapture") || !js.includes("voice-transcript-form") || !js.includes("executionAllowed=false")) {
+  throw new Error("voice operator surface or fail-closed draft copy is missing.");
 }
 const daemon = fs.readFileSync(path.join(appRoot, "scripts", "daemon.mjs"), "utf8");
 const systemd = fs.readFileSync(path.join(appRoot, "service", "systemd", "mds-command-centre.service"), "utf8");

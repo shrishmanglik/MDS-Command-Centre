@@ -58,7 +58,13 @@ const state = {
   selectedWorkspaceId: "",
   workspacePersistence: "local API unavailable",
   workspaceNotice: "",
+  voiceRuntime: null,
+  voiceCommands: [],
+  voiceNotice: "",
+  voiceListening: false,
 };
+let voiceMediaRecorder = null;
+let voiceMediaStream = null;
 
 const storageKey = "mds-command-centre:tickets:v1";
 const storageActivityKey = "mds-command-centre:activity:v1";
@@ -78,6 +84,7 @@ const validViews = new Set([
   "operator",
   "inbox",
   "workspaces",
+  "voice",
   "vcos",
   "files",
   "git",
@@ -119,6 +126,7 @@ function icon(name, size = 18) {
     operator: '<path d="M4 5h7v7H4z"/><path d="M13 5h7v4h-7z"/><path d="M13 11h7v8h-7z"/><path d="M4 14h7v5H4z"/><path d="M11 8h2"/><path d="M8 12v2"/><path d="M16 9v2"/>',
     inbox: '<path d="M4 5h16v14H4z"/><path d="m4 13 4-4 4 4 4-4 4 4"/><path d="M8 17h8"/>',
     workspaces: '<path d="M3 5h8v6H3z"/><path d="M13 5h8v6h-8z"/><path d="M3 13h8v6H3z"/><path d="M13 13h8v6h-8z"/><path d="M11 8h2"/><path d="M7 11v2"/><path d="M17 11v2"/>',
+    voice: '<path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3Z"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v3"/><path d="M9 21h6"/>',
     benchmark: '<path d="M4 19V5"/><path d="M4 19h16"/><path d="M8 16V9"/><path d="M12 16V7"/><path d="M16 16v-4"/>',
     search: '<circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/>',
     vcos: '<path d="M12 3v4"/><path d="M5 21v-4"/><path d="M19 21v-4"/><path d="M12 21v-6"/><rect x="9" y="7" width="6" height="4" rx="1"/><rect x="2" y="13" width="6" height="4" rx="1"/><rect x="16" y="13" width="6" height="4" rx="1"/><path d="M12 11v2"/><path d="M5 13v-1h14v1"/>',
@@ -2887,7 +2895,7 @@ function renderShell(content) {
           <div><strong>MDS Command Centre</strong><span>Local-first Sprint 001</span></div>
         </div>
         <nav>
-          ${navGroup("Operate", ["today", "inbox", "workspaces", "launch", "search", "queue", "boards", "operator"])}
+          ${navGroup("Operate", ["today", "inbox", "workspaces", "voice", "launch", "search", "queue", "boards", "operator"])}
           ${navGroup("System", ["vcos", "files", "git", "sources", "capabilities", "providers", "models"])}
           ${navGroup("Execution", ["runtime", "runs", "tickets", "dispatch", "proof"])}
           ${navGroup("Govern", ["closeout", "review", "promote", "activity", "decisions", "benchmark", "health"])}
@@ -2916,6 +2924,7 @@ const navLabels = {
   today: "Today",
   inbox: "Inbox",
   workspaces: "Workspaces",
+  voice: "Voice",
   search: "Search",
   queue: "Queue",
   boards: "Boards",
@@ -3416,6 +3425,62 @@ async function loadWorkspaces() {
   }
 }
 
+async function loadVoiceState() {
+  try {
+    const [runtime, commands] = await Promise.all([apiJson("/api/voice/status"), apiJson("/api/voice/commands")]);
+    state.voiceRuntime = runtime;
+    state.voiceCommands = Array.isArray(commands.records) ? commands.records : [];
+  } catch {
+    state.voiceRuntime = { status: "BLOCKED_LOCAL_API_OFFLINE", continuousCaptureAllowed: false, engine: "UNKNOWN", model: "UNKNOWN", wakeWord: "Midas" };
+    state.voiceCommands = [];
+  }
+}
+
+function blobToBase64(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || "").split(",")[1] || "");
+    reader.onerror = () => reject(reader.error || new Error("Audio encoding failed."));
+    reader.readAsDataURL(blob);
+  });
+}
+
+async function submitVoiceChunk(blob) {
+  if (!blob.size) return;
+  try {
+    const payload = await apiJson("/api/voice/audio", { method: "POST", body: JSON.stringify({ mimeType: blob.type.split(";")[0], audioBase64: await blobToBase64(blob) }) });
+    state.voiceCommands = Array.isArray(payload.records) ? payload.records : state.voiceCommands;
+    state.voiceNotice = `${payload.record?.status || "DRAFT_RECORDED"}: ${payload.record?.command || "wake audio processed"}`;
+  } catch (error) {
+    state.voiceNotice = `Voice chunk blocked: ${error.message}`;
+    stopVoiceCapture();
+  }
+  render();
+}
+
+async function startVoiceCapture() {
+  if (!state.voiceRuntime?.continuousCaptureAllowed || !navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined") {
+    state.voiceNotice = "Continuous capture is blocked until the local offline engine, model, browser microphone API, and loopback service are ready.";
+    render();
+    return;
+  }
+  voiceMediaStream = await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true }, video: false });
+  voiceMediaRecorder = new MediaRecorder(voiceMediaStream, { mimeType: "audio/webm" });
+  voiceMediaRecorder.addEventListener("dataavailable", (event) => submitVoiceChunk(event.data));
+  voiceMediaRecorder.start(5000);
+  state.voiceListening = true;
+  state.voiceNotice = `Listening locally for “${state.voiceRuntime.wakeWord || "Midas"}”. Five-second chunks are sent only to this loopback service.`;
+  render();
+}
+
+function stopVoiceCapture() {
+  if (voiceMediaRecorder && voiceMediaRecorder.state !== "inactive") voiceMediaRecorder.stop();
+  if (voiceMediaStream) voiceMediaStream.getTracks().forEach((track) => track.stop());
+  voiceMediaRecorder = null;
+  voiceMediaStream = null;
+  state.voiceListening = false;
+}
+
 async function saveInboxEvents() {
   state.inboxEvents = state.inboxEvents.slice(0, 300);
   localStorage.setItem(storageInboxKey, JSON.stringify(state.inboxEvents));
@@ -3519,6 +3584,36 @@ function renderWorkspaces() {
       <section class="table-panel workspace-detail">
         <div class="panel-title">${icon("proof")}<span>Workspace boundary</span></div>
         ${selected ? `<h2>${esc(selected.label)}</h2><dl class="launch-definition-list"><dt>Workspace ID</dt><dd>${esc(selected.id)}</dd><dt>Stream ID</dt><dd>${esc(selected.streamId)}</dd><dt>Runtime path</dt><dd>${esc(selected.relativePath)}</dd><dt>Agents</dt><dd>${esc(selected.agents.join(", "))}</dd><dt>Context</dt><dd>${esc(selected.contextNotes)}</dd><dt>Execution authority</dt><dd>${esc(selected.executionAuthority)}</dd><dt>External state</dt><dd>${esc(selected.externalState)}</dd></dl><div class="stack-list"><article><strong>manifest.json</strong><p>Workspace identity, paired stream, allowlisted agents, and authority ceiling.</p></article><article><strong>context.md</strong><p>Bounded local context notes with explicit execution and external-state limits.</p></article><article><strong>inbox-events.json</strong><p>Event references only; no provider payload archive or credential material.</p></article></div>` : `<article class="empty-card"><strong>No workspace selected.</strong><p>Workspace artifacts appear after a paired stream is routed.</p></article>`}
+      </section>
+    </div>`);
+}
+
+function renderVoice() {
+  const runtime = state.voiceRuntime || { status: "UNKNOWN", continuousCaptureAllowed: false };
+  renderShell(`
+    <div class="voice-grid">
+      <section class="objective-panel wide voice-hero">
+        <div class="panel-title">${icon("voice")}<span>Local voice wake service</span></div>
+        <h2>Say “Midas” to prepare a command draft.</h2>
+        <p>Audio and transcripts stay on this loopback service. Voice cannot execute code, approve pairing, mutate providers, deploy, move money, read secrets, or send messages.</p>
+        <div class="voice-runtime-strip">
+          <span><strong>Runtime</strong><em class="${statusClass(runtime.status)}">${esc(runtime.status)}</em></span>
+          <span><strong>STT engine</strong>${esc(runtime.engine || "UNKNOWN")}</span>
+          <span><strong>Model</strong>${esc(runtime.model || "UNKNOWN")}</span>
+          <span><strong>Wake word</strong>${esc(runtime.wakeWord || "Midas")}</span>
+        </div>
+        ${state.voiceNotice ? `<div class="pairing-notice" role="status"><strong>Voice status</strong><code>${esc(state.voiceNotice)}</code></div>` : ""}
+        <div class="dispatch-actions"><button type="button" class="primary" data-action="start-voice" ${runtime.continuousCaptureAllowed && !state.voiceListening ? "" : "disabled"}>${icon("voice", 16)} Start listening</button><button type="button" data-action="stop-voice" ${state.voiceListening ? "" : "disabled"}>${icon("lock", 16)} Stop</button></div>
+      </section>
+      <form class="research-form voice-test-form" id="voice-transcript-form">
+        <div class="panel-title">${icon("file")}<span>Wake-gate test</span></div>
+        <p>Test the deterministic command gate without microphone access or STT execution.</p>
+        ${textarea("Local transcript", "transcript", "Midas open inbox")}
+        <div class="dispatch-actions"><button type="submit">${icon("check", 16)} Evaluate transcript</button></div>
+      </form>
+      <section class="list-panel voice-command-list">
+        <div class="panel-title">${icon("activity")}<span>Command drafts</span><em>${esc(state.voiceCommands.length)} local</em></div>
+        <div class="stack-list">${state.voiceCommands.length ? state.voiceCommands.map((command) => `<article><header><strong>${esc(command.command || command.status)}</strong><em class="${statusClass(command.status)}">${esc(command.status)}</em></header><p>${esc(command.transcript)}</p><span>${esc(command.action)} · executionAllowed=false</span>${command.action === "OPEN_VIEW" ? `<button type="button" data-voice-view="${esc(command.targetView)}">Open ${esc(command.targetView)} manually</button>` : ""}</article>`).join("") : `<article class="empty-card"><strong>No voice drafts.</strong><p>Use the transcript gate or install the supported local engine and model.</p></article>`}</div>
       </section>
     </div>`);
 }
@@ -5733,6 +5828,7 @@ function render() {
   if (state.view === "today") renderToday();
   if (state.view === "inbox") renderInbox();
   if (state.view === "workspaces") renderWorkspaces();
+  if (state.view === "voice") renderVoice();
   if (state.view === "search") renderSearch();
   if (state.view === "queue") renderQueue();
   if (state.view === "boards") renderBoards();
@@ -5856,6 +5952,10 @@ function wireEvents() {
       state.selectedWorkspaceId = button.dataset.workspace;
       render();
     }
+    if (button.dataset.voiceView) {
+      state.view = validViews.has(button.dataset.voiceView) ? button.dataset.voiceView : "voice";
+      render();
+    }
     if (button.dataset.inboxStatus) {
       const item = selectedInboxEvent();
       if (!item) return;
@@ -5884,6 +5984,20 @@ function wireEvents() {
       } catch (error) {
         state.workspaceNotice = `Routing blocked: ${error.message}`;
       }
+      render();
+    }
+    if (button.dataset.action === "start-voice") {
+      try {
+        await startVoiceCapture();
+      } catch (error) {
+        state.voiceNotice = `Microphone start blocked: ${error.message}`;
+        stopVoiceCapture();
+        render();
+      }
+    }
+    if (button.dataset.action === "stop-voice") {
+      stopVoiceCapture();
+      state.voiceNotice = "Listening stopped. No background microphone capture remains.";
       render();
     }
     if (button.dataset.board) {
@@ -6643,6 +6757,16 @@ function wireEvents() {
   });
 
   document.addEventListener("submit", async (event) => {
+    const voiceForm = event.target?.closest?.("#voice-transcript-form");
+    if (voiceForm) {
+      event.preventDefault();
+      const transcript = String(new FormData(voiceForm).get("transcript") || "");
+      const payload = await apiJson("/api/voice/transcript", { method: "POST", body: JSON.stringify({ transcript }) });
+      state.voiceCommands = Array.isArray(payload.records) ? payload.records : state.voiceCommands;
+      state.voiceNotice = `${payload.record.status}: ${payload.record.command || "No command after wake word."}`;
+      render();
+      return;
+    }
     const inboxForm = event.target?.closest?.("#inbox-intake-form");
     if (inboxForm) {
       event.preventDefault();
@@ -6874,6 +6998,7 @@ async function boot() {
   state.capabilityRequests = await loadCapabilityRequests();
   state.inboxEvents = await loadInboxEvents();
   state.workspaces = await loadWorkspaces();
+  await loadVoiceState();
   wireMv18Events();
   state.selectedTicketId = state.tickets[0]?.id || "";
   state.selectedActivityId = state.activity[0]?.id || "";

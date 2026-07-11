@@ -1,0 +1,6 @@
+{
+  "schemaVersion": "mds.command-centre.local-voice-commands.v1",
+  "updatedAt": "UNKNOWN",
+  "authority": "D-local voice command drafts only. Voice never grants code execution, external sends, provider mutation, payment, deploy, secret, pairing approval, or live-state authority.",
+  "records": []
+}

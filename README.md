@@ -12,6 +12,8 @@ The zero-trust pairing gate quarantines every previously unseen channel/sender s
 
 The dynamic workspace router maps each paired stream to exactly one generated workspace under `output/workspaces/`. Unpaired streams fail with `PAIRING_REQUIRED`; callers cannot provide filesystem paths or workspace IDs. Each workspace contains a bounded `manifest.json`, `context.md`, and `inbox-events.json`, and agents are restricted to the local allowlist (`Codex`, `Claude Code`, `Antigravity`, `Human`). Workspace routing remains local-only and grants no execution or external authority.
 
+The Voice lane implements an operator-triggered local wake service around the wake word `Midas`. Browser microphone capture never auto-starts and is enabled only when the loopback API verifies local `ffmpeg`, local `whisper-cli`, and the app-owned `voice/models/ggml-base.en.bin` model. Five-second WebM/WAV chunks are bounded, converted and transcribed through fixed executable arguments without a shell, and retained under `output/voice/jobs/` as local evidence. Transcripts become drafts through a deterministic command gate. Voice may draft safe view navigation or workspace notes; code execution, shell commands, pairing approval, provider actions, deployment, payments, secret access, and external sends are blocked. On the current machine the engine/model state remains `BLOCKED_ENGINE_MISSING`.
+
 The Today view now renders a structured local control surface, not just Markdown board previews. It normalizes revenue truth, Product VCOS rows, frontend/backend/payment/deploy/provider gates, provider readiness blockers, Shrish-only approvals, active CEO work orders, agent assignments, failures, releases, content queue, Board decisions, CEO actions, next action, and nightly closeout evidence from the snapshot. Each row carries source evidence and claim ceilings so local readiness cannot become a live provider/payment/deployment claim.
 
 The CEO work-order control creates file-backed local tickets from source-derived work orders and records a `ceo_work_order_created` Activity event. It does not launch agents, append the official ledger, promote company memory, push GitHub, mutate providers, deploy, move money, read secrets, or contact anyone externally.
@@ -65,6 +67,7 @@ npm run daemon:probe
 npm run service:render
 npm run test:pairing
 npm run test:workspace-router
+npm run test:voice-gate
 ```
 
 `npm run service:render` produces path-resolved systemd and launchd definitions under `output/daemon/service-config/`. Installation remains a manual operator action because persistence changes host state. The Windows entrypoint is `service/windows/run-command-centre-daemon.ps1`; registering it with Task Scheduler is intentionally not automatic.
@@ -84,6 +87,10 @@ Local API routes:
 - `GET /api/pairing` returns pairing metadata without key digests or plaintext keys.
 - `GET /api/workspaces` returns the sanitized local workspace registry.
 - `POST /api/workspaces/route` idempotently maps a paired Inbox stream into a contained local workspace.
+- `GET /api/voice/status` reports local offline engine/model readiness without reading credential values.
+- `GET /api/voice/commands` returns local draft history.
+- `POST /api/voice/transcript` evaluates a local transcript through the wake/command gate.
+- `POST /api/voice/audio` accepts bounded local audio only when the offline adapter is ready.
 - `GET /api/activity` reads the D-local activity file.
 - `PUT /api/activity` writes sanitized local activity events.
 - `GET /api/decisions` reads D-local director decision exports.
