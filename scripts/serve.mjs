@@ -11,6 +11,7 @@ import { recordModelFailure, resolveModelRoute, TASK_CHAINS } from "./lib/model-
 import { readA2UIDocuments, sanitizeA2UIDocument, writeA2UIDocuments } from "./lib/a2ui-store.mjs";
 import { buildDockerArgs, normalizeSandboxRequest, sandboxIds, sandboxPolicy } from "./lib/sandbox-runner.mjs";
 import { persistMobileNodeInput } from "./lib/mobile-node-intake.mjs";
+import { guardedRequest } from "./lib/ssrf-guard.mjs";
 
 const appRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const args = process.argv.slice(2);
@@ -932,6 +933,12 @@ async function handleApi(request, response, pathname) {
       const receipt = persistMobileNodeInput(mobileNodeRoot, parsed, pairing.record.status);
       const intake = intakeInboxEvent({ id: receipt.id, receivedAt: receipt.createdAt, channel: "mobile-node", senderLabel: receipt.nodeId, subject: `${receipt.mimeType.startsWith("image/") ? "Screenshot" : "Voice note"} from ${receipt.label}`, body: receipt.note || `Mobile work-order input stored at ${receipt.artifactPath}.`, status: "NEW", risk: "MEDIUM", provenance: "native_mobile_explicit_capture", routeTarget: "Product Ops", artifactPath: receipt.artifactPath });
       sendJson(response, 201, { receipt, event: intake.event, pairingKey: pairing.pairingKey, pairingCreated: pairing.created, executionAllowed: false });
+      return true;
+    }
+    if (request.method === "POST" && pathname === "/api/http-proxy") {
+      const parsed = JSON.parse(await readBody(request, 32 * 1024));
+      const result = await guardedRequest(parsed.url, { method: String(parsed.method || "GET").toUpperCase() });
+      sendJson(response, 200, result);
       return true;
     }
     if (request.method === "GET" && pathname === "/api/pairing") {

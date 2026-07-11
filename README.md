@@ -95,6 +95,8 @@ npm run test:a2ui
 
 `npm run verify:gaps` is the mandatory third-tier AST review gate. Machine-readable `work-orders/verification/*.verification.yaml` contracts name required JavaScript/TypeScript symbols by file, kind, name, and export requirement. `@ast-grep/napi` parses changed protected source files; missing contract coverage, missing functions/classes/methods, wrong kinds, absent exports, parse failures, and unsafe paths block commit and CI integration. Passing proves requested symbol presence only, not behavior or test adequacy.
 
+The governed outbound HTTP path is `POST /api/http-proxy`. It accepts only HTTP(S) GET/HEAD requests, blocks userinfo and custom ports, resolves and validates every DNS answer, rejects private/link-local/loopback/reserved/metadata targets, pins the approved address during connection, and revalidates every redirect. It strips caller credentials and proxy environment behavior and bounds redirects, time, and response size. Docker sandboxes remain `--network none`; direct subagent egress is not enabled. This is a loopback governed egress path, not transparent host-wide interception.
+
 `npm run service:render` produces path-resolved systemd and launchd definitions under `output/daemon/service-config/`. Installation remains a manual operator action because persistence changes host state. The Windows entrypoint is `service/windows/run-command-centre-daemon.ps1`; registering it with Task Scheduler is intentionally not automatic.
 
 `npm run tray` starts the Windows system-tray companion. Its menu can start, stop, or restart only the daemon process owned by that tray session, open the local Command Centre, run bounded diagnostics, and open local daemon logs. A pre-existing server is monitored but never terminated. `npm run tray:diagnostics` emits the same no-secret readiness record without opening a UI. The tray does not install itself, elevate privileges, register startup persistence, mutate providers, or prove external state. macOS menu-bar support remains unsupported.
@@ -112,6 +114,7 @@ Local API routes:
 - `PUT /api/inbox` writes sanitized local inbox events with unique IDs and bounded fields.
 - `POST /api/inbox/intake` derives stream identity, enforces quarantine/pairing state, and returns a new pairing key once.
 - `POST /api/mobile-node/intake` accepts bounded, signature-checked screenshot or voice-note artifacts from an explicit-capture mobile node and creates a quarantined inbox input with `executionAllowed=false`.
+- `POST /api/http-proxy` performs bounded public GET/HEAD requests through DNS-pinned SSRF and redirect validation without forwarding caller credentials.
 - `GET /api/pairing` returns pairing metadata without key digests or plaintext keys.
 - `GET /api/workspaces` returns the sanitized local workspace registry.
 - `POST /api/workspaces/route` idempotently maps a paired Inbox stream into a contained local workspace.

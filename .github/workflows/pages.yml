@@ -45,6 +45,7 @@ jobs:
       - run: npm run docs:frontmatter
       - run: npm run test:verification-gap
       - run: node scripts/verification-gap.mjs --range HEAD^..HEAD
+      - run: npm run test:ssrf-guard
       - run: node scripts/build-static.mjs
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3

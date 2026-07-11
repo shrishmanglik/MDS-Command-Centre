@@ -1,0 +1,19 @@
+schemaVersion: mds.work-order-verification.v1
+workOrderId: WO-SSRF-GUARD-001
+specification: Add a governed outbound HTTP guard that blocks private internal network targets and bypasses.
+requiredSymbols:
+  - file: scripts/lib/ssrf-guard.mjs
+    language: JavaScript
+    kind: function
+    name: isBlockedIp
+    exported: true
+  - file: scripts/lib/ssrf-guard.mjs
+    language: JavaScript
+    kind: function
+    name: validateOutboundUrl
+    exported: true
+  - file: scripts/lib/ssrf-guard.mjs
+    language: JavaScript
+    kind: function
+    name: guardedRequest
+    exported: true
