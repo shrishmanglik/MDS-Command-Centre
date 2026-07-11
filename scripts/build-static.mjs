@@ -14,7 +14,10 @@ function copy(relativePath) {
 
 fs.rmSync(dist, { recursive: true, force: true });
 copy("index.html");
+copy("graph-editor.html");
 copy("src/styles.css");
+copy("src/graph-editor.css");
+copy("src/graph-editor.js");
 copy("src/static-app.js");
 copy("src/data/warRoomSnapshot.json");
 copy("src/data/localTickets.json");
