@@ -288,6 +288,14 @@ const sandboxRunner = fs.readFileSync(path.join(appRoot, "scripts", "lib", "sand
 if (!server.includes("/api/sandbox/execute") || !server.includes("BLOCKED_RUNTIME_UNAVAILABLE") || !server.includes("BLOCKED_IMAGE_UNAVAILABLE")) {
   throw new Error("fail-closed Docker sandbox API is missing.");
 }
+const mobileNodeIntake = fs.readFileSync(path.join(appRoot, "scripts", "lib", "mobile-node-intake.mjs"), "utf8");
+const androidManifest = fs.readFileSync(path.join(appRoot, "mobile", "android", "app", "src", "main", "AndroidManifest.xml"), "utf8");
+if (!server.includes("/api/mobile-node/intake") || !server.includes("persistMobileNodeInput") || !mobileNodeIntake.includes("executionAllowed: false")) {
+  throw new Error("pairing-gated mobile node intake is missing.");
+}
+if (androidManifest.includes("CAMERA") || androidManifest.includes("MEDIA_PROJECTION") || androidManifest.includes("FOREGROUND_SERVICE")) {
+  throw new Error("Android companion requested an unapproved capture or background permission.");
+}
 if (!sandboxRunner.includes('"--network", "none"') || !sandboxRunner.includes('"--read-only"') || !sandboxRunner.includes('"--cap-drop", "ALL"') || !sandboxRunner.includes("no-new-privileges:true")) {
   throw new Error("sandbox isolation flags are incomplete.");
 }

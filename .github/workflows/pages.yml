@@ -29,6 +29,7 @@ jobs:
       - run: npm run test:model-router
       - run: npm run test:a2ui
       - run: npm run test:sandbox
+      - run: npm run test:mobile-node
       - run: node scripts/build-static.mjs
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
