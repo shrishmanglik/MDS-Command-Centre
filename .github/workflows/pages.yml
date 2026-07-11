@@ -46,6 +46,8 @@ jobs:
       - run: npm run test:verification-gap
       - run: node scripts/verification-gap.mjs --range HEAD^..HEAD
       - run: npm run test:ssrf-guard
+      - run: npm run test:harness-adapter
+      - run: npm run harness:check
       - run: node scripts/build-static.mjs
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3

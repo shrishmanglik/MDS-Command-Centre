@@ -1,0 +1,9 @@
+schemaVersion: mds.work-order-verification.v1
+workOrderId: WO-MULTI-HARNESS-001
+specification: Export one governed MDS Markdown workflow into deterministic Claude, Cursor, Gemini, and Copilot configurations.
+requiredSymbols:
+  - file: scripts/lib/harness-adapter.mjs
+    language: JavaScript
+    kind: function
+    name: exportHarnessAdapters
+    exported: true

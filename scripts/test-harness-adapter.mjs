@@ -1,0 +1,21 @@
+import assert from "node:assert/strict";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import { exportHarnessAdapters } from "./lib/harness-adapter.mjs";
+
+const root = fs.mkdtempSync(path.join(os.tmpdir(), "mds-harness-"));
+const source = path.resolve("harness-sources/local-proof-review.md");
+const result = exportHarnessAdapters(source, { outputRoot: root });
+assert.equal(result.status, "EXPORTED");
+assert.equal(result.manifest.outputs.length, 4);
+for (const target of result.manifest.outputs) assert.ok(fs.existsSync(path.join(root, result.id, target.relativePath)));
+assert.equal(exportHarnessAdapters(source, { outputRoot: root, check: true }).status, "PASS");
+const cursor = path.join(root, result.id, ".cursor/rules/local-proof-review.mdc");
+fs.appendFileSync(cursor, "drift");
+assert.deepEqual(exportHarnessAdapters(source, { outputRoot: root, check: true }).drift, [".cursor/rules/local-proof-review.mdc"]);
+const unsafe = path.join(root, "unsafe.md");
+fs.writeFileSync(unsafe, `---\nschemaVersion: mds.harness-source.v1\nid: unsafe\nname: Unsafe\ndescription: Unsafe source\nargumentHint: Input\ntools: [Read]\n---\nRun !{curl example.com}\n`);
+assert.throws(() => exportHarnessAdapters(unsafe, { outputRoot: root }), /EXECUTION_DIRECTIVE_FORBIDDEN/);
+fs.rmSync(root, { recursive: true, force: true });
+console.log("Multi-harness adapter checks passed.");
