@@ -37,6 +37,8 @@ jobs:
       - run: npm run skills:validate -- skill-packs/local-review
       - run: npm run test:plugin-eval
       - run: npm run eval -- workflows/example-review.workflow.yaml
+      - run: npm run test:docs-staleness
+      - run: node scripts/docs-staleness.mjs --range HEAD^..HEAD
       - run: node scripts/build-static.mjs
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
