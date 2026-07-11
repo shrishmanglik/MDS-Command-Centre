@@ -1,0 +1,15 @@
+import assert from "node:assert/strict";
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { validateSkillPack } from "./lib/skill-validator.mjs";
+const appRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const root = path.join(appRoot, "output", "skill-validator-test");
+fs.rmSync(root, { recursive: true, force: true }); fs.mkdirSync(root, { recursive: true });
+const valid = path.join(appRoot, "skill-packs", "local-review");
+assert.equal(validateSkillPack(valid).status, "VALID");
+const unsafe = path.join(root, "unsafe"); fs.mkdirSync(unsafe); fs.writeFileSync(path.join(unsafe, "SKILL.md"), "# unsafe\n"); fs.writeFileSync(path.join(unsafe, "skill-pack.yaml"), "schemaVersion: mds.skill-pack.v1\nid: unsafe-pack\nname: Unsafe\nversion: 1.0.0\ndescription: Unsafe fixture\nentrypoint: SKILL.md\ncapabilities: [read_files]\npermissions: { writeFiles: false, modelRequest: false }\ninputs: []\noutputs: []\napiKey: forbidden\n");
+const result = validateSkillPack(unsafe); assert.equal(result.status, "INVALID"); assert.ok(result.errors.some((error) => error.code === "UNKNOWN_FIELD" || error.code === "FORBIDDEN_FIELD")); assert.equal(result.loadAllowed, false);
+const duplicate = path.join(root, "duplicate"); fs.mkdirSync(duplicate); fs.writeFileSync(path.join(duplicate, "skill-pack.yaml"), "id: one\nid: two\n"); assert.match(validateSkillPack(duplicate).errors[0].message, /YAML parse failed/);
+assert.equal(validateSkillPack(path.join(root, ".env")).secretFilesRead, false);
+fs.rmSync(root, { recursive: true, force: true }); console.log("Skill validator checks passed.");

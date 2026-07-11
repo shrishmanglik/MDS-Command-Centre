@@ -297,6 +297,10 @@ const doctor = fs.readFileSync(path.join(appRoot, "scripts", "lib", "doctor.mjs"
 if (!doctor.includes("credentialValuesRead: false") || !doctor.includes("secretFilesRead: false") || !doctor.includes("git:sensitive-paths") || !doctor.includes("api:loopback-binding")) {
   throw new Error("doctor secret-read ceiling or required security checks are missing.");
 }
+const skillValidator = fs.readFileSync(path.join(appRoot, "scripts", "lib", "skill-validator.mjs"), "utf8");
+if (!skillValidator.includes("maxAliasCount: 0") || !skillValidator.includes("FORBIDDEN_FIELD") || !skillValidator.includes("loadAllowed: !errors.length") || !skillValidator.includes("secretFilesRead: false")) {
+  throw new Error("offline Skill Pack parser or load/security boundary is missing.");
+}
 if (!fs.readFileSync(path.join(appRoot, "package.json"), "utf8").includes('"predev": "npm run doctor"')) {
   throw new Error("doctor startup guard is not wired before workflows.");
 }
