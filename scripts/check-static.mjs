@@ -315,6 +315,10 @@ const frontmatterOrder = fs.readFileSync(path.join(appRoot, "scripts", "lib", "f
 if (!frontmatterOrder.includes("FRONTMATTER_KEYS") || !frontmatterOrder.includes("NAV_SEQUENCE") || !frontmatterOrder.includes("FILENAME_ALIGNMENT") || !preCommit.includes("docs validate")) {
   throw new Error("frontmatter order/index validator or pre-commit wiring is missing.");
 }
+const verificationGap = fs.readFileSync(path.join(appRoot, "scripts", "lib", "verification-gap.mjs"), "utf8");
+if (!verificationGap.includes("@ast-grep/napi") || !verificationGap.includes("WORK_ORDER_COVERAGE_MISSING") || !verificationGap.includes("SYMBOL_MISSING") || !preCommit.includes("verification-gap.mjs --staged")) {
+  throw new Error("AST verification-gap parser, coverage/symbol checks, or pre-commit gate is missing.");
+}
 if (!fs.readFileSync(path.join(appRoot, "package.json"), "utf8").includes('"predev": "npm run doctor"')) {
   throw new Error("doctor startup guard is not wired before workflows.");
 }

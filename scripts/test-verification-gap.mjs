@@ -1,0 +1,12 @@
+import assert from "node:assert/strict";
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { evaluateVerificationGaps } from "./lib/verification-gap.mjs";
+const appRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const pass = evaluateVerificationGaps({ appRoot, changedFiles: ["scripts/lib/verification-gap.mjs"] }); assert.equal(pass.status, "PASS");
+const uncovered = evaluateVerificationGaps({ appRoot, changedFiles: ["scripts/lib/not-covered.mjs"] }); assert.ok(uncovered.failures.some((item) => item.code === "WORK_ORDER_COVERAGE_MISSING"));
+const root = path.join(appRoot, "output", "verification-gap-test"); const contracts = path.join(root, "contracts"); fs.rmSync(root, { recursive: true, force: true }); fs.mkdirSync(contracts, { recursive: true });
+fs.writeFileSync(path.join(contracts, "missing.verification.yaml"), "schemaVersion: mds.work-order-verification.v1\nworkOrderId: WO-MISSING-001\nspecification: Missing function fixture\nrequiredSymbols:\n  - file: scripts/lib/verification-gap.mjs\n    language: JavaScript\n    kind: function\n    name: requestedButMissing\n    exported: true\n");
+const missing = evaluateVerificationGaps({ appRoot, changedFiles: ["scripts/lib/verification-gap.mjs"], contractRoot: contracts }); assert.ok(missing.failures.some((item) => item.code === "SYMBOL_MISSING"));
+fs.rmSync(root, { recursive: true, force: true }); console.log("Verification gap checks passed.");

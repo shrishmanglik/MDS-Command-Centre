@@ -69,6 +69,7 @@ npm run eval -- workflows/example-review.workflow.yaml
 npm run hooks:install
 npm run docs:check
 npm run docs:frontmatter
+npm run verify:gaps
 npm run refresh-data
 npm run dev
 npm run build
@@ -91,6 +92,8 @@ npm run test:a2ui
 `npm run hooks:install` configures this repository to use `.githooks/`. The pre-commit documentation-staleness guard evaluates staged filenames only and requires mapped API/CLI/runtime/desktop/mobile documentation in the same commit as corresponding source changes. `npm run docs:check` runs the staged check directly, while CI evaluates the pushed commit range so bypassing a local hook cannot bypass integration. Secret-shaped filenames are withheld and file contents are never read. Passing confirms mapping coverage only, not documentation accuracy or live-state truth.
 
 `midas docs validate [root]` (or `npm run docs:frontmatter`) validates generated product briefs and user journeys under `generated-docs/`. It enforces exact frontmatter key order, collection-specific document types, contiguous unique `navIndex` values, `NN-slug.md` filename alignment, ISO dates, bounded statuses, and `LOCAL_DRAFT_ONLY` authority. The pre-commit hook runs it after the staleness guard. Validation aligns metadata only; it does not approve document content or public claims.
+
+`npm run verify:gaps` is the mandatory third-tier AST review gate. Machine-readable `work-orders/verification/*.verification.yaml` contracts name required JavaScript/TypeScript symbols by file, kind, name, and export requirement. `@ast-grep/napi` parses changed protected source files; missing contract coverage, missing functions/classes/methods, wrong kinds, absent exports, parse failures, and unsafe paths block commit and CI integration. Passing proves requested symbol presence only, not behavior or test adequacy.
 
 `npm run service:render` produces path-resolved systemd and launchd definitions under `output/daemon/service-config/`. Installation remains a manual operator action because persistence changes host state. The Windows entrypoint is `service/windows/run-command-centre-daemon.ps1`; registering it with Task Scheduler is intentionally not automatic.
 
