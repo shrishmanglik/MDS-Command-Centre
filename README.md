@@ -10,6 +10,8 @@ The daemon wrapper keeps the loopback server process observable for an operating
 
 The zero-trust pairing gate quarantines every previously unseen channel/sender stream. Intake returns a one-time key while `src/data/localPairings.json` stores only its SHA-256 digest. The stream remains `QUARANTINED` with `executionAllowed=false` until an operator runs `midas pairing approve <pairing-key>` (or `node scripts/midas.mjs pairing approve <pairing-key>` from the repo). Pairing changes the stream to `PAIRED`; it does not itself authorize a model run, code execution, provider access, external send, or identity claim. A separate governed run remains mandatory.
 
+The dynamic workspace router maps each paired stream to exactly one generated workspace under `output/workspaces/`. Unpaired streams fail with `PAIRING_REQUIRED`; callers cannot provide filesystem paths or workspace IDs. Each workspace contains a bounded `manifest.json`, `context.md`, and `inbox-events.json`, and agents are restricted to the local allowlist (`Codex`, `Claude Code`, `Antigravity`, `Human`). Workspace routing remains local-only and grants no execution or external authority.
+
 The Today view now renders a structured local control surface, not just Markdown board previews. It normalizes revenue truth, Product VCOS rows, frontend/backend/payment/deploy/provider gates, provider readiness blockers, Shrish-only approvals, active CEO work orders, agent assignments, failures, releases, content queue, Board decisions, CEO actions, next action, and nightly closeout evidence from the snapshot. Each row carries source evidence and claim ceilings so local readiness cannot become a live provider/payment/deployment claim.
 
 The CEO work-order control creates file-backed local tickets from source-derived work orders and records a `ceo_work_order_created` Activity event. It does not launch agents, append the official ledger, promote company memory, push GitHub, mutate providers, deploy, move money, read secrets, or contact anyone externally.
@@ -62,6 +64,7 @@ npm run desktop
 npm run daemon:probe
 npm run service:render
 npm run test:pairing
+npm run test:workspace-router
 ```
 
 `npm run service:render` produces path-resolved systemd and launchd definitions under `output/daemon/service-config/`. Installation remains a manual operator action because persistence changes host state. The Windows entrypoint is `service/windows/run-command-centre-daemon.ps1`; registering it with Task Scheduler is intentionally not automatic.
@@ -79,6 +82,8 @@ Local API routes:
 - `PUT /api/inbox` writes sanitized local inbox events with unique IDs and bounded fields.
 - `POST /api/inbox/intake` derives stream identity, enforces quarantine/pairing state, and returns a new pairing key once.
 - `GET /api/pairing` returns pairing metadata without key digests or plaintext keys.
+- `GET /api/workspaces` returns the sanitized local workspace registry.
+- `POST /api/workspaces/route` idempotently maps a paired Inbox stream into a contained local workspace.
 - `GET /api/activity` reads the D-local activity file.
 - `PUT /api/activity` writes sanitized local activity events.
 - `GET /api/decisions` reads D-local director decision exports.

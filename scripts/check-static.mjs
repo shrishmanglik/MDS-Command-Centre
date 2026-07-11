@@ -22,6 +22,7 @@ const required = [
   "src/data/localCapabilityRequests.json",
   "src/data/localInboxEvents.json",
   "src/data/localPairings.json",
+  "src/data/localWorkspaces.json",
   "desktop/launch-command-centre.ps1",
 ];
 
@@ -246,6 +247,13 @@ if (!server.includes("/api/inbox/intake") || !server.includes("pairingStatus") |
 }
 if (!pairingCli.includes("pairing approve") || !pairingCli.includes("executionAuthority")) {
   throw new Error("manual pairing approval CLI is missing or overclaims execution authority.");
+}
+const workspaceStore = fs.readFileSync(path.join(appRoot, "scripts", "lib", "workspace-store.mjs"), "utf8");
+if (!server.includes("/api/workspaces/route") || !server.includes("routeStreamToWorkspace") || !workspaceStore.includes("PAIRING_REQUIRED") || !workspaceStore.includes("Workspace path escaped")) {
+  throw new Error("pairing-gated contained workspace routing is missing.");
+}
+if (!js.includes("renderWorkspaces") || !js.includes("route-inbox-workspace") || !js.includes("One paired stream, one contained workspace")) {
+  throw new Error("workspace router operator surface is missing.");
 }
 const daemon = fs.readFileSync(path.join(appRoot, "scripts", "daemon.mjs"), "utf8");
 const systemd = fs.readFileSync(path.join(appRoot, "service", "systemd", "mds-command-centre.service"), "utf8");

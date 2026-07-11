@@ -19,6 +19,7 @@
     ,"service:render": "node scripts/render-service-config.mjs"
     ,"pairing:list": "node scripts/midas.mjs pairing list"
     ,"test:pairing": "node scripts/test-pairing-gate.mjs"
+    ,"test:workspace-router": "node scripts/test-workspace-router.mjs"
   },
   "devDependencies": {},
   "main": "index.js",

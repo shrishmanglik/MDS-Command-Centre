@@ -2937,6 +2937,22 @@ pre {
   white-space: normal;
 }
 
+.workspace-router-grid {
+  display: grid;
+  grid-template-columns: minmax(320px, 0.8fr) minmax(400px, 1.2fr);
+  gap: 16px;
+}
+
+.workspace-router-grid .wide {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 980px) {
+  .workspace-router-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (max-width: 980px) {
   .inbox-grid,
   .inbox-brief {

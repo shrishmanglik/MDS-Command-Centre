@@ -54,6 +54,10 @@ const state = {
   inboxFilter: "all",
   inboxPersistence: "localStorage fallback",
   inboxPairingNotice: "",
+  workspaces: [],
+  selectedWorkspaceId: "",
+  workspacePersistence: "local API unavailable",
+  workspaceNotice: "",
 };
 
 const storageKey = "mds-command-centre:tickets:v1";
@@ -73,6 +77,7 @@ const validViews = new Set([
   "launch",
   "operator",
   "inbox",
+  "workspaces",
   "vcos",
   "files",
   "git",
@@ -113,6 +118,7 @@ function icon(name, size = 18) {
     proof: '<path d="M12 3 5 6v6c0 4 3 7 7 9 4-2 7-5 7-9V6l-7-3Z"/><path d="m9 12 2 2 4-5"/>',
     operator: '<path d="M4 5h7v7H4z"/><path d="M13 5h7v4h-7z"/><path d="M13 11h7v8h-7z"/><path d="M4 14h7v5H4z"/><path d="M11 8h2"/><path d="M8 12v2"/><path d="M16 9v2"/>',
     inbox: '<path d="M4 5h16v14H4z"/><path d="m4 13 4-4 4 4 4-4 4 4"/><path d="M8 17h8"/>',
+    workspaces: '<path d="M3 5h8v6H3z"/><path d="M13 5h8v6h-8z"/><path d="M3 13h8v6H3z"/><path d="M13 13h8v6h-8z"/><path d="M11 8h2"/><path d="M7 11v2"/><path d="M17 11v2"/>',
     benchmark: '<path d="M4 19V5"/><path d="M4 19h16"/><path d="M8 16V9"/><path d="M12 16V7"/><path d="M16 16v-4"/>',
     search: '<circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/>',
     vcos: '<path d="M12 3v4"/><path d="M5 21v-4"/><path d="M19 21v-4"/><path d="M12 21v-6"/><rect x="9" y="7" width="6" height="4" rx="1"/><rect x="2" y="13" width="6" height="4" rx="1"/><rect x="16" y="13" width="6" height="4" rx="1"/><path d="M12 11v2"/><path d="M5 13v-1h14v1"/>',
@@ -2881,7 +2887,7 @@ function renderShell(content) {
           <div><strong>MDS Command Centre</strong><span>Local-first Sprint 001</span></div>
         </div>
         <nav>
-          ${navGroup("Operate", ["today", "inbox", "launch", "search", "queue", "boards", "operator"])}
+          ${navGroup("Operate", ["today", "inbox", "workspaces", "launch", "search", "queue", "boards", "operator"])}
           ${navGroup("System", ["vcos", "files", "git", "sources", "capabilities", "providers", "models"])}
           ${navGroup("Execution", ["runtime", "runs", "tickets", "dispatch", "proof"])}
           ${navGroup("Govern", ["closeout", "review", "promote", "activity", "decisions", "benchmark", "health"])}
@@ -2909,6 +2915,7 @@ function renderShell(content) {
 const navLabels = {
   today: "Today",
   inbox: "Inbox",
+  workspaces: "Workspaces",
   search: "Search",
   queue: "Queue",
   boards: "Boards",
@@ -3398,6 +3405,17 @@ async function loadInboxEvents() {
   }
 }
 
+async function loadWorkspaces() {
+  try {
+    const payload = await apiJson("/api/workspaces");
+    state.workspacePersistence = `file-backed: ${payload.store || "src/data/localWorkspaces.json"}`;
+    return Array.isArray(payload.records) ? payload.records : [];
+  } catch {
+    state.workspacePersistence = "local API unavailable";
+    return [];
+  }
+}
+
 async function saveInboxEvents() {
   state.inboxEvents = state.inboxEvents.slice(0, 300);
   localStorage.setItem(storageInboxKey, JSON.stringify(state.inboxEvents));
@@ -3479,7 +3497,28 @@ function renderInbox() {
       </section>
       <section class="table-panel inbox-detail">
         <div class="panel-title">${icon("dispatch")}<span>Routing preview</span></div>
-        ${selected ? `<header><div><em class="${statusClass(selected.status)}">${esc(selected.status)}</em><h2>${esc(selected.subject)}</h2><p>${esc(selected.body || "No signal body supplied.")}</p></div></header><dl class="launch-definition-list"><dt>Sender</dt><dd>${esc(selected.senderLabel)}</dd><dt>Source</dt><dd>${esc(selected.channel)} / ${esc(selected.provenance)}</dd><dt>Risk</dt><dd>${esc(selected.risk)}</dd><dt>Route</dt><dd>${esc(selected.routeTarget || "UNASSIGNED")}</dd><dt>Pairing</dt><dd><em class="${statusClass(selected.pairingStatus)}">${esc(selected.pairingStatus || "QUARANTINED")}</em></dd><dt>Code execution</dt><dd>${selected.executionAllowed === true ? "Pairing gate passed; separate run approval still required" : "BLOCKED"}</dd><dt>External state</dt><dd>UNKNOWN</dd></dl><div class="inbox-state-actions">${["NEW", "TRIAGED", "ROUTED", "CLOSED"].map((status) => `<button type="button" data-inbox-status="${status}" ${selected.status === status ? "disabled" : ""}>${esc(status)}</button>`).join("")}</div><pre class="inbox-packet">${esc(inboxRoutingPacket(selected))}</pre><div class="dispatch-actions"><button type="button" data-action="copy-inbox-packet">${icon("file", 16)} Copy routing preview</button></div>` : `<article class="empty-card"><strong>No event selected.</strong><p>Add or select a local signal to review its routing packet.</p></article>`}
+        ${selected ? `<header><div><em class="${statusClass(selected.status)}">${esc(selected.status)}</em><h2>${esc(selected.subject)}</h2><p>${esc(selected.body || "No signal body supplied.")}</p></div></header><dl class="launch-definition-list"><dt>Sender</dt><dd>${esc(selected.senderLabel)}</dd><dt>Source</dt><dd>${esc(selected.channel)} / ${esc(selected.provenance)}</dd><dt>Risk</dt><dd>${esc(selected.risk)}</dd><dt>Route</dt><dd>${esc(selected.routeTarget || "UNASSIGNED")}</dd><dt>Pairing</dt><dd><em class="${statusClass(selected.pairingStatus)}">${esc(selected.pairingStatus || "QUARANTINED")}</em></dd><dt>Workspace</dt><dd>${esc(state.workspaces.find((workspace) => workspace.streamId === selected.streamId)?.id || "UNASSIGNED")}</dd><dt>Code execution</dt><dd>${selected.executionAllowed === true ? "Pairing gate passed; separate run approval still required" : "BLOCKED"}</dd><dt>External state</dt><dd>UNKNOWN</dd></dl><div class="inbox-state-actions">${["NEW", "TRIAGED", "ROUTED", "CLOSED"].map((status) => `<button type="button" data-inbox-status="${status}" ${selected.status === status ? "disabled" : ""}>${esc(status)}</button>`).join("")}</div><pre class="inbox-packet">${esc(inboxRoutingPacket(selected))}</pre><div class="dispatch-actions"><button type="button" data-action="route-inbox-workspace" ${selected.pairingStatus === "PAIRED" ? "" : "disabled"}>${icon("workspaces", 16)} Route to workspace</button><button type="button" data-action="copy-inbox-packet">${icon("file", 16)} Copy routing preview</button></div>` : `<article class="empty-card"><strong>No event selected.</strong><p>Add or select a local signal to review its routing packet.</p></article>`}
+      </section>
+    </div>`);
+}
+
+function renderWorkspaces() {
+  const selected = state.workspaces.find((workspace) => workspace.id === state.selectedWorkspaceId) || state.workspaces[0] || null;
+  renderShell(`
+    <div class="workspace-router-grid">
+      <section class="objective-panel wide">
+        <div class="panel-title">${icon("workspaces")}<span>Isolated local workspace router</span></div>
+        <h2>One paired stream, one contained workspace.</h2>
+        <p>Workspace paths are generated under <code>output/workspaces/</code>. Routing cannot select arbitrary paths, grant execution authority, connect provider accounts, or prove external identity.</p>
+        ${state.workspaceNotice ? `<div class="pairing-notice" role="status"><strong>Router status</strong><code>${esc(state.workspaceNotice)}</code></div>` : ""}
+      </section>
+      <section class="list-panel workspace-list">
+        <div class="panel-title">${icon("workspaces")}<span>Workspace registry</span><em>${esc(state.workspacePersistence)}</em></div>
+        <div class="inbox-event-list">${state.workspaces.length ? state.workspaces.map((workspace) => `<button type="button" class="inbox-event ${selected?.id === workspace.id ? "selected" : ""}" data-workspace="${esc(workspace.id)}"><span class="inbox-event-top"><em class="${statusClass(workspace.status)}">${esc(workspace.status)}</em><time>${esc(new Date(workspace.updatedAt).toLocaleString())}</time></span><strong>${esc(workspace.label)}</strong><span>${esc(workspace.id)} · ${esc(workspace.agents.join(", "))}</span></button>`).join("") : `<article class="empty-card"><strong>No isolated workspaces.</strong><p>Pair an Inbox stream, then route it from the Inbox detail panel.</p></article>`}</div>
+      </section>
+      <section class="table-panel workspace-detail">
+        <div class="panel-title">${icon("proof")}<span>Workspace boundary</span></div>
+        ${selected ? `<h2>${esc(selected.label)}</h2><dl class="launch-definition-list"><dt>Workspace ID</dt><dd>${esc(selected.id)}</dd><dt>Stream ID</dt><dd>${esc(selected.streamId)}</dd><dt>Runtime path</dt><dd>${esc(selected.relativePath)}</dd><dt>Agents</dt><dd>${esc(selected.agents.join(", "))}</dd><dt>Context</dt><dd>${esc(selected.contextNotes)}</dd><dt>Execution authority</dt><dd>${esc(selected.executionAuthority)}</dd><dt>External state</dt><dd>${esc(selected.externalState)}</dd></dl><div class="stack-list"><article><strong>manifest.json</strong><p>Workspace identity, paired stream, allowlisted agents, and authority ceiling.</p></article><article><strong>context.md</strong><p>Bounded local context notes with explicit execution and external-state limits.</p></article><article><strong>inbox-events.json</strong><p>Event references only; no provider payload archive or credential material.</p></article></div>` : `<article class="empty-card"><strong>No workspace selected.</strong><p>Workspace artifacts appear after a paired stream is routed.</p></article>`}
       </section>
     </div>`);
 }
@@ -5693,6 +5732,7 @@ function wireMv18Events() {
 function render() {
   if (state.view === "today") renderToday();
   if (state.view === "inbox") renderInbox();
+  if (state.view === "workspaces") renderWorkspaces();
   if (state.view === "search") renderSearch();
   if (state.view === "queue") renderQueue();
   if (state.view === "boards") renderBoards();
@@ -5812,6 +5852,10 @@ function wireEvents() {
       state.selectedInboxEventId = button.dataset.inboxEvent;
       render();
     }
+    if (button.dataset.workspace) {
+      state.selectedWorkspaceId = button.dataset.workspace;
+      render();
+    }
     if (button.dataset.inboxStatus) {
       const item = selectedInboxEvent();
       if (!item) return;
@@ -5828,6 +5872,20 @@ function wireEvents() {
       render();
     }
     if (button.dataset.action === "copy-inbox-packet") await copyTextToClipboard(inboxRoutingPacket(selectedInboxEvent()));
+    if (button.dataset.action === "route-inbox-workspace") {
+      const item = selectedInboxEvent();
+      if (!item) return;
+      try {
+        const payload = await apiJson("/api/workspaces/route", { method: "POST", body: JSON.stringify({ eventId: item.id, label: item.senderLabel, contextNotes: `Local workspace for ${item.senderLabel}. Source channel: ${item.channel}.`, agents: ["Human", "Codex"] }) });
+        state.workspaces = await loadWorkspaces();
+        state.selectedWorkspaceId = payload.workspace?.id || state.workspaces[0]?.id || "";
+        state.workspaceNotice = payload.created ? `Created ${payload.workspace.id} for paired stream ${item.streamId}.` : `${payload.workspace.id} already owns stream ${item.streamId}.`;
+        state.view = "workspaces";
+      } catch (error) {
+        state.workspaceNotice = `Routing blocked: ${error.message}`;
+      }
+      render();
+    }
     if (button.dataset.board) {
       state.selectedBoardId = button.dataset.board;
       render();
@@ -6815,6 +6873,7 @@ async function boot() {
   state.sourceEvidence = await loadSourceEvidence();
   state.capabilityRequests = await loadCapabilityRequests();
   state.inboxEvents = await loadInboxEvents();
+  state.workspaces = await loadWorkspaces();
   wireMv18Events();
   state.selectedTicketId = state.tickets[0]?.id || "";
   state.selectedActivityId = state.activity[0]?.id || "";
@@ -6823,6 +6882,7 @@ async function boot() {
   state.selectedResearchId = state.research[0]?.id || "";
   state.selectedDeltaReviewId = state.deltaReviews[0]?.id || "";
   state.selectedInboxEventId = state.inboxEvents[0]?.id || "";
+  state.selectedWorkspaceId = state.workspaces[0]?.id || "";
   state.selectedBoardId = state.snapshot.sources[0]?.id || "";
   const initialView = new URLSearchParams(window.location.search).get("view");
   if (initialView && validViews.has(initialView)) state.view = initialView;

@@ -4,6 +4,7 @@ import path from "node:path";
 import { execFile } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { ensurePairing, readPairings, streamIdFor } from "./lib/pairing-store.mjs";
+import { readWorkspaces, routeStreamToWorkspace } from "./lib/workspace-store.mjs";
 
 const appRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const args = process.argv.slice(2);
@@ -24,6 +25,8 @@ const sourceEvidenceStore = path.join(appRoot, "src", "data", "localSourceEviden
 const capabilityRequestStore = path.join(appRoot, "src", "data", "localCapabilityRequests.json");
 const inboxStore = path.join(appRoot, "src", "data", "localInboxEvents.json");
 const pairingStore = path.join(appRoot, "src", "data", "localPairings.json");
+const workspaceStore = path.join(appRoot, "src", "data", "localWorkspaces.json");
+const workspaceRoot = path.join(appRoot, "output", "workspaces");
 const D_ROOT = "D:/Million Dollar AI Studio";
 const BROWSE_ROOTS = ["Products", "vcos", "command-centre", "output/playwright", "."];
 const SECRET_PATH_PATTERN =
@@ -671,6 +674,7 @@ function snapshotHealth() {
     pairingStore: path.relative(appRoot, pairingStore),
     pairedStreams: readPairings(pairingStore).filter((record) => record.status === "PAIRED").length,
     quarantinedStreams: readPairings(pairingStore).filter((record) => record.status === "QUARANTINED").length,
+    workspaces: readWorkspaces(workspaceStore).length,
     sources,
   };
 }
@@ -702,6 +706,27 @@ async function handleApi(request, response, pathname) {
     }
     if (request.method === "GET" && pathname === "/api/pairing") {
       sendJson(response, 200, { records: readPairings(pairingStore).map(({ keyDigest, ...record }) => record), store: path.relative(appRoot, pairingStore) });
+      return true;
+    }
+    if (request.method === "GET" && pathname === "/api/workspaces") {
+      sendJson(response, 200, { records: readWorkspaces(workspaceStore), store: path.relative(appRoot, workspaceStore), runtimeRoot: path.relative(appRoot, workspaceRoot) });
+      return true;
+    }
+    if (request.method === "POST" && pathname === "/api/workspaces/route") {
+      const parsed = JSON.parse(await readBody(request, 64 * 1024));
+      const event = readInboxEvents().find((item) => item.id === String(parsed.eventId || ""));
+      if (!event) throw new Error("Inbox event not found.");
+      const result = routeStreamToWorkspace({
+        storePath: workspaceStore,
+        workspaceRoot,
+        pairingRecords: readPairings(pairingStore),
+        streamId: event.streamId,
+        label: parsed.label || event.senderLabel,
+        contextNotes: parsed.contextNotes || `Local workspace for ${event.senderLabel}. Source channel: ${event.channel}.`,
+        agents: parsed.agents,
+        event,
+      });
+      sendJson(response, result.created ? 201 : 200, result);
       return true;
     }
     if (request.method === "PUT" && pathname === "/api/tickets") {
