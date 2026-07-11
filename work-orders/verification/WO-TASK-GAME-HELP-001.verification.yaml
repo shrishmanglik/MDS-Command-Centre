@@ -1,0 +1,19 @@
+schemaVersion: mds.work-order-verification.v1
+workOrderId: WO-TASK-GAME-HELP-001
+specification: Propose direct task routing, detect local game-engine manifests without reading assets, and suggest deterministic next steps from bounded Git/open-file metadata.
+requiredSymbols:
+  - file: scripts/lib/task-restructurer.mjs
+    language: JavaScript
+    kind: function
+    name: restructureTaskAssignments
+    exported: true
+  - file: scripts/lib/game-dev-adapter.mjs
+    language: JavaScript
+    kind: function
+    name: inspectGameProject
+    exported: true
+  - file: scripts/lib/help-companion.mjs
+    language: JavaScript
+    kind: function
+    name: suggestWorkspaceNextStep
+    exported: true

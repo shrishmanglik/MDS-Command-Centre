@@ -63,6 +63,10 @@ jobs:
       - run: npm run customizer:validate
       - run: npm run test:team-signaling
       - run: npm run signals:list
+      - run: npm run test:task-game-help
+      - run: npm run tasks:restructure
+      - run: npm run game:inspect
+      - run: npm run help
       - run: node scripts/build-static.mjs
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3

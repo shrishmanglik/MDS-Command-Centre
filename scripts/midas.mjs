@@ -16,6 +16,9 @@ import { runMidasLoop } from "./lib/midas-loop.mjs";
 import { runSubagentTaskFile } from "./lib/subagent-engine.mjs";
 import { parseCustomizerFile } from "./lib/declarative-customizer.mjs";
 import { readTeamSignals, stageTeamSignal } from "./lib/team-signaling.mjs";
+import { restructureTaskAssignments } from "./lib/task-restructurer.mjs";
+import { inspectGameProject } from "./lib/game-dev-adapter.mjs";
+import { suggestWorkspaceNextStep } from "./lib/help-companion.mjs";
 
 const appRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const storePath = path.join(appRoot, "src", "data", "localPairings.json");
@@ -127,6 +130,20 @@ if (domain === "signals") {
     console.log(JSON.stringify(stageTeamSignal(teamSignalStorePath, JSON.parse(fs.readFileSync(absolute, "utf8"))), null, 2)); process.exit(0);
   }
   console.error("Usage: midas signals list | stage <signal.json>"); process.exit(2);
+}
+
+if (domain === "tasks" && action === "restructure") {
+  const absolute = path.resolve(process.cwd(), value || "");
+  if (/(^|[\\/])\.env|\.(pem|p12|pfx|key)$/i.test(absolute)) throw new Error("TASK_WIZARD_SECRET_PATH");
+  console.log(JSON.stringify(restructureTaskAssignments(JSON.parse(fs.readFileSync(absolute, "utf8"))), null, 2)); process.exit(0);
+}
+
+if (domain === "game" && action === "inspect") {
+  console.log(JSON.stringify(inspectGameProject(path.resolve(process.cwd(), value || ".")), null, 2)); process.exit(0);
+}
+
+if (domain === "help") {
+  console.log(JSON.stringify(suggestWorkspaceNextStep({ repoPath: process.cwd(), openFiles: process.argv.slice(3) }), null, 2)); process.exit(0);
 }
 
 if (domain !== "pairing" || !["list", "approve"].includes(action || "")) {
