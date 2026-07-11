@@ -26,7 +26,7 @@
     "test:harness-adapter": "node scripts/test-harness-adapter.mjs",
     "workflow:parse": "node scripts/midas.mjs workflow parse workflows/local-proof.checklist.md",
     "test:checklist-workflow": "node scripts/test-checklist-workflow.mjs",
-    "release:audit": "node scripts/midas.mjs release audit HEAD~10..HEAD",
+    "release:audit": "node scripts/midas.mjs release audit HEAD~1..HEAD",
     "test:release-audit": "node scripts/test-git-release-audit.mjs",
     "hooks:install": "git config --local core.hooksPath .githooks",
     "predev": "npm run doctor",
