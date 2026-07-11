@@ -56,6 +56,7 @@ jobs:
       - run: npm run party:list
       - run: npm run test:persona-memory
       - run: npm run test:midas-loop
+      - run: npm run test:orchestration-graph
       - run: node scripts/build-static.mjs
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3

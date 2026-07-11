@@ -5,7 +5,10 @@ import { fileURLToPath } from "node:url";
 const appRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const required = [
   "index.html",
+  "graph-editor.html",
   "src/styles.css",
+  "src/graph-editor.css",
+  "src/graph-editor.js",
   "src/static-app.js",
   "src/data/warRoomSnapshot.json",
   "src/data/localTickets.json",
@@ -345,6 +348,10 @@ const personaMemory = fs.readFileSync(path.join(appRoot, "scripts", "lib", "pers
 const midasLoop = fs.readFileSync(path.join(appRoot, "scripts", "lib", "midas-loop.mjs"), "utf8");
 if (!personaMemory.includes("isolatedFromRoles") || !personaMemory.includes("MAX_ROLE_CHARS") || !midasLoop.includes("MIDAS_LOOP_APPROVED_HANDOFF_REQUIRED") || !midasLoop.includes("deployStarted: false") || !midasLoop.includes("READY_FOR_AGENT_HANDOFF") || !midasLoop.includes("build:static")) {
   throw new Error("isolated persona memory or bounded MIDAS loop authority controls are missing.");
+}
+const orchestrationGraph = fs.readFileSync(path.join(appRoot, "scripts", "lib", "orchestration-graph.mjs"), "utf8");
+if (!orchestrationGraph.includes("runParallelGraphWave") || !orchestrationGraph.includes("maxIterations") || !orchestrationGraph.includes("providerAgentsSpawned: false") || !js.includes("Graph Studio")) {
+  throw new Error("bounded graph cycles, parallel wave scheduler, provider boundary, or Graph Studio navigation is missing.");
 }
 if (!fs.readFileSync(path.join(appRoot, "package.json"), "utf8").includes('"predev": "npm run doctor"')) {
   throw new Error("doctor startup guard is not wired before workflows.");

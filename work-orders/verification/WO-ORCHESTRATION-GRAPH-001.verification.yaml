@@ -1,0 +1,24 @@
+schemaVersion: mds.work-order-verification.v1
+workOrderId: WO-ORCHESTRATION-GRAPH-001
+specification: Validate bounded cyclic orchestration graphs and schedule dependency-ready local worker waves with capped parallelism.
+requiredSymbols:
+  - file: scripts/lib/orchestration-graph.mjs
+    language: JavaScript
+    kind: function
+    name: validateOrchestrationGraph
+    exported: true
+  - file: scripts/lib/orchestration-graph.mjs
+    language: JavaScript
+    kind: function
+    name: runParallelGraphWave
+    exported: true
+  - file: src/graph-editor.js
+    language: JavaScript
+    kind: function
+    name: render
+    exported: false
+  - file: src/static-app.js
+    language: JavaScript
+    kind: function
+    name: render
+    exported: false

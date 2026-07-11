@@ -1,0 +1,12 @@
+import assert from "node:assert/strict";
+import { readyGraphNodes, runParallelGraphWave, validateOrchestrationGraph } from "./lib/orchestration-graph.mjs";
+const graph = { id: "ReviewGraph", title: "Review graph", maxIterations: 3, nodes: [{ id: "start", type: "start" }, { id: "pm", type: "agent" }, { id: "architect", type: "agent" }, { id: "gate", type: "gate" }], edges: [{ id: "e1", from: "start", to: "pm" }, { id: "e2", from: "start", to: "architect" }, { id: "e3", from: "pm", to: "gate" }, { id: "e4", from: "architect", to: "gate" }, { id: "retry", from: "gate", to: "pm", loop: true, condition: "revise" }] };
+assert.equal(validateOrchestrationGraph(graph).executionAllowed, false);
+assert.deepEqual(readyGraphNodes(graph).map((node) => node.id), ["start"]);
+assert.deepEqual(readyGraphNodes(graph, ["start"]).map((node) => node.id), ["pm", "architect"]);
+const wave = await runParallelGraphWave({ graph, completedNodeIds: ["start"], concurrency: 2, worker: async (node) => `${node.id} planned` });
+assert.deepEqual(wave.scheduledNodeIds, ["pm", "architect"]);
+assert.equal(wave.providerAgentsSpawned, false);
+assert.throws(() => validateOrchestrationGraph({ ...graph, maxIterations: 1 }), /ITERATION_LIMIT/);
+await assert.rejects(() => runParallelGraphWave({ graph, worker: async () => "ok", concurrency: 5 }), /CONCURRENCY_INVALID/);
+console.log("Orchestration graph checks passed.");

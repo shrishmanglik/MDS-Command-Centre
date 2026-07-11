@@ -2913,6 +2913,7 @@ function renderShell(content) {
           ${navGroup("Operate", ["today", "inbox", "workspaces", "voice", "canvas", "launch", "search", "queue", "boards", "operator"])}
           ${navGroup("System", ["vcos", "files", "git", "sources", "capabilities", "providers", "models"])}
           ${navGroup("Execution", ["runtime", "sandbox", "runs", "tickets", "dispatch", "proof"])}
+          <div class="nav-section"><span class="nav-group-label">Orchestrate</span><a class="nav-item" href="./graph-editor.html">Graph Studio</a></div>
           ${navGroup("Govern", ["closeout", "review", "promote", "activity", "decisions", "benchmark", "health"])}
         </nav>
         <div class="authority-box">${icon("lock", 16)}<p>D root local shell. Providers remain live-state authority.</p></div>
