@@ -42,4 +42,5 @@ copy("src/data/localSandboxReceipts.json");
 copy("src/data/localPartyRooms.json");
 copy("src/data/localPersonaMemory.json");
 copy("src/data/localTeamSignals.json");
+copy("src/data/localUserProfileEvidence.json");
 console.log(`Built static Command Centre to ${path.relative(appRoot, dist)}`);

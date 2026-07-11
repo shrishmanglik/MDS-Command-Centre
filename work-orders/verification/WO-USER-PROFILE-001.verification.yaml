@@ -1,0 +1,19 @@
+schemaVersion: mds.work-order-verification.v1
+workOrderId: WO-USER-PROFILE-001
+specification: Build a reviewable dialectic developer-preference model from explicit source-referenced evidence while excluding sensitive traits and automatic application.
+requiredSymbols:
+  - file: scripts/lib/user-profile-modeler.mjs
+    language: JavaScript
+    kind: function
+    name: recordProfileObservation
+    exported: true
+  - file: scripts/lib/user-profile-modeler.mjs
+    language: JavaScript
+    kind: function
+    name: buildDialecticProfile
+    exported: true
+  - file: scripts/lib/user-profile-modeler.mjs
+    language: JavaScript
+    kind: function
+    name: readDialecticProfile
+    exported: true
