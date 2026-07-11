@@ -1,0 +1,6 @@
+{
+  "schemaVersion": "mds.team-signaling-outbox.v1",
+  "updatedAt": "UNKNOWN",
+  "authority": "D-local staged signals only. No external message, webhook, credential read, or provider delivery is attempted or proved.",
+  "signals": []
+}

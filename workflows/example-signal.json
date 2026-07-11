@@ -1,0 +1,7 @@
+{
+  "platform": "feishu",
+  "type": "HEARTBEAT",
+  "destinationRef": "engineering-room",
+  "taskId": "TASK-27",
+  "summary": "Local orchestration queue heartbeat"
+}

@@ -61,6 +61,8 @@ jobs:
       - run: npm run workers:run
       - run: npm run test:customizer
       - run: npm run customizer:validate
+      - run: npm run test:team-signaling
+      - run: npm run signals:list
       - run: node scripts/build-static.mjs
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
