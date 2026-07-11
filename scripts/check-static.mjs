@@ -28,6 +28,7 @@ const required = [
   "src/data/localCanvasDocuments.json",
   "src/data/localSandboxReceipts.json",
   "desktop/launch-command-centre.ps1",
+  "desktop/command-centre-tray.ps1",
 ];
 
 const missing = required.filter((relativePath) => !fs.existsSync(path.join(appRoot, relativePath)));
@@ -294,6 +295,10 @@ if (!js.includes("renderSandbox") || !js.includes("sandbox-form") || !js.include
   throw new Error("sandbox operator surface or claim boundary is missing.");
 }
 const daemon = fs.readFileSync(path.join(appRoot, "scripts", "daemon.mjs"), "utf8");
+const trayController = fs.readFileSync(path.join(appRoot, "desktop", "command-centre-tray.ps1"), "utf8");
+if (!trayController.includes("System.Windows.Forms.NotifyIcon") || !trayController.includes("sessionOwnsDaemon") || !trayController.includes("Stop blocked: this tray does not own")) {
+  throw new Error("Windows tray companion or session-owned process boundary is missing.");
+}
 const systemd = fs.readFileSync(path.join(appRoot, "service", "systemd", "mds-command-centre.service"), "utf8");
 const launchd = fs.readFileSync(path.join(appRoot, "service", "launchd", "com.mds.command-centre.plist"), "utf8");
 if (!daemon.includes("127.0.0.1") || !daemon.includes("three consecutive health failures") || !daemon.includes("SIGTERM")) {

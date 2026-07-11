@@ -78,6 +78,8 @@ npm run test:a2ui
 
 `npm run service:render` produces path-resolved systemd and launchd definitions under `output/daemon/service-config/`. Installation remains a manual operator action because persistence changes host state. The Windows entrypoint is `service/windows/run-command-centre-daemon.ps1`; registering it with Task Scheduler is intentionally not automatic.
 
+`npm run tray` starts the Windows system-tray companion. Its menu can start, stop, or restart only the daemon process owned by that tray session, open the local Command Centre, run bounded diagnostics, and open local daemon logs. A pre-existing server is monitored but never terminated. `npm run tray:diagnostics` emits the same no-secret readiness record without opening a UI. The tray does not install itself, elevate privileges, register startup persistence, mutate providers, or prove external state. macOS menu-bar support remains unsupported.
+
 There are no runtime npm dependencies for Sprint 001; the app is plain HTML, CSS, and JavaScript.
 
 `npm run desktop` opens the local web app in a dedicated Edge or Chrome app window. It is a conservative desktop shell, not a packaged production desktop app.
